@@ -1,0 +1,9 @@
+packages:
+  - apps/web
+  - apps/mobile
+  - apps/api
+  - apps/admin
+  - packages/design-tokens
+  - packages/types
+  - packages/phase-data
+  - packages/utils

@@ -1,0 +1,13 @@
+{
+  "name": "@lunari/phase-data",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lunari/types": "workspace:*"
+  }
+}
