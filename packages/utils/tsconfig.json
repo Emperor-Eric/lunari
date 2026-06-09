@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "paths": {
+      "@lunari/types": ["../types/src/index.ts"]
+    },
+    "baseUrl": "."
+  },
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"]
+}

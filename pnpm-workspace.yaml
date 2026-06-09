@@ -7,3 +7,4 @@ packages:
   - packages/types
   - packages/phase-data
   - packages/utils
+  - packages/ui

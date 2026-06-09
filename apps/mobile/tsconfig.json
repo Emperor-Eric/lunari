@@ -1,0 +1,16 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler",
+    "jsxImportSource": "react",
+    "paths": {
+      "@lunari/types": ["../../packages/types/src/index.ts"],
+      "@lunari/design-tokens": ["../../packages/design-tokens/tokens.ts"],
+      "@lunari/phase-data": ["../../packages/phase-data/src/index.ts"],
+      "@lunari/ui": ["../../packages/ui/src/native/index.ts"],
+      "@lunari/utils": ["../../packages/utils/src/index.ts"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.d.ts", "expo-env.d.ts"]
+}
