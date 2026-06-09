@@ -1,10 +1,17 @@
 {
   "name": "@lunari/design-tokens",
   "version": "0.1.0",
-  "main": "tokens.ts",
+  "main": "./tokens.ts",
+  "exports": {
+    ".": "./tokens.ts",
+    "./index.css": "./index.css"
+  },
   "scripts": {
-    "build": "cp index.css dist/index.css",
+    "build": "tsc && cp index.css dist/index.css",
     "lint": "eslint . --ext .ts",
     "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
   }
 }
