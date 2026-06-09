@@ -32,7 +32,7 @@ export interface Phase {
   color: string
   lightColor: string
   tagline: string
-  packCount: number
+  containerNumber: 1 | 2 | 3 | 4
   workouts: Workout[]
   avoidWorkouts: AvoidItem[]
   foods: FoodItem[]
@@ -70,7 +70,7 @@ export interface TodayCycleResponse {
   phase: PhaseId
   phaseName: string
   phaseColor: string
-  packsRemaining: number
+  containerNumber: 1 | 2 | 3 | 4
 }
 
 // ─── Symptom log ─────────────────────────────────────────────────────────────

@@ -1,6 +1,15 @@
 import type { Phase, PhaseId } from '@lunari/types'
 import { phases } from './phases'
 
+export interface ContainerInfo {
+  containerNumber: 1 | 2 | 3 | 4
+  containerName: string
+  phase: PhaseId
+  phaseColor: string
+  daysRemaining: number
+  isLastDay: boolean
+}
+
 /**
  * Returns the Phase object for a given cycle day (1–28).
  * Falls back to the luteal phase if day is out of range.
@@ -58,4 +67,21 @@ export function getDayInCycle(
 
   // Wrap within cycle length, returning 1-based day
   return (diffDays % cycleLength) + 1
+}
+
+/**
+ * Returns container metadata for the given cycle day.
+ * Maps the current phase to its numbered container (1–4).
+ */
+export function getCurrentContainer(cycleDay: number): ContainerInfo {
+  const phase = getPhaseForDay(cycleDay)
+  const daysRemaining = phase.cycleDays.end - cycleDay
+  return {
+    containerNumber: phase.containerNumber,
+    containerName: phase.name,
+    phase: phase.id,
+    phaseColor: phase.color,
+    daysRemaining,
+    isLastDay: daysRemaining === 0,
+  }
 }

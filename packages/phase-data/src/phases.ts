@@ -20,7 +20,7 @@ export const phases: Phase[] = [
     color: '#7A1E2E',
     lightColor: '#F5E8EA',
     tagline: 'Rest, restore, and replenish. Your body is doing deep work.',
-    packCount: 5,
+    containerNumber: 1 as const,
     workouts: [
       {
         title: 'Yin Yoga',
@@ -86,7 +86,7 @@ export const phases: Phase[] = [
     color: '#3D6B4A',
     lightColor: '#E4EFE6',
     tagline: 'Rising energy, new ideas, fresh momentum. Lean in.',
-    packCount: 10,
+    containerNumber: 2 as const,
     workouts: [
       {
         title: 'Strength Training',
@@ -152,7 +152,7 @@ export const phases: Phase[] = [
     color: '#5B3E8C',
     lightColor: '#EDE8F5',
     tagline: 'Peak energy, glow, and confidence. Your most magnetic week.',
-    packCount: 5,
+    containerNumber: 3 as const,
     workouts: [
       {
         title: 'Power Yoga',
@@ -219,7 +219,7 @@ export const phases: Phase[] = [
     color: '#7A4A2A',
     lightColor: '#F0E8DF',
     tagline: 'Wind down, go inward, and prepare for renewal.',
-    packCount: 10,
+    containerNumber: 4 as const,
     workouts: [
       {
         title: 'Moderate Lifting',
