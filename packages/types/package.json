@@ -1,10 +1,16 @@
 {
   "name": "@lunari/types",
   "version": "0.1.0",
-  "main": "src/index.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
   }
 }
