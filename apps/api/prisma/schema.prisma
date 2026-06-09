@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String        @id @default(uuid()) @db.Uuid
+  email             String        @unique
+  name              String?
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  onboardedAt       DateTime?     @map("onboarded_at") @db.Timestamptz
+  notificationPrefs Json          @default("{\"dailyReminder\": true, \"reminderTime\": \"08:00\"}") @map("notification_prefs")
+
+  cycles       Cycle[]
+  symptomLogs  SymptomLog[]
+  orders       Order[]
+  subscriptions Subscription[]
+
+  @@map("users")
+}
+
+model Cycle {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  startDate   DateTime @map("start_date") @db.Date
+  cycleLength Int      @default(28) @map("cycle_length")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cycles")
+}
+
+model SymptomLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  cycleDay    Int      @map("cycle_day")
+  phase       String
+  symptoms    String[] @default([])
+  journalNote String   @default("") @map("journal_note")
+  loggedAt    DateTime @default(now()) @map("logged_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("symptom_logs")
+}
+
+model Order {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String?  @map("user_id") @db.Uuid
+  stripeSessionId     String?  @unique @map("stripe_session_id")
+  status              String   @default("pending")
+  productSku          String   @map("product_sku")
+  quantity            Int      @default(1)
+  totalCents          Int      @map("total_cents")
+  shippingAddress     Json?    @map("shipping_address")
+  fulfillmentTracking String?  @map("fulfillment_tracking")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("orders")
+}
+
+model Subscription {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  stripeSubscriptionId String   @unique @map("stripe_subscription_id")
+  status               String   @default("active")
+  nextBillingDate      DateTime? @map("next_billing_date") @db.Date
+  interval             String   @default("monthly")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model InfluencerReferral {
+  id                   String   @id @default(uuid()) @db.Uuid
+  influencerCode       String   @unique @map("influencer_code")
+  influencerName       String   @map("influencer_name")
+  commissionRate       Decimal  @default(0.20) @map("commission_rate")
+  totalSales           Int      @default(0) @map("total_sales")
+  totalCommissionCents Int      @default(0) @map("total_commission_cents")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("influencer_referrals")
+}
