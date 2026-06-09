@@ -7,10 +7,18 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "test": "turbo test"
+    "test": "turbo test",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "turbo": "latest"
+    "turbo": "latest",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
