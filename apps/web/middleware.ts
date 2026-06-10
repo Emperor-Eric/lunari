@@ -2,39 +2,65 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request })
+  // Start with a pass-through response. The Supabase client mutates this via
+  // setAll when it refreshes the session, so we must return THIS object (or a
+  // redirect that copies its cookies) for the refreshed cookies to persist.
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookies) => {
-          cookies.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
-          })
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          // Write refreshed cookies back to BOTH the request (so getUser sees
+          // them this pass) and a fresh response (so the browser receives them).
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // IMPORTANT: do not run any logic between createServerClient and getUser().
+  // getUser() revalidates the token against the Supabase Auth server and
+  // triggers a cookie refresh (via setAll above) when needed.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const { pathname } = request.nextUrl
 
-  // No session → redirect to login for protected routes (tracker + onboarding).
-  // Note: /onboarding requires a session but does NOT bounce users whose
-  // onboarded_at is still null — that is exactly who needs to be there.
-  if (!session && (pathname.startsWith('/tracker') || pathname.startsWith('/onboarding'))) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+  // Helper: build a redirect that carries over any refreshed auth cookies.
+  const redirectTo = (path: string) => {
+    const url = request.nextUrl.clone()
+    url.pathname = path
+    const redirect = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie)
+    })
+    return redirect
   }
 
-  // Session + auth pages → redirect to tracker
-  if (session && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup'))) {
-    return NextResponse.redirect(new URL('/tracker', request.url))
+  // No authenticated user → bounce protected routes to login.
+  // /onboarding requires a user but does NOT bounce users whose onboarded_at is
+  // still null — that is exactly who needs to be there.
+  if (!user && (pathname.startsWith('/tracker') || pathname.startsWith('/onboarding'))) {
+    return redirectTo('/auth/login')
   }
 
-  return response
+  // Authenticated user on an auth page → send to the tracker.
+  if (user && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup'))) {
+    return redirectTo('/tracker')
+  }
+
+  return supabaseResponse
 }
 
 export const config = {
