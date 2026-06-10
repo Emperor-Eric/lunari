@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
+import { redirect } from 'next/navigation'
 import { ContainerRow } from '@lunari/ui'
 import { getPhaseForDay } from '@lunari/phase-data'
 import { buildShopifyUrl } from '@lunari/utils'
@@ -7,6 +8,7 @@ import type { UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost } from '@/src/lib/api'
 import { useCycleContext } from '../layout'
 
+const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 const KIT_URL = process.env.NEXT_PUBLIC_SHOPIFY_PRODUCT_KIT_URL || 'https://herlunari.myshopify.com/products/30-day-kit'
 const SUB_URL = process.env.NEXT_PUBLIC_SHOPIFY_PRODUCT_SUB_URL || 'https://herlunari.myshopify.com/products/monthly-subscription'
 
@@ -25,6 +27,10 @@ export default function ShopPage() {
       .then((data) => setSavedCode(data.code ?? null))
       .catch(() => {})
   }, [])
+
+  // Shop is hidden pre-launch — a manual visit to /tracker/shop bounces home.
+  // Placed after hooks so hook order stays stable (rules-of-hooks safe).
+  if (!SHOP_ENABLED) redirect('/tracker')
 
   const openShopify = (baseUrl: string) => {
     window.open(buildShopifyUrl(baseUrl, savedCode), '_blank', 'noopener,noreferrer')

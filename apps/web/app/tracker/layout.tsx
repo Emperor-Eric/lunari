@@ -9,12 +9,16 @@ import { apiFetch } from '@/src/lib/api'
 const CycleContext = createContext<{ cycleData: TodayCycleResponse | null }>({ cycleData: null })
 export const useCycleContext = () => useContext(CycleContext)
 
+const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
+
 const NAV_LINKS = [
   { href: '/tracker', label: 'Today', emoji: '🌙' },
   { href: '/tracker/workouts', label: 'Move', emoji: '🏋️' },
   { href: '/tracker/nutrition', label: 'Fuel', emoji: '🌿' },
   { href: '/tracker/log', label: 'Log', emoji: '✍️' },
-  { href: '/tracker/shop', label: 'Shop', emoji: '🛍️' },
+  // Shop is gated behind NEXT_PUBLIC_SHOP_ENABLED (off until the kit ships)
+  ...(SHOP_ENABLED ? [{ href: '/tracker/shop', label: 'Shop', emoji: '🛍️' }] : []),
+  { href: '/tracker/profile', label: 'Me', emoji: '👤' },
 ]
 
 export default function TrackerLayout({ children }: { children: React.ReactNode }) {
