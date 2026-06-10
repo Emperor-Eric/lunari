@@ -11,6 +11,7 @@ import authRoutes from './routes/auth'
 import meRoutes from './routes/me'
 import cycleRoutes from './routes/cycle'
 import logsRoutes from './routes/logs'
+import referralRoutes from './routes/referral'
 import productsRoutes from './routes/products'
 import checkoutRoutes from './routes/checkout'
 import webhooksRoutes from './routes/webhooks'
@@ -40,6 +41,7 @@ export async function buildApp() {
   await app.register(meRoutes, v1Prefix)
   await app.register(cycleRoutes, v1Prefix)
   await app.register(logsRoutes, v1Prefix)
+  await app.register(referralRoutes, v1Prefix)
   await app.register(productsRoutes, v1Prefix)
   await app.register(checkoutRoutes, v1Prefix)
   await app.register(webhooksRoutes, v1Prefix)

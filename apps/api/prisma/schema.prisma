@@ -11,9 +11,11 @@ model User {
   id                String        @id @default(uuid()) @db.Uuid
   email             String        @unique
   name              String?
-  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
-  onboardedAt       DateTime?     @map("onboarded_at") @db.Timestamptz
-  notificationPrefs Json          @default("{\"dailyReminder\": true, \"reminderTime\": \"08:00\"}") @map("notification_prefs")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  onboardedAt           DateTime? @map("onboarded_at") @db.Timestamptz
+  notificationPrefs     Json      @default("{\"dailyReminder\": true, \"reminderTime\": \"08:00\"}") @map("notification_prefs")
+  referralCode          String?   @map("referral_code")
+  referralCodeAppliedAt DateTime? @map("referral_code_applied_at") @db.Timestamptz
 
   cycles       Cycle[]
   symptomLogs  SymptomLog[]
@@ -92,6 +94,7 @@ model InfluencerReferral {
   commissionRate       Decimal  @default(0.20) @map("commission_rate")
   totalSales           Int      @default(0) @map("total_sales")
   totalCommissionCents Int      @default(0) @map("total_commission_cents")
+  appAttributions      Int      @default(0) @map("app_attributions")
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("influencer_referrals")

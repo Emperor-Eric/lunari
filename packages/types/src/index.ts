@@ -71,6 +71,30 @@ export interface TodayCycleResponse {
   phaseName: string
   phaseColor: string
   containerNumber: 1 | 2 | 3 | 4
+  daysRemainingInPhase: number
+  isLastDayOfPhase: boolean
+  isLastDayOfCycle: boolean
+}
+
+export interface ContainerInfo {
+  containerNumber: 1 | 2 | 3 | 4
+  containerName: string
+  phase: PhaseId
+  phaseColor: string
+  daysRemaining: number
+  isLastDay: boolean
+}
+
+// Referrals
+export interface ReferralCodeResponse {
+  code: string
+  influencerName: string
+  discountPercent: number
+}
+
+export interface UserReferralCode {
+  code: string
+  appliedAt: string
 }
 
 // ─── Symptom log ─────────────────────────────────────────────────────────────
