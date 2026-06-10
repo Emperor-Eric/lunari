@@ -4,6 +4,9 @@ import { useAuth } from '@lunari/utils'
 import type { User, UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost, apiDelete } from '@/src/lib/api'
 
+// Referral entry turns on with the shop — a code only matters once there's a product.
+const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
+
 export default function ProfilePage() {
   const { signOut } = useAuth()
 
@@ -19,6 +22,7 @@ export default function ProfilePage() {
     apiGet<User>('/me')
       .then(setUser)
       .catch(() => {})
+    if (!SHOP_ENABLED) return
     apiGet<UserReferralCode>('/me/referral-code')
       .then((data) => setSavedCode(data.code ?? null))
       .catch(() => {})
@@ -75,57 +79,59 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Referral code */}
-      <div className="bg-white rounded-2xl border border-brand-stone p-5 flex flex-col gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-brand-ink">Referral code</h2>
-          <p className="text-sm text-brand-ink-soft">
-            Got a code from a creator? Add it to your account.
-          </p>
+      {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
+      {SHOP_ENABLED && (
+        <div className="bg-white rounded-2xl border border-brand-stone p-5 flex flex-col gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-brand-ink">Referral code</h2>
+            <p className="text-sm text-brand-ink-soft">
+              Got a code from a creator? Add it to your account.
+            </p>
+          </div>
+
+          {savedCode ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-brand-ink">
+                Your code: <strong>{savedCode}</strong>
+              </span>
+              <button
+                onClick={removeCode}
+                className="text-sm text-phase-menstrual font-semibold"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+                placeholder="e.g. GYMGIRL20"
+                className="flex-1 rounded-xl border-2 border-brand-stone bg-brand-cream px-4 py-2.5 text-sm text-brand-ink placeholder-brand-ink-soft focus:outline-none focus:border-brand-gold uppercase"
+              />
+              <button
+                onClick={applyCode}
+                disabled={applying}
+                className="px-5 py-2.5 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
+              >
+                {applying ? '…' : 'Apply'}
+              </button>
+            </div>
+          )}
+
+          {feedback && (
+            <div
+              className={`rounded-xl p-3 text-sm font-medium ${
+                feedback.type === 'success'
+                  ? 'bg-phase-follicular-light text-phase-follicular'
+                  : 'bg-phase-menstrual-light text-phase-menstrual'
+              }`}
+            >
+              {feedback.msg}
+            </div>
+          )}
         </div>
-
-        {savedCode ? (
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-brand-ink">
-              Your code: <strong>{savedCode}</strong>
-            </span>
-            <button
-              onClick={removeCode}
-              className="text-sm text-phase-menstrual font-semibold"
-            >
-              Remove
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <input
-              value={codeInput}
-              onChange={(e) => setCodeInput(e.target.value)}
-              placeholder="e.g. GYMGIRL20"
-              className="flex-1 rounded-xl border-2 border-brand-stone bg-brand-cream px-4 py-2.5 text-sm text-brand-ink placeholder-brand-ink-soft focus:outline-none focus:border-brand-gold uppercase"
-            />
-            <button
-              onClick={applyCode}
-              disabled={applying}
-              className="px-5 py-2.5 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
-            >
-              {applying ? '…' : 'Apply'}
-            </button>
-          </div>
-        )}
-
-        {feedback && (
-          <div
-            className={`rounded-xl p-3 text-sm font-medium ${
-              feedback.type === 'success'
-                ? 'bg-phase-follicular-light text-phase-follicular'
-                : 'bg-phase-menstrual-light text-phase-menstrual'
-            }`}
-          >
-            {feedback.msg}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Sign out */}
       <button

@@ -7,6 +7,8 @@ import { getPhaseForDay } from '@lunari/phase-data'
 import type { UserReferralCode } from '@lunari/types'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
+// Referral entry turns on with the shop — a code only matters once there's a product.
+const SHOP_ENABLED = process.env.EXPO_PUBLIC_SHOP_ENABLED === 'true'
 
 export default function Profile() {
   const { signOut, session } = useAuth()
@@ -25,7 +27,7 @@ export default function Profile() {
   )
 
   useEffect(() => {
-    if (!session) return
+    if (!SHOP_ENABLED || !session) return
     fetch(`${API_URL}/me/referral-code`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: UserReferralCode | null) => setSavedCode(data?.code ?? null))
@@ -137,58 +139,60 @@ export default function Profile() {
           </Text>
         </View>
 
-        {/* Referral code */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Referral code</Text>
-          <Text style={styles.cardBody}>Got a code from a creator? Add it to your account.</Text>
+        {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
+        {SHOP_ENABLED && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Referral code</Text>
+            <Text style={styles.cardBody}>Got a code from a creator? Add it to your account.</Text>
 
-          {savedCode ? (
-            <View style={styles.row}>
-              <Text style={styles.savedCodeText}>Your code: {savedCode}</Text>
-              <TouchableOpacity onPress={removeCode}>
-                <Text style={styles.removeLink}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.codeInputRow}>
-              <TextInput
-                style={styles.codeInput}
-                placeholder="e.g. GYMGIRL20"
-                placeholderTextColor="#6B6460"
-                value={codeInput}
-                onChangeText={setCodeInput}
-                autoCapitalize="characters"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={[styles.applyBtn, applying && styles.applyBtnDisabled]}
-                onPress={applyCode}
-                disabled={applying}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.applyBtnText}>{applying ? '…' : 'Apply'}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            {savedCode ? (
+              <View style={styles.row}>
+                <Text style={styles.savedCodeText}>Your code: {savedCode}</Text>
+                <TouchableOpacity onPress={removeCode}>
+                  <Text style={styles.removeLink}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.codeInputRow}>
+                <TextInput
+                  style={styles.codeInput}
+                  placeholder="e.g. GYMGIRL20"
+                  placeholderTextColor="#6B6460"
+                  value={codeInput}
+                  onChangeText={setCodeInput}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={[styles.applyBtn, applying && styles.applyBtnDisabled]}
+                  onPress={applyCode}
+                  disabled={applying}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.applyBtnText}>{applying ? '…' : 'Apply'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
-          {feedback && (
-            <View
-              style={[
-                styles.feedbackCard,
-                feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError,
-              ]}
-            >
-              <Text
+            {feedback && (
+              <View
                 style={[
-                  styles.feedbackText,
-                  { color: feedback.type === 'success' ? '#3D6B4A' : '#7A1E2E' },
+                  styles.feedbackCard,
+                  feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError,
                 ]}
               >
-                {feedback.msg}
-              </Text>
-            </View>
-          )}
-        </View>
+                <Text
+                  style={[
+                    styles.feedbackText,
+                    { color: feedback.type === 'success' ? '#3D6B4A' : '#7A1E2E' },
+                  ]}
+                >
+                  {feedback.msg}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Sign out */}
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
