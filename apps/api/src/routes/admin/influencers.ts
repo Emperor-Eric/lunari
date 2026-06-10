@@ -56,10 +56,12 @@ const adminInfluencersRoutes: FastifyPluginAsync = async (fastify) => {
     return sendCsv(reply, 'lunari-influencers.csv', rows.map(toRow), INFLUENCER_CSV_FIELDS)
   })
 
+  // commissionRate is submitted as a PERCENT (e.g. 20) and stored as a fraction
+  // (0.20) to match the existing seed-data convention.
   const createSchema = z.object({
     code: z.string().trim().min(1).max(40),
     name: z.string().trim().min(1),
-    commissionRate: z.number().nonnegative().default(20),
+    commissionRate: z.number().nonnegative().max(100).default(20),
   })
 
   fastify.post('/admin/influencers', async (request, reply) => {
@@ -74,7 +76,7 @@ const adminInfluencersRoutes: FastifyPluginAsync = async (fastify) => {
         data: {
           influencerCode: code.toUpperCase(),
           influencerName: name,
-          commissionRate,
+          commissionRate: commissionRate / 100,
         },
       })
       return reply.status(201).send(toRow(created))
@@ -84,9 +86,10 @@ const adminInfluencersRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
 
+  // commissionRate here is also a PERCENT, stored as a fraction.
   const updateSchema = z.object({
     name: z.string().trim().min(1).optional(),
-    commissionRate: z.number().nonnegative().optional(),
+    commissionRate: z.number().nonnegative().max(100).optional(),
     active: z.boolean().optional(),
   })
 
@@ -102,7 +105,7 @@ const adminInfluencersRoutes: FastifyPluginAsync = async (fastify) => {
           where: { id: request.params.id },
           data: {
             ...(name !== undefined && { influencerName: name }),
-            ...(commissionRate !== undefined && { commissionRate }),
+            ...(commissionRate !== undefined && { commissionRate: commissionRate / 100 }),
             ...(active !== undefined && { active }),
           },
         })
