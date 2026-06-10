@@ -21,6 +21,7 @@
     "zustand": "^4.5.2"
   },
   "peerDependencies": {
+    "react": ">=18",
     "expo-secure-store": ">=15"
   },
   "peerDependenciesMeta": {
