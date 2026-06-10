@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: '/tracker/workouts', label: 'Move', emoji: '🏋️' },
   { href: '/tracker/nutrition', label: 'Fuel', emoji: '🌿' },
   { href: '/tracker/log', label: 'Log', emoji: '✍️' },
+  { href: '/tracker/shop', label: 'Shop', emoji: '🛍️' },
 ]
 
 export default function TrackerLayout({ children }: { children: React.ReactNode }) {

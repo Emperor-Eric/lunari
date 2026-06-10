@@ -66,6 +66,14 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="shop"
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon focused={focused} color={color} label="Shop" emoji="🛍️" />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ focused, color }) => (
