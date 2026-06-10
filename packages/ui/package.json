@@ -15,16 +15,21 @@
   "dependencies": {
     "@lunari/design-tokens": "workspace:*",
     "@lunari/phase-data": "workspace:*",
-    "@lunari/types": "workspace:*"
+    "@lunari/types": "workspace:*",
+    "date-fns": "^3.6.0"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18",
-    "react-native": ">=0.81.5"
+    "react-native": ">=0.81.5",
+    "react-native-reanimated": ">=4.0.0",
+    "@react-native-community/slider": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "react-dom": { "optional": true },
-    "react-native": { "optional": true }
+    "react-native": { "optional": true },
+    "react-native-reanimated": { "optional": true },
+    "@react-native-community/slider": { "optional": true }
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
