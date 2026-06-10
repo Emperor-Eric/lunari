@@ -18,6 +18,8 @@ function TabIcon({ focused, color, label, emoji }: TabIconProps) {
   )
 }
 
+const SHOP_ENABLED = process.env.EXPO_PUBLIC_SHOP_ENABLED === 'true'
+
 export default function TabsLayout() {
   const { user } = useUser()
   // Default to follicular gold if phase not yet loaded
@@ -64,6 +66,19 @@ export default function TabsLayout() {
             <TabIcon focused={focused} color={color} label="Log" emoji="✍️" />
           ),
         }}
+      />
+      <Tabs.Screen
+        name="shop"
+        options={
+          SHOP_ENABLED
+            ? {
+                tabBarIcon: ({ focused, color }) => (
+                  <TabIcon focused={focused} color={color} label="Shop" emoji="🛍️" />
+                ),
+              }
+            : // Keep the route in the repo but hide it from the tab bar
+              { href: null }
+        }
       />
       <Tabs.Screen
         name="profile"

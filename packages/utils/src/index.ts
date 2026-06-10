@@ -3,3 +3,4 @@
 export { getSupabaseClient } from '@lunari/utils/supabase/client'
 export { useAuth } from './auth/useAuth'
 export { useUser } from './auth/useUser'
+export { buildShopifyUrl } from './shopify'
