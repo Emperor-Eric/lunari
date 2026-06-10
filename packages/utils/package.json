@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./supabase/client": {
+      "react-native": "./src/supabase/client.native.ts",
+      "default": "./src/supabase/client.web.ts"
+    }
   },
   "scripts": {
     "build": "tsc",

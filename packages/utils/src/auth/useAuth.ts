@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js'
-import { getSupabaseClient } from '../supabase/client'
+import { getSupabaseClient } from '@lunari/utils/supabase/client'
 
 const API_URL =
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||

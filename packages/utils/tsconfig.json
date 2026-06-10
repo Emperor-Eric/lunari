@@ -9,7 +9,8 @@
     "rootDir": "src",
     "skipLibCheck": true,
     "paths": {
-      "@lunari/types": ["../types/src/index.ts"]
+      "@lunari/types": ["../types/src/index.ts"],
+      "@lunari/utils/supabase/client": ["./src/supabase/client.web.ts"]
     },
     "baseUrl": "."
   },

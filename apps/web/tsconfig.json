@@ -20,7 +20,8 @@
       "@lunari/design-tokens": ["../../packages/design-tokens/tokens.ts"],
       "@lunari/phase-data": ["../../packages/phase-data/src/index.ts"],
       "@lunari/ui": ["../../packages/ui/src/web/index.ts"],
-      "@lunari/utils": ["../../packages/utils/src/index.ts"]
+      "@lunari/utils": ["../../packages/utils/src/index.ts"],
+      "@lunari/utils/supabase/client": ["../../packages/utils/src/supabase/client.web.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -9,7 +9,8 @@
       "@lunari/design-tokens": ["../../packages/design-tokens/tokens.ts"],
       "@lunari/phase-data": ["../../packages/phase-data/src/index.ts"],
       "@lunari/ui": ["../../packages/ui/src/native/index.ts"],
-      "@lunari/utils": ["../../packages/utils/src/index.ts"]
+      "@lunari/utils": ["../../packages/utils/src/index.ts"],
+      "@lunari/utils/supabase/client": ["../../packages/utils/src/supabase/client.native.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.d.ts", "expo-env.d.ts"]
