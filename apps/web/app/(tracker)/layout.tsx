@@ -2,14 +2,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useAuth } from '@lunari/utils'
 import type { TodayCycleResponse } from '@lunari/types'
 import { getPhaseForDay } from '@lunari/phase-data'
+import { apiFetch } from '@/src/lib/api'
 
 const CycleContext = createContext<{ cycleData: TodayCycleResponse | null }>({ cycleData: null })
 export const useCycleContext = () => useContext(CycleContext)
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
 const NAV_LINKS = [
   { href: '/tracker', label: 'Today', emoji: '🌙' },
@@ -19,16 +17,14 @@ const NAV_LINKS = [
 ]
 
 export default function TrackerLayout({ children }: { children: React.ReactNode }) {
-  const { session } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
 
   useEffect(() => {
-    if (!session) return
-    fetch(`${API_URL}/me/cycle/today`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
+    // apiFetch attaches the bearer token from the session cookie, so this works
+    // on a fresh page load without depending on the in-memory auth store.
+    apiFetch('/me/cycle/today')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         // No cycle set yet → the user hasn't finished onboarding
@@ -38,7 +34,10 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
         }
         setCycleData(data)
       })
-  }, [session, router])
+      .catch(() => {
+        /* network error — leave cycleData null, page shows default phase */
+      })
+  }, [router])
 
   const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
 

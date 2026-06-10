@@ -4,10 +4,8 @@ import { useRouter } from 'next/navigation'
 import { format, subDays } from 'date-fns'
 import { getDayInCycle, getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
-import { useAuth } from '@lunari/utils'
 import type { PhaseId } from '@lunari/types'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
+import { apiPost } from '@/src/lib/api'
 
 type Method = 'manual' | 'smart'
 
@@ -31,7 +29,6 @@ const Q3_OPTIONS = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { session } = useAuth()
 
   const [method, setMethod] = useState<Method>('manual')
   const [saving, setSaving] = useState(false)
@@ -52,22 +49,12 @@ export default function OnboardingPage() {
   const manualPhase = getPhaseForDay(manualDay)
 
   const submit = async (startDate: string, length: number) => {
-    if (!session) {
-      setError('You must be signed in.')
-      return
-    }
     setSaving(true)
     setError('')
     try {
-      const res = await fetch(`${API_URL}/me/cycle`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ startDate, cycleLength: length }),
-      })
-      if (!res.ok) throw new Error('Failed to save cycle')
+      // apiPost reads the bearer token from the Supabase session cookie and
+      // throws on a non-2xx response.
+      await apiPost('/me/cycle', { startDate, cycleLength: length })
       router.push('/tracker')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')

@@ -5,13 +5,10 @@ import {
   SleepInput, WaterTracker, JournalInput, Toast,
 } from '@lunari/ui'
 import { getPhaseForDay } from '@lunari/phase-data'
-import { useAuth } from '@lunari/utils'
 import { useCycleContext } from '../layout'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
+import { apiPost } from '@/src/lib/api'
 
 export default function LogPage() {
-  const { session } = useAuth()
   const { cycleData } = useCycleContext()
   const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
 
@@ -28,18 +25,16 @@ export default function LogPage() {
     setSymptoms((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
 
   const handleSave = async () => {
-    if (!session) return
     setSaving(true)
     try {
-      const res = await fetch(`${API_URL}/me/logs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ symptoms, mood, energyLevel: energy, sleepHours: sleep, waterGlasses: water, journalNote: journal }),
+      await apiPost('/me/logs', {
+        symptoms,
+        mood,
+        energyLevel: energy,
+        sleepHours: sleep,
+        waterGlasses: water,
+        journalNote: journal,
       })
-      if (!res.ok) throw new Error('Save failed')
       setToast({ msg: 'Logged ✓', type: 'success' })
       setTimeout(() => setToast(null), 3000)
     } catch {

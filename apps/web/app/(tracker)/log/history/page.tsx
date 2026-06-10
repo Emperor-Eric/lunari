@@ -2,26 +2,21 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { PhaseChip, LogCard, EmptyState, LoadingSpinner } from '@lunari/ui'
-import { useAuth } from '@lunari/utils'
 import type { SymptomLog } from '@lunari/types'
+import { apiFetch } from '@/src/lib/api'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 const PER_PAGE = 20
 
 export default function HistoryPage() {
-  const { session } = useAuth()
   const [logs, setLogs] = useState<SymptomLog[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
 
   const fetchLogs = useCallback(async (pageNum: number) => {
-    if (!session) return
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/me/logs?page=${pageNum}&perPage=${PER_PAGE}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
+      const res = await apiFetch(`/me/logs?page=${pageNum}&perPage=${PER_PAGE}`)
       if (res.ok) {
         const data = await res.json()
         setLogs((prev) => pageNum === 1 ? data.data : [...prev, ...data.data])
@@ -30,7 +25,7 @@ export default function HistoryPage() {
     } finally {
       setLoading(false)
     }
-  }, [session])
+  }, [])
 
   useEffect(() => { fetchLogs(1) }, [fetchLogs])
 
