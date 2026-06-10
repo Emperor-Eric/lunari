@@ -8,3 +8,11 @@ packages:
   - packages/phase-data
   - packages/utils
   - packages/ui
+
+# pnpm 9/10 reads overrides from here, NOT from package.json's "pnpm" field.
+# Forces a single copy of react, react-dom, and react-native across the monorepo
+# to prevent the dual-React render crash on mobile.
+overrides:
+  react: "19.1.0"
+  react-dom: "19.1.0"
+  react-native: "0.81.5"
