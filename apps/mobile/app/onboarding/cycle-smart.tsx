@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { format, subDays } from 'date-fns'
 import { getPhaseById } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
-import { useOnboardingStore } from './store'
+import { useOnboardingStore } from '../../src/stores/onboarding'
 import type { PhaseId } from '@lunari/types'
 
 const Q1_OPTIONS = [

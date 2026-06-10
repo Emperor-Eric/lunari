@@ -1,7 +1,9 @@
 // Metro config for the Lunari monorepo (Expo SDK 54).
-// Ensures shared workspace packages (packages/ui, packages/utils, …) and the
-// mobile app all resolve a SINGLE copy of react / react-native, preventing the
-// "Multiple copies of the react package" dual-React render crash.
+// Paired with `node-linker=hoisted` in the root .npmrc, which flattens pnpm's
+// node_modules so there is exactly one react / react-native in the tree. Metro
+// then only needs to know where the monorepo lives and which node_modules to
+// search — hierarchical resolution finds the single hoisted copy on its own, so
+// no extraNodeModules forcing is required.
 const { getDefaultConfig } = require('expo/metro-config')
 const path = require('path')
 
@@ -18,15 +20,5 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(monorepoRoot, 'node_modules'),
 ]
-
-// 3. Force singletons: every `import 'react'` / 'react-native' (including those
-//    inside packages/ui and packages/utils) resolves to the app's one copy.
-//    This is the key fix for the dual-React error — without it, Metro can pick
-//    up a second React instance from a nested node_modules.
-config.resolver.extraNodeModules = {
-  ...config.resolver.extraNodeModules,
-  react: path.resolve(projectRoot, 'node_modules/react'),
-  'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
-}
 
 module.exports = config

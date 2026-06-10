@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router'
 import { View } from 'react-native'
 import { OnboardingProgress } from '@lunari/ui'
-import { useOnboardingStore } from './store'
+import { useOnboardingStore } from '../../src/stores/onboarding'
 
 export default function OnboardingLayout() {
   const { step, totalSteps } = useOnboardingStore()

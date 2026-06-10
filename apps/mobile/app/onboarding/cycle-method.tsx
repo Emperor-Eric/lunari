@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useOnboardingStore } from './store'
+import { useOnboardingStore } from '../../src/stores/onboarding'
 
 export default function CycleMethod() {
   const { setStep } = useOnboardingStore()

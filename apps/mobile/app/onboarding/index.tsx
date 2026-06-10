@@ -4,7 +4,7 @@ import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { PhaseHero } from '@lunari/ui'
 import { getPhaseById } from '@lunari/phase-data'
-import { useOnboardingStore } from './store'
+import { useOnboardingStore } from '../../src/stores/onboarding'
 
 export default function OnboardingWelcome() {
   const { setStep } = useOnboardingStore()

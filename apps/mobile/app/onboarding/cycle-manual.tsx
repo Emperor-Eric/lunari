@@ -6,7 +6,7 @@ import Slider from '@react-native-community/slider'
 import { format, subDays } from 'date-fns'
 import { getDayInCycle, getPhaseForDay } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
-import { useOnboardingStore } from './store'
+import { useOnboardingStore } from '../../src/stores/onboarding'
 
 export default function CycleManual() {
   const { setStep, setCycleData } = useOnboardingStore()

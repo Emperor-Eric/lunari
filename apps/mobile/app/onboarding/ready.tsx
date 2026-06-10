@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { getDayInCycle, getPhaseForDay } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
 import { useAuth, useUser } from '@lunari/utils'
-import { useOnboardingStore } from './store'
+import { useOnboardingStore } from '../../src/stores/onboarding'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
