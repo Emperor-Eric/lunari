@@ -16,6 +16,7 @@ model User {
   notificationPrefs     Json      @default("{\"dailyReminder\": true, \"reminderTime\": \"08:00\"}") @map("notification_prefs")
   referralCode          String?   @map("referral_code")
   referralCodeAppliedAt DateTime? @map("referral_code_applied_at") @db.Timestamptz
+  lastActiveAt          DateTime? @default(now()) @map("last_active_at") @db.Timestamptz
 
   cycles       Cycle[]
   symptomLogs  SymptomLog[]
@@ -95,6 +96,7 @@ model InfluencerReferral {
   totalSales           Int      @default(0) @map("total_sales")
   totalCommissionCents Int      @default(0) @map("total_commission_cents")
   appAttributions      Int      @default(0) @map("app_attributions")
+  active               Boolean  @default(true)
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("influencer_referrals")

@@ -3,11 +3,16 @@ import { sendError } from '../lib/errors'
 
 const meRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/me', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
-    const user = await fastify.prisma.user.findUnique({
-      where: { id: request.user.id },
-    })
-    if (!user) return sendError(reply, 404, 'User not found')
-    return reply.send(user)
+    // Touch lastActiveAt on every read so the admin dashboard has live activity data.
+    try {
+      const user = await fastify.prisma.user.update({
+        where: { id: request.user.id },
+        data: { lastActiveAt: new Date() },
+      })
+      return reply.send(user)
+    } catch {
+      return sendError(reply, 404, 'User not found')
+    }
   })
 
   fastify.patch<{

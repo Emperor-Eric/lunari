@@ -51,6 +51,11 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
         },
       })
 
+      // Touch lastActiveAt so the admin dashboard reflects this activity.
+      await fastify.prisma.user
+        .update({ where: { id: request.user.id }, data: { lastActiveAt: new Date() } })
+        .catch(() => {})
+
       return reply.status(201).send(log)
     }
   )
