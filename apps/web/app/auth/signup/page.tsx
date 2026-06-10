@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useAuth } from '@lunari/utils'
+import { useAuth, useUser } from '@lunari/utils'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -20,6 +20,7 @@ type FormData = z.infer<typeof schema>
 export default function SignupPage() {
   const router = useRouter()
   const { signUpWithEmail, signInWithGoogle, isLoading, error } = useAuth()
+  const { fetchUser } = useUser()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -28,7 +29,10 @@ export default function SignupPage() {
   const onSubmit = async (data: FormData) => {
     try {
       await signUpWithEmail(data.email, data.password)
-      router.replace('/onboarding')
+      // New accounts are never onboarded, but check onboardedAt to be safe
+      await fetchUser()
+      const { user } = useUser.getState()
+      router.replace(user?.onboardedAt ? '/tracker' : '/onboarding')
     } catch { /* error in store */ }
   }
 

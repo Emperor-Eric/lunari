@@ -22,8 +22,10 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const { pathname } = request.nextUrl
 
-  // No session → redirect to login for protected routes
-  if (!session && pathname.startsWith('/tracker')) {
+  // No session → redirect to login for protected routes (tracker + onboarding).
+  // Note: /onboarding requires a session but does NOT bounce users whose
+  // onboarded_at is still null — that is exactly who needs to be there.
+  if (!session && (pathname.startsWith('/tracker') || pathname.startsWith('/onboarding'))) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
@@ -36,5 +38,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/tracker/:path*', '/auth/login', '/auth/signup'],
+  matcher: ['/tracker/:path*', '/onboarding', '/auth/login', '/auth/signup'],
 }

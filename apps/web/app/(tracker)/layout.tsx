@@ -1,7 +1,7 @@
 'use client'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@lunari/utils'
 import type { TodayCycleResponse } from '@lunari/types'
 import { getPhaseForDay } from '@lunari/phase-data'
@@ -21,6 +21,7 @@ const NAV_LINKS = [
 export default function TrackerLayout({ children }: { children: React.ReactNode }) {
   const { session } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
 
   useEffect(() => {
@@ -28,9 +29,16 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
     fetch(`${API_URL}/me/cycle/today`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => data && setCycleData(data))
-  }, [session])
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        // No cycle set yet → the user hasn't finished onboarding
+        if (!data) {
+          router.replace('/onboarding')
+          return
+        }
+        setCycleData(data)
+      })
+  }, [session, router])
 
   const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
 
