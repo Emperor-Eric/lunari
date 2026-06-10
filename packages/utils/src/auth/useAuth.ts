@@ -37,23 +37,30 @@ export const useAuth = create<AuthState>((set) => ({
   signUpWithEmail: async (email, password, name) => {
     set({ isLoading: true, error: null })
     try {
-      const supabase = getSupabaseClient()
-      const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) throw error
+      // The API is authoritative for signup: it creates the auth user (service
+      // role), inserts the users-table row, and returns a real session.
+      // Send the full payload the route's Zod schema expects.
+      const res = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name: name ?? email.split('@')[0] }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(json?.error ?? 'Sign up failed')
+      }
 
-      // Create user row in our DB
-      if (data.session) {
-        await fetch(`${API_URL}/auth/signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${data.session.access_token}`,
-          },
-          body: JSON.stringify({ email, name: name ?? email.split('@')[0] }),
+      // Hydrate the SDK with the returned session so cookies/storage are set
+      // and the user is authenticated for subsequent requests.
+      const supabase = getSupabaseClient()
+      if (json.session?.access_token && json.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: json.session.access_token,
+          refresh_token: json.session.refresh_token,
         })
       }
 
-      set({ session: data.session, supabaseUser: data.user })
+      set({ session: json.session ?? null, supabaseUser: json.user ?? null })
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Sign up failed' })
       throw err

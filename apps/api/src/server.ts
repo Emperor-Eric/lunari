@@ -49,5 +49,33 @@ export async function buildApp() {
   await app.register(adminInfluencersRoutes, v1Prefix)
   await app.register(adminUsersRoutes, v1Prefix)
 
+  // Global error handler — logs full detail so failures are debuggable
+  app.setErrorHandler((error, request, reply) => {
+    request.log.error(
+      {
+        err: error,
+        message: error.message,
+        stack: error.stack,
+        statusCode: error.statusCode,
+        // Fastify schema validation errors (if any)
+        validation: error.validation,
+        // Surface any nested cause (e.g. Supabase / Prisma error objects)
+        cause: (error as Error & { cause?: unknown }).cause,
+      },
+      `Unhandled error on ${request.method} ${request.url}: ${error.message}`
+    )
+
+    const statusCode = error.statusCode ?? 500
+    reply.status(statusCode).send({
+      error: error.message || 'Internal Server Error',
+      statusCode,
+    })
+  })
+
+  app.setNotFoundHandler((request, reply) => {
+    request.log.warn(`Route not found: ${request.method} ${request.url}`)
+    reply.status(404).send({ error: 'Not found', statusCode: 404 })
+  })
+
   return app
 }
