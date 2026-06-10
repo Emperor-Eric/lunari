@@ -16,7 +16,7 @@
     "@lunari/types": "workspace:*",
     "@lunari/ui": "workspace:*",
     "@lunari/utils": "workspace:*",
-    "@supabase/ssr": "^0.3.0",
+    "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.43.1",
     "date-fns": "^3.6.0",
     "next": "14.2.3",

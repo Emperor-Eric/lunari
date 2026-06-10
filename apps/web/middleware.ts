@@ -33,7 +33,33 @@ export async function middleware(request: NextRequest) {
   // triggers a cookie refresh (via setAll above) when needed.
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser()
+
+  // --- DEBUG: temporary logging to diagnose the redirect loop ---
+  // eslint-disable-next-line no-console
+  console.log(
+    '[middleware]',
+    request.nextUrl.pathname,
+    'cookies:',
+    request.cookies.getAll().map((c) => c.name),
+    'user:',
+    user?.id ?? 'NONE',
+    'error:',
+    error?.message ?? 'none'
+  )
+  // Surface the full error object for network/fetch failures (wrong URL/key, etc.)
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error('[middleware] getUser error detail:', {
+      message: error.message,
+      status: (error as { status?: number }).status,
+      name: error.name,
+      supabaseUrlSet: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      anonKeySet: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    })
+  }
+  // --- END DEBUG ---
 
   const { pathname } = request.nextUrl
 
