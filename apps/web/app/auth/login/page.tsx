@@ -1,7 +1,6 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,7 +13,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function LoginPage() {
-  const router = useRouter()
   const { signInWithEmail, signInWithGoogle, isLoading, error } = useAuth()
   const { fetchUser } = useUser()
 
@@ -27,7 +25,11 @@ export default function LoginPage() {
       await signInWithEmail(data.email, data.password)
       await fetchUser()
       const { user } = useUser.getState()
-      router.replace(user?.onboardedAt ? '/tracker' : '/onboarding')
+      const destination = user?.onboardedAt ? '/tracker' : '/onboarding'
+      // Hard navigation so the SSR middleware re-runs with the freshly written
+      // session cookie. A soft router.push would bounce back to login because
+      // the server render still sees no session cookie.
+      window.location.assign(destination)
     } catch { /* error in store */ }
   }
 

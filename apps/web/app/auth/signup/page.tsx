@@ -1,7 +1,6 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,7 +17,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function SignupPage() {
-  const router = useRouter()
   const { signUpWithEmail, signInWithGoogle, isLoading, error } = useAuth()
   const { fetchUser } = useUser()
 
@@ -32,7 +30,12 @@ export default function SignupPage() {
       // New accounts are never onboarded, but check onboardedAt to be safe
       await fetchUser()
       const { user } = useUser.getState()
-      router.replace(user?.onboardedAt ? '/tracker' : '/onboarding')
+      const destination = user?.onboardedAt ? '/tracker' : '/onboarding'
+      // Hard navigation (not router.push) so the request hits the server fresh
+      // and the SSR middleware reads the Supabase session cookie that
+      // setSession() just wrote. A soft client navigation would re-run
+      // middleware against a stale render with no cookie and bounce to login.
+      window.location.assign(destination)
     } catch { /* error in store */ }
   }
 

@@ -1,11 +1,9 @@
 'use client'
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@lunari/utils'
 import { useAuth } from '@lunari/utils'
 
 export default function AuthCallback() {
-  const router = useRouter()
   const { setSession } = useAuth()
 
   useEffect(() => {
@@ -13,12 +11,13 @@ export default function AuthCallback() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSession(session)
-        router.replace('/tracker')
+        // Hard navigation so middleware re-runs with the OAuth session cookie
+        window.location.assign('/tracker')
       } else {
-        router.replace('/auth/login')
+        window.location.assign('/auth/login')
       }
     })
-  }, [router, setSession])
+  }, [setSession])
 
   return (
     <div className="min-h-screen bg-brand-cream flex items-center justify-center">
