@@ -1,18 +1,36 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@lunari/utils'
+import { getPhaseForDay, getAllPhases } from '@lunari/phase-data'
+import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type { User, UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost, apiDelete } from '@/src/lib/api'
+import { useCycleContext } from '../cycle-context'
 
 // Referral entry turns on with the shop — a code only matters once there's a product.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 
+// Static settings rows — no destination screens exist yet (flagged: not wired).
+const SETTINGS = ['Notifications', 'Phase predictions', 'Connected apps', 'Privacy & data']
+
+// Kit tubes (real PNGs in /public/brand). Heights + order per the reference.
+const TUBES: { key: string; src: string; h: number }[] = [
+  { key: 'menstrual', src: '/brand/tube-menstrual.png', h: 64 },
+  { key: 'follicular', src: '/brand/tube-follicular.png', h: 88 },
+  { key: 'ovulation', src: '/brand/tube-ovulation.png', h: 66 },
+  { key: 'luteal', src: '/brand/tube-luteal.png', h: 90 },
+]
+
+// Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
+const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
+
 export default function ProfilePage() {
   const { signOut } = useAuth()
+  const { cycleData } = useCycleContext()
 
   const [user, setUser] = useState<User | null>(null)
 
-  // Referral code state
+  // Referral code state (gated behind SHOP_ENABLED)
   const [savedCode, setSavedCode] = useState<string | null>(null)
   const [codeInput, setCodeInput] = useState('')
   const [applying, setApplying] = useState(false)
@@ -60,86 +78,194 @@ export default function ProfilePage() {
     window.location.assign('/auth/login')
   }
 
+  // Theme follows the current phase.
+  const day = cycleData?.day ?? 1
+  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const t = phaseTheme[phaseKeyFor(phase.id)]
+  const activeKey = phaseKeyFor(phase.id)
+
+  // Cycle stats from real phase-data (fixed 28-day model).
+  const allPhases = getAllPhases()
+  const cycleDays = Math.max(...allPhases.map((p) => p.cycleDays.end))
+  const menstrual = allPhases.find((p) => p.id === 'menstrual')
+  const periodDays = menstrual ? menstrual.cycleDays.end - menstrual.cycleDays.start + 1 : 5
+
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-    : '??'
+    : '··'
+  const memberSince = user?.createdAt ? new Date(user.createdAt).getFullYear() : null
 
   return (
-    <div className="max-w-2xl mx-auto p-6 flex flex-col gap-6">
-      <h1 className="font-display text-3xl text-brand-ink">Profile</h1>
-
-      {/* Account */}
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-brand-gold flex items-center justify-center">
-          <span className="font-display text-2xl text-white">{initials}</span>
-        </div>
-        <div>
-          <p className="text-base font-semibold text-brand-ink">{user?.name ?? 'Loading…'}</p>
-          <p className="text-sm text-brand-ink-soft">{user?.email ?? ''}</p>
+    <div className="min-h-screen" style={{ backgroundColor: t.labBg }}>
+      {/* ── HEADER BAND (avatar + name, orbit bottom-right) ── */}
+      <div className="relative overflow-hidden" style={{ background: t.header, color: t.headerText }}>
+        <div
+          className="absolute pointer-events-none"
+          style={{ right: -30, bottom: -44, width: 130, height: 130, borderRadius: '50%', border: `1px solid ${t.headerLabel}`, opacity: 0.25 }}
+          aria-hidden
+        />
+        <div className="relative max-w-xl mx-auto px-6 md:px-10" style={{ paddingTop: 18, paddingBottom: 22 }}>
+          <div className="flex items-center" style={{ gap: 14, marginTop: 6 }}>
+            <div
+              className="font-display flex items-center justify-center"
+              style={{ width: 54, height: 54, borderRadius: '50%', border: `1px solid ${t.headerLabel}`, color: t.headerLabel, fontSize: 22, flex: '0 0 auto' }}
+            >
+              {initials}
+            </div>
+            <div>
+              <div className="font-display" style={{ fontSize: 21, color: t.headerText }}>
+                {user?.name ?? 'Loading…'}
+              </div>
+              <div className="font-body" style={{ fontSize: 10.5, fontWeight: 300, color: t.headerLabel, marginTop: 1 }}>
+                {memberSince ? `member since ${memberSince}` : user?.email ?? ''}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
-      {SHOP_ENABLED && (
-        <div className="bg-white rounded-2xl border border-brand-stone p-5 flex flex-col gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-brand-ink">Referral code</h2>
-            <p className="text-sm text-brand-ink-soft">
-              Got a code from a creator? Add it to your account.
-            </p>
-          </div>
-
-          {savedCode ? (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-brand-ink">
-                Your code: <strong>{savedCode}</strong>
-              </span>
-              <button
-                onClick={removeCode}
-                className="text-sm text-phase-menstrual font-semibold"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <input
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value)}
-                placeholder="e.g. GYMGIRL20"
-                className="flex-1 rounded-xl border-2 border-brand-stone bg-brand-cream px-4 py-2.5 text-sm text-brand-ink placeholder-brand-ink-soft focus:outline-none focus:border-brand-gold uppercase"
-              />
-              <button
-                onClick={applyCode}
-                disabled={applying}
-                className="px-5 py-2.5 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
-              >
-                {applying ? '…' : 'Apply'}
-              </button>
-            </div>
-          )}
-
-          {feedback && (
-            <div
-              className={`rounded-xl p-3 text-sm font-medium ${
-                feedback.type === 'success'
-                  ? 'bg-phase-follicular-light text-phase-follicular'
-                  : 'bg-phase-menstrual-light text-phase-menstrual'
-              }`}
-            >
-              {feedback.msg}
-            </div>
-          )}
+      {/* ── TINTED BODY ── */}
+      <div className="max-w-xl mx-auto px-6 md:px-10 pt-4 pb-10 font-body">
+        {/* Cycle stats */}
+        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '0 0 11px' }}>
+          Cycle
         </div>
-      )}
+        <div className="flex" style={{ gap: 9 }}>
+          <StatCard value={cycleDays} caption="cycle days" t={t} />
+          <StatCard value={periodDays} caption="period days" t={t} />
+          <StatCard value={day} caption="today" today t={t} />
+        </div>
 
-      {/* Sign out */}
-      <button
-        onClick={handleSignOut}
-        className="self-start px-6 py-3 rounded-xl border-2 border-phase-menstrual text-phase-menstrual text-sm font-semibold"
-      >
-        Sign out
-      </button>
+        {/* Your kit */}
+        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+          Your kit
+        </div>
+        <div
+          className="flex items-end justify-around"
+          style={{ gap: 6, background: t.labWhy, border: `1px solid ${t.labBorder}`, borderRadius: 15, padding: '14px 12px 12px', height: 118 }}
+        >
+          {TUBES.map((tube) => {
+            const active = tube.key === activeKey
+            return (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={tube.key}
+                src={tube.src}
+                alt=""
+                style={{
+                  height: tube.h,
+                  width: 'auto',
+                  filter: active
+                    ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.18))'
+                    : 'drop-shadow(0 6px 8px rgba(0,0,0,0.18)) grayscale(0.2) opacity(0.7)',
+                  transform: active ? 'translateY(-6px)' : undefined,
+                }}
+              />
+            )
+          })}
+        </div>
+
+        {/* Settings (static — no destination screens yet) */}
+        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+          Settings
+        </div>
+        <div className="flex flex-col">
+          {SETTINGS.map((label, i) => (
+            <div
+              key={label}
+              className="flex justify-between items-center"
+              style={{ padding: '14px 0', borderBottom: i === SETTINGS.length - 1 ? 'none' : `1px solid ${t.labBorder}`, fontFamily: 'var(--font-display, serif)', fontSize: 15.5, color: N.text }}
+            >
+              <span className="font-display">{label}</span>
+              <span className="font-body" style={{ color: N.chev }}>›</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
+        {SHOP_ENABLED && (
+          <>
+            <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+              Referral code
+            </div>
+            <div style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 13, padding: 16 }}>
+              {savedCode ? (
+                <div className="flex items-center justify-between">
+                  <span style={{ fontSize: 13, color: N.text }}>
+                    Your code: <strong>{savedCode}</strong>
+                  </span>
+                  <button onClick={removeCode} style={{ fontSize: 13, color: t.accent, fontWeight: 600 }}>
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex" style={{ gap: 8 }}>
+                  <input
+                    value={codeInput}
+                    onChange={(e) => setCodeInput(e.target.value)}
+                    placeholder="e.g. GYMGIRL20"
+                    className="flex-1 uppercase"
+                    style={{ background: t.labBg, border: `1px solid ${t.labBorder}`, borderRadius: 11, padding: '10px 14px', fontSize: 13, color: N.text, outline: 'none' }}
+                  />
+                  <button
+                    onClick={applyCode}
+                    disabled={applying}
+                    style={{ background: t.accent, color: t.headerText, borderRadius: 11, padding: '0 20px', fontSize: 13, fontWeight: 600, opacity: applying ? 0.6 : 1 }}
+                  >
+                    {applying ? '…' : 'Apply'}
+                  </button>
+                </div>
+              )}
+              {feedback && (
+                <div
+                  style={{ marginTop: 12, borderRadius: 11, padding: 12, fontSize: 13, fontWeight: 500, background: feedback.type === 'success' ? t.labWhy : '#F5E8EA', color: feedback.type === 'success' ? t.accent : '#7A1E2E' }}
+                >
+                  {feedback.msg}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Sign out */}
+        <button
+          onClick={handleSignOut}
+          style={{ marginTop: 18, fontSize: 11.5, color: t.accent, fontWeight: 600 }}
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({
+  value,
+  caption,
+  today,
+  t,
+}: {
+  value: number
+  caption: string
+  today?: boolean
+  t: (typeof phaseTheme)[keyof typeof phaseTheme]
+}) {
+  return (
+    <div
+      className="flex-1 text-center"
+      style={{
+        background: today ? t.accent : t.labCard,
+        border: `1px solid ${today ? 'transparent' : t.labBorder}`,
+        borderRadius: 13,
+        padding: 14,
+      }}
+    >
+      <div className="font-display" style={{ fontSize: 23, color: today ? t.headerText : '#2C2825' }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 8.5, marginTop: 2, color: today ? t.headerText : '#A99E88', opacity: today ? 0.8 : 1 }}>
+        {caption}
+      </div>
     </div>
   )
 }
