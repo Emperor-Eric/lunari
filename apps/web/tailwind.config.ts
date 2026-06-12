@@ -33,8 +33,12 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: [tokens.typography.fonts.display, 'Georgia', 'serif'],
-        body: [tokens.typography.fonts.body, 'system-ui', 'sans-serif'],
+        // Marcellus + Raleway are loaded via next/font (app/layout.tsx) and
+        // exposed as CSS variables on <html>. Reference those vars, not the raw
+        // family names — next/font self-hosts under a hashed family name.
+        display: ['var(--font-marcellus)', 'Georgia', 'serif'],
+        body: ['var(--font-raleway)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-raleway)', 'system-ui', 'sans-serif'],
         mono: [tokens.typography.fonts.mono, 'Courier New', 'monospace'],
       },
       spacing: {
