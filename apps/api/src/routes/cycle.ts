@@ -93,13 +93,3 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
 }
 
 export default cycleRoutes
-
-// Add unique constraint for upsert (Prisma workaround — schema updated separately)
-declare module '@prisma/client' {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Prisma {
-    interface CycleWhereUniqueInput {
-      userId?: string
-    }
-  }
-}

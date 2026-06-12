@@ -6,7 +6,6 @@
     "strict": true,
     "declaration": true,
     "outDir": "dist",
-    "rootDir": "src",
     "skipLibCheck": true,
     "paths": {
       "@lunari/types": ["../types/src/index.ts"],
