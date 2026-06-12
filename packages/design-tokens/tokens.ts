@@ -105,6 +105,8 @@ export interface PhasePalette {
   phase: string
   /** CSS gradient string (web only). */
   flood: string
+  /** Gradient stop hexes (top→bottom) for React Native <LinearGradient>. */
+  floodColors: string[]
   floodText: string
   floodSub: string
   /** Solid fallback for React Native (no CSS gradients) — equals `phase`. */
@@ -131,6 +133,7 @@ export const phases: Record<PhaseKey, PhasePalette> = {
     vibe: 'Rest + Renewal',
     phase: '#102B53',
     flood: 'linear-gradient(168deg,#16385f,#0d1f3d 58%,#091830)',
+    floodColors: ['#16385f', '#0d1f3d', '#091830'],
     floodText: '#F5EBD6',
     floodSub: '#8ba0c4',
     floodSolid: '#102B53',
@@ -152,6 +155,7 @@ export const phases: Record<PhaseKey, PhasePalette> = {
     vibe: 'Energy + Focus',
     phase: '#80907B',
     flood: 'linear-gradient(168deg,#7e8e78,#5f6e5a 58%,#4d5b49)',
+    floodColors: ['#7e8e78', '#5f6e5a', '#4d5b49'],
     floodText: '#FBF6EC',
     floodSub: '#E2E8DB',
     floodSolid: '#80907B',
@@ -173,6 +177,7 @@ export const phases: Record<PhaseKey, PhasePalette> = {
     vibe: 'Radiance + Connection',
     phase: '#F8C662',
     flood: 'linear-gradient(170deg,#FCEFCB,#F8D88F 48%,#F3C566)',
+    floodColors: ['#FCEFCB', '#F8D88F', '#F3C566'],
     floodText: '#3A2708',
     floodSub: '#9A6F24',
     floodSolid: '#F8C662',
@@ -194,6 +199,7 @@ export const phases: Record<PhaseKey, PhasePalette> = {
     vibe: 'Calm + Nourish',
     phase: '#461D3A',
     flood: 'linear-gradient(168deg,#4a2040,#311028 58%,#230a1c)',
+    floodColors: ['#4a2040', '#311028', '#230a1c'],
     floodText: '#F5EBD6',
     floodSub: '#D8B8CD',
     floodSolid: '#461D3A',
