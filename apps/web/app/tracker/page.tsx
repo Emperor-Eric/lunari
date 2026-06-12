@@ -28,61 +28,83 @@ export default function TrackerToday() {
   return (
     // Lab background — phase-tinted, light, legible
     <div className="min-h-screen" style={{ backgroundColor: t.labBg }}>
-      <div className="max-w-2xl mx-auto flex flex-col gap-6 p-6">
-        {/* ─── HERO: top-down flood + orbit rings + reserved seal slot ─── */}
-        <div className="rounded-[28px] overflow-hidden" style={{ background: heroFlood }}>
-          <div className="px-6 pt-7 pb-6 flex flex-col items-center text-center">
-            {/* Celestial cluster: gold goddess seal within 2 gold orbit rings */}
-            <div className="relative w-[120px] h-[120px] flex items-center justify-center mb-3">
-              <svg
-                width="120"
-                height="120"
-                viewBox="0 0 120 120"
-                fill="none"
-                className="absolute inset-0"
-                aria-hidden
-              >
-                <circle cx="60" cy="60" r="58" stroke={palette.gold} strokeOpacity="0.3" strokeWidth="1" />
-                <circle cx="60" cy="60" r="50" stroke={palette.gold} strokeOpacity="0.22" strokeWidth="1" />
-              </svg>
-              {/* Goddess seal — gold line-art on transparent, reads on the flood.
-                  Asset: apps/web/public/brand/seal-gold.png */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/seal-gold.png"
-                alt="Lunari goddess seal"
-                className="relative w-[84px] h-[84px] object-contain"
-              />
-            </div>
+      {/* ─── FULL-BLEED FLOOD HERO: phase color fills the content area edge-to-edge,
+              bleeding to the top, with a gentle rounded bottom pouring into the Lab. ─── */}
+      <div
+        className="relative overflow-hidden rounded-b-[40px]"
+        style={{ background: heroFlood }}
+      >
+        {/* Ambient celestial arc — large thin gold ring bleeding off the top-right,
+            clipped by the hero's overflow-hidden. */}
+        <svg
+          className="absolute -top-40 -right-32 pointer-events-none"
+          width="460"
+          height="460"
+          viewBox="0 0 460 460"
+          fill="none"
+          aria-hidden
+        >
+          <circle cx="230" cy="230" r="220" stroke={palette.gold} strokeOpacity="0.2" strokeWidth="1.5" />
+          <circle cx="230" cy="230" r="180" stroke={palette.gold} strokeOpacity="0.12" strokeWidth="1" />
+        </svg>
 
-            <p
-              className="font-body text-[11px] font-medium uppercase tracking-[0.28em]"
-              style={{ color: t.headerLabel }}
+        <div className="relative max-w-2xl mx-auto px-6 pt-14 pb-16 flex flex-col items-center text-center">
+          {/* Celestial cluster: gold goddess seal within 2 gold orbit rings */}
+          <div className="relative w-[128px] h-[128px] flex items-center justify-center mb-5">
+            <svg
+              width="128"
+              height="128"
+              viewBox="0 0 128 128"
+              fill="none"
+              className="absolute inset-0"
+              aria-hidden
             >
-              {t.vibe}
-            </p>
-            <h1 className="font-display text-4xl mt-2 leading-none" style={{ color: t.floodText }}>
-              {t.label}
-            </h1>
-            <p className="font-body text-sm mt-2.5" style={{ color: t.floodSub }}>
-              Day {day} · {dateLabel}
-            </p>
+              <circle cx="64" cy="64" r="62" stroke={palette.gold} strokeOpacity="0.3" strokeWidth="1" />
+              <circle cx="64" cy="64" r="53" stroke={palette.gold} strokeOpacity="0.22" strokeWidth="1" />
+            </svg>
+            {/* Goddess seal — gold line-art on transparent, reads on the flood.
+                Asset: apps/web/public/brand/seal-gold.png */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/seal-gold.png"
+              alt="Lunari goddess seal"
+              className="relative w-[88px] h-[88px] object-contain"
+            />
+          </div>
 
-            {/* Phase progress segments — current = gold */}
-            <div className="flex gap-1.5 mt-5 justify-center">
-              {[1, 2, 3, 4].map((n) => (
-                <span
-                  key={n}
-                  className="h-1 w-11 rounded-full transition-colors"
-                  style={{ backgroundColor: n === containerNumber ? palette.gold : 'rgba(255,255,255,0.22)' }}
-                />
-              ))}
-            </div>
+          <p
+            className="font-body text-[11px] font-medium uppercase tracking-[0.28em]"
+            style={{ color: t.headerLabel }}
+          >
+            {t.vibe}
+          </p>
+          <h1 className="font-display text-5xl mt-2.5 leading-none" style={{ color: t.floodText }}>
+            {t.label}
+          </h1>
+          <p className="font-body text-sm mt-3" style={{ color: t.floodSub }}>
+            Day {day} · {dateLabel}
+          </p>
+
+          {/* Phase progress segments — current = gold */}
+          <div className="flex gap-1.5 mt-6 justify-center">
+            {[1, 2, 3, 4].map((n) => (
+              <span
+                key={n}
+                className="h-1 w-11 rounded-full transition-colors"
+                style={{ backgroundColor: n === containerNumber ? palette.gold : 'rgba(255,255,255,0.22)' }}
+              />
+            ))}
           </div>
         </div>
+      </div>
 
+      {/* ─── LAB SECTION: rounded top tucks up over the hero's rounded bottom ─── */}
+      <div
+        className="relative max-w-2xl mx-auto px-6 -mt-6 pt-2 pb-12 flex flex-col gap-6 rounded-t-[40px]"
+        style={{ backgroundColor: t.labBg, boxShadow: '0 -6px 20px rgba(0,0,0,0.05)' }}
+      >
         {/* ─── Container selector — 1/2/3/4, active = gold ─── */}
-        <div>
+        <div className="pt-2">
           <p className="font-body text-sm mb-3" style={{ color: t.textMuted }}>
             Container {containerNumber} of 4 — {t.label} phase
           </p>
