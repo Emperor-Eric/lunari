@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lunari — Move (Ovulation) — static reference</title>
+
+<!--
+  ============================================================================
+  lunari · Move screen · OVULATION phase — exact static reference
+  ============================================================================
+  Extracted verbatim from the "lunari Goddess" prototype. Prototype
+  JS/interactivity stripped; markup + CSS only.
+
+  ⚠ TREATMENT NOTE — Move is a "LAB" screen, NOT a full flood like Today.
+  In the locked Goddess system, data screens (Move / Fuel / Log / Profile)
+  use a phase-colored HEADER BAND on top + a phase-TINTED body below (chosen
+  so dosages / sessions / data stay clinically legible). Today floods edge to
+  edge; Move tints. Both share the gold linework, Marcellus/Raleway, frost cards.
+
+  PHASE THEME (Ovulation) — the values that change per phase:
+    --header     linear-gradient(165deg,#F8DC97,#F3C566)   (header band)
+    --on-hdr     #3A2708   (text on header — on DARK phases this is #F5EBD6)
+    --on-hdr-sub #8A6420   (sub text on header — on DARK phases rgba(245,235,214,.72))
+    --gold       #A8791E   (gold linework on this LIGHT phase; #C9A84C on dark phases)
+    --solid      #E3A82E   (phase solid — active intensity bars, "Why" lead-in, labels)
+    --lab-bg     #F8F1DE   (tinted body background)
+    --lab-card   #FDF9EE   (frost card fill)
+    --lab-border #ECE1C8   (card border / session dividers)
+    --lab-why    #F1E8D0   ("Why" note background)
+
+  Fixed neutrals (same on every phase — tuned to read on all four tints):
+    label muted #8A8275 · section label #A99E88 · session title #2C2825 ·
+    session sub #A99E88 · session duration / why text #6A655D ·
+    inactive intensity bar #E5DDCD
+
+  Fonts: Marcellus (display) + Raleway (body).
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Raleway:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2a1f12;                  /* page backdrop only — not part of the screen */
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Raleway', sans-serif;
+  }
+
+  /* ---- OVULATION phase theme variables ---- */
+  .move {
+    --header: linear-gradient(165deg, #F8DC97, #F3C566);
+    --on-hdr: #3A2708;
+    --on-hdr-sub: #8A6420;
+    --gold: #A8791E;
+    --solid: #E3A82E;
+    --lab-bg: #F8F1DE;
+    --lab-card: #FDF9EE;
+    --lab-border: #ECE1C8;
+    --lab-why: #F1E8D0;
+
+    width: 390px;                         /* phone screen width (prototype frame inner ≈ 362) */
+    min-height: 800px;
+    border-radius: 40px;                  /* screen radius token */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--lab-bg);
+  }
+
+  /* ---- HEADER BAND (phase gradient) ---- */
+  .move__header {
+    background: var(--header);
+    color: var(--on-hdr);
+    padding: 14px 24px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .move__header-orbit {
+    position: absolute;
+    right: -34px;
+    top: -22px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    opacity: 0.25;
+  }
+  .move__status {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    position: relative;
+  }
+  .move__status .signal { font-size: 10px; }
+  .move__context {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-top: 16px;
+    position: relative;
+  }
+  .move__title {
+    font-family: 'Marcellus', serif;
+    font-size: 30px;
+    margin-top: 5px;
+    position: relative;
+  }
+  .move__tagline {
+    font-size: 12px;
+    color: var(--on-hdr-sub);
+    margin-top: 4px;
+    font-weight: 300;
+    position: relative;
+  }
+
+  /* ---- TINTED BODY ---- */
+  .move__body { flex: 1; padding: 16px 22px 16px; }
+
+  /* intensity card (frost) */
+  .intensity {
+    background: var(--lab-card);
+    border: 1px solid var(--lab-border);
+    border-radius: 15px;
+    padding: 15px 17px;
+  }
+  .intensity__label {
+    font-size: 10.5px;
+    color: #8A8275;
+    font-weight: 500;
+  }
+  .intensity__bars {
+    display: flex;
+    gap: 5px;
+    margin-top: 9px;
+  }
+  .intensity__bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #E5DDCD;                   /* inactive */
+  }
+  .intensity__bar.is-on { background: var(--solid); }
+  .intensity__value {
+    font-size: 9.5px;
+    color: var(--solid);
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  /* section label */
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #A99E88;
+    margin: 22px 0 12px;
+  }
+
+  /* recommended sessions */
+  .sessions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .session {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--lab-border);
+  }
+  .session__name {
+    font-family: 'Marcellus', serif;
+    font-size: 16.5px;
+    color: #2C2825;
+  }
+  .session__sub {
+    font-size: 10.5px;
+    color: #A99E88;
+    margin-top: 2px;
+    font-weight: 300;
+  }
+  .session__dur {
+    font-size: 10.5px;
+    color: #6A655D;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* why note */
+  .why {
+    margin-top: 16px;
+    font-size: 10.5px;
+    color: #6A655D;
+    line-height: 1.6;
+    font-weight: 300;
+    background: var(--lab-why);
+    border-radius: 12px;
+    padding: 13px 15px;
+  }
+  .why__lead { color: var(--solid); font-weight: 600; }
+</style>
+</head>
+<body>
+
+  <!-- ======================= MOVE · OVULATION ======================= -->
+  <main class="move">
+
+    <!-- header band -->
+    <div class="move__header">
+      <div class="move__header-orbit"></div>
+      <div class="move__status">
+        <span>9:41</span>
+        <span class="signal">5G</span>
+      </div>
+      <div class="move__context">Ovulation &middot; Day 14</div>
+      <div class="move__title">Move</div>
+      <div class="move__tagline">your strongest days &mdash; go for it</div>
+    </div>
+
+    <!-- tinted body -->
+    <div class="move__body">
+
+      <!-- intensity: Ovulation = Peak, all 5 bars on -->
+      <div class="intensity">
+        <div class="intensity__label">Intensity target today</div>
+        <div class="intensity__bars">
+          <div class="intensity__bar is-on"></div>
+          <div class="intensity__bar is-on"></div>
+          <div class="intensity__bar is-on"></div>
+          <div class="intensity__bar is-on"></div>
+          <div class="intensity__bar is-on"></div>
+        </div>
+        <div class="intensity__value">Peak &middot; highest output</div>
+      </div>
+
+      <!-- recommended sessions -->
+      <div class="section-label">Recommended sessions</div>
+      <div class="sessions">
+        <div class="session">
+          <div>
+            <div class="session__name">Strength &mdash; Lower</div>
+            <div class="session__sub">Heavy &middot; chase a PR</div>
+          </div>
+          <div class="session__dur">45 min</div>
+        </div>
+        <div class="session">
+          <div>
+            <div class="session__name">HIIT Sprint</div>
+            <div class="session__sub">Zone 4&ndash;5 intervals</div>
+          </div>
+          <div class="session__dur">25 min</div>
+        </div>
+        <div class="session">
+          <div>
+            <div class="session__name">Dance Cardio</div>
+            <div class="session__sub">High energy &middot; social</div>
+          </div>
+          <div class="session__dur">30 min</div>
+        </div>
+      </div>
+
+      <!-- why this phase -->
+      <div class="why">
+        <span class="why__lead">Why &middot;</span> peak estrogen and testosterone make this your highest-output window.
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>
