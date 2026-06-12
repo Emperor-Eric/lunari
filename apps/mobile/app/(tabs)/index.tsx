@@ -4,12 +4,30 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay } from '@lunari/phase-data'
-import { phases, phaseKeyFor, palette } from '@lunari/design-tokens'
+import { getPhaseForDay, getAllPhases } from '@lunari/phase-data'
+import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
-import type { TodayCycleResponse } from '@lunari/types'
+import type { TodayCycleResponse, PhaseId } from '@lunari/types'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
+
+// Short progress labels per phase.
+const SHORT: Record<PhaseId, string> = {
+  menstrual: 'MENS',
+  follicular: 'FOLL',
+  ovulatory: 'OVUL',
+  luteal: 'LUT',
+}
+
+// Light phases (Ovulation) take dark text + dark-gold linework; dark phases take
+// light text + bright gold. (Same rule as the web build.)
+function isLightHex(hex: string): boolean {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150
+}
 
 export default function Today() {
   const { session } = useAuth()
@@ -40,211 +58,241 @@ export default function Today() {
     fetchToday()
   }
 
+  const toggleSymptom = (s: string) =>
+    setQuickSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+
+  const allPhases = getAllPhases()
   const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
-  const t = phases[phaseKeyFor(phase.id)]
+  const t = phaseTheme[phaseKeyFor(phase.id)]
 
   if (loading) return <LoadingSpinner phaseColor={t.accent} />
 
-  const containerNumber = cycleData?.containerNumber ?? 1
   const day = cycleData?.day ?? 1
-  const quickTags = phase.symptoms.slice(0, 4)
+  const containerNumber = cycleData?.containerNumber ?? 1
+
+  // ── Derive the reference's theme values from our tokens (same as web) ──
+  const light = isLightHex(t.phase)
+  const gold = light ? palette.goldOnLight : palette.gold
+  const ink = t.floodText
+  const sub = t.floodSub
+  const cardwash = light ? 'rgba(255,255,255,0.42)' : 'rgba(255,255,255,0.10)'
+  const cardbd = light ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.20)'
+  const chipIdleBd = light ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.30)'
+  const chipOnText = light ? '#F8E2A8' : t.accent
+  const halo = 'rgba(201,168,76,0.40)'
+  const baseColor = t.floodColors[t.floodColors.length - 1]
+
   const dateLabel = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
   })
 
+  const segFill = (p: (typeof allPhases)[number]): number => {
+    if (day > p.cycleDays.end) return 100
+    if (day < p.cycleDays.start) return 0
+    const span = p.cycleDays.end - p.cycleDays.start + 1
+    return Math.round(((day - p.cycleDays.start + 1) / span) * 100)
+  }
+
+  const supps = phase.supplements.slice(8, 11)
+
   return (
-    <View style={{ flex: 1, backgroundColor: t.labBg }}>
+    // CONTINUOUS FLOOD — one phase wash fills the full scrollable area.
+    <View style={{ flex: 1, backgroundColor: baseColor }}>
       <ScrollView
         contentContainerStyle={styles.scroll}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ink} />}
       >
-        {/* ─── HERO: floods with the phase gradient ─── */}
         <LinearGradient
           colors={t.floodColors as [string, string, ...string[]]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
-          style={styles.hero}
+          style={styles.flood}
         >
-          <SafeAreaView edges={['top']}>
-            <View style={styles.heroInner}>
-              {/* Celestial cluster: gold goddess seal within 2 gold orbit rings */}
+          <SafeAreaView edges={['top']} style={styles.safe}>
+            {/* ── Top bar ── */}
+            <View style={styles.topbar}>
+              <View>
+                <Text style={[styles.date, { color: sub }]}>{dateLabel}</Text>
+                <Text style={[styles.todayHeading, { color: ink }]}>Today</Text>
+              </View>
+              {/* TODO: seal-ink on light phases once we have a transparent ink seal. */}
+              <Image source={require('../../assets/brand/seal-gold.png')} style={styles.avatar} resizeMode="contain" />
+            </View>
+
+            {/* ── HERO ── */}
+            <View style={styles.hero}>
               <View style={styles.sealCluster}>
-                <Svg width={120} height={120} style={StyleSheet.absoluteFill}>
-                  <Circle cx={60} cy={60} r={58} stroke={palette.gold} strokeOpacity={0.3} strokeWidth={1} fill="none" />
-                  <Circle cx={60} cy={60} r={50} stroke={palette.gold} strokeOpacity={0.22} strokeWidth={1} fill="none" />
+                <Svg width={150} height={150} style={StyleSheet.absoluteFill}>
+                  <Circle cx={75} cy={75} r={72} stroke={gold} strokeOpacity={0.18} strokeWidth={1} fill="none" />
+                  <Circle cx={75} cy={75} r={56} stroke={gold} strokeOpacity={0.14} strokeWidth={1} fill="none" />
                 </Svg>
-                {/* Goddess seal — gold line-art on transparent.
-                    Asset: apps/mobile/assets/brand/seal-gold.png */}
-                <Image
-                  source={require('../../assets/brand/seal-gold.png')}
-                  style={styles.seal}
-                  resizeMode="contain"
-                />
+                <Image source={require('../../assets/brand/seal-gold.png')} style={styles.seal} resizeMode="contain" />
               </View>
 
-              <Text style={[styles.vibe, { color: t.headerLabel }]}>{t.vibe.toUpperCase()}</Text>
-              <Text style={[styles.phaseName, { color: t.floodText }]}>{t.label}</Text>
-              <Text style={[styles.heroSub, { color: t.floodSub }]}>
-                Day {day} · {dateLabel}
+              <Text style={[styles.eyebrow, { color: gold }]}>
+                Phase {String(containerNumber).padStart(2, '0')} / 04 · Day {day}
               </Text>
+              <Text style={[styles.phaseName, { color: ink }]}>{t.label}</Text>
+              <Text style={[styles.tagline, { color: sub }]}>{t.vibe}</Text>
+              <Text style={[styles.line, { color: ink }]}>{phase.tagline}</Text>
 
-              {/* Phase progress segments — current = gold */}
-              <View style={styles.segments}>
-                {[1, 2, 3, 4].map((n) => (
-                  <View
-                    key={n}
-                    style={[
-                      styles.segment,
-                      { backgroundColor: n === containerNumber ? palette.gold : 'rgba(255,255,255,0.22)' },
-                    ]}
-                  />
+              {/* progress segments */}
+              <View style={styles.progress}>
+                {allPhases.map((p) => (
+                  <View key={p.id} style={[styles.seg, { backgroundColor: cardbd }]}>
+                    <View style={{ height: '100%', width: `${segFill(p)}%`, backgroundColor: gold }} />
+                  </View>
                 ))}
               </View>
+              <View style={styles.progressLabels}>
+                {allPhases.map((p) => {
+                  const active = p.id === phase.id
+                  return (
+                    <Text
+                      key={p.id}
+                      style={[
+                        styles.segLabel,
+                        { color: active ? gold : sub, fontFamily: active ? 'Raleway_600SemiBold' : 'Raleway_400Regular' },
+                      ]}
+                    >
+                      {SHORT[p.id]}
+                    </Text>
+                  )
+                })}
+              </View>
             </View>
-          </SafeAreaView>
-        </LinearGradient>
 
-        <View style={styles.body}>
-          {/* ─── Container selector — 1/2/3/4, active = gold ─── */}
-          <View>
-            <Text style={[styles.sectionLabel, { color: t.textMuted }]}>
-              Container {containerNumber} of 4 — {t.label} phase
-            </Text>
-            <View style={styles.containerRow}>
-              {[1, 2, 3, 4].map((n) => {
-                const active = n === containerNumber
+            {/* ── Phase rail ── */}
+            <Text style={[styles.sectionLabel, { color: sub }]}>Your four phases · tap to explore</Text>
+            <View style={styles.rail}>
+              {allPhases.map((p) => {
+                const active = p.id === phase.id
+                const pt = phaseTheme[phaseKeyFor(p.id)]
                 return (
                   <View
-                    key={n}
-                    style={[
-                      styles.containerCard,
-                      { backgroundColor: t.labCard, borderColor: active ? palette.gold : t.labBorder },
-                    ]}
+                    key={p.id}
+                    style={[styles.railCard, { borderColor: active ? gold : cardbd, backgroundColor: active ? cardwash : 'transparent' }]}
                   >
-                    <Text
-                      style={[styles.containerNum, { color: active ? palette.goldOnLight : t.textMuted }]}
-                    >
-                      {n}
+                    {active ? (
+                      <View style={[styles.dotHalo, { backgroundColor: halo }]}>
+                        <View style={[styles.dot, { backgroundColor: pt.phase }]} />
+                      </View>
+                    ) : (
+                      <View style={[styles.dot, { backgroundColor: pt.phase }]} />
+                    )}
+                    <Text style={[styles.railName, { color: ink }]}>{pt.label}</Text>
+                    <Text style={[styles.railDays, { color: sub }]}>
+                      D{p.cycleDays.start}–{p.cycleDays.end}
                     </Text>
                   </View>
                 )
               })}
             </View>
-          </View>
 
-          {/* ─── Symptoms — Lab card ─── */}
-          <View style={[styles.card, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
-            <Text style={[styles.cardHeading, { color: t.text }]}>How are you feeling today?</Text>
-            <View style={styles.tagRow}>
-              {quickTags.map((tag) => {
-                const on = quickSymptoms.includes(tag)
+            {/* ── Feeling chips ── */}
+            <Text style={[styles.sectionLabel, { color: sub }]}>How are you feeling?</Text>
+            <View style={styles.chips}>
+              {phase.symptoms.slice(0, 5).map((s) => {
+                const on = quickSymptoms.includes(s)
                 return (
                   <TouchableOpacity
-                    key={tag}
-                    style={[
-                      styles.tag,
-                      {
-                        backgroundColor: on ? t.accent : t.labCard,
-                        borderColor: on ? t.accent : t.labBorder,
-                      },
-                    ]}
-                    onPress={() =>
-                      setQuickSymptoms((prev) =>
-                        prev.includes(tag) ? prev.filter((s) => s !== tag) : [...prev, tag]
-                      )
-                    }
+                    key={s}
+                    onPress={() => toggleSymptom(s)}
+                    style={[styles.chip, { backgroundColor: on ? ink : 'transparent', borderColor: on ? 'transparent' : chipIdleBd }]}
                   >
-                    <Text style={[styles.tagText, { color: on ? '#FFFFFF' : t.text }]}>{tag}</Text>
+                    <Text style={[styles.chipText, { color: on ? chipOnText : ink }]}>{s}</Text>
                   </TouchableOpacity>
                 )
               })}
             </View>
-          </View>
 
-          {/* ─── Supplement focus — Lab card ─── */}
-          <View style={[styles.card, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
-            <Text style={[styles.cardHeading, { color: t.text }]}>Today&apos;s supplement focus</Text>
-            <View style={styles.supplementList}>
-              {phase.supplements.slice(8, 10).map((s) => (
-                <View key={s.name} style={[styles.supplementRow, { backgroundColor: t.labWhy }]}>
-                  <View style={styles.supplementInfo}>
-                    <Text style={[styles.supplementName, { color: t.text }]}>{s.name}</Text>
-                    <Text style={[styles.supplementPurpose, { color: t.textSoft }]} numberOfLines={2}>
-                      {s.purpose}
-                    </Text>
-                  </View>
-                  <View style={[styles.dosagePill, { backgroundColor: t.labCard }]}>
-                    <Text style={[styles.dosageText, { color: t.accent }]}>{s.dosage}</Text>
-                  </View>
-                </View>
-              ))}
+            {/* ── Supplement focus ── */}
+            <View style={styles.suppHead}>
+              <Text style={[styles.sectionLabel, { color: sub, marginBottom: 0 }]}>Today&apos;s supplement focus</Text>
+              <Text style={[styles.suppCount, { color: gold }]}>{supps.length} actives</Text>
             </View>
-          </View>
-        </View>
+            <View style={styles.suppList}>
+              {supps.map((s) => {
+                const note = s.purpose.split('—')[0].trim()
+                return (
+                  <View key={s.name} style={[styles.supp, { backgroundColor: cardwash, borderColor: cardbd }]}>
+                    <View style={styles.suppLeft}>
+                      <View style={[styles.suppCheck, { backgroundColor: gold }]}>
+                        <Text style={[styles.suppCheckMark, { color: t.phase }]}>✓</Text>
+                      </View>
+                      <View style={styles.suppInfo}>
+                        <Text style={[styles.suppName, { color: ink }]}>{s.name}</Text>
+                        <Text style={[styles.suppNote, { color: sub }]} numberOfLines={1}>
+                          {note}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.suppDose, { color: gold }]}>{s.dosage}</Text>
+                  </View>
+                )
+              })}
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
       </ScrollView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: 40 },
-  hero: { paddingBottom: 28 },
-  heroInner: { paddingHorizontal: 24, paddingTop: 12, alignItems: 'center' },
-  sealCluster: {
-    width: 120,
-    height: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
+  scroll: { flexGrow: 1 },
+  flood: { flexGrow: 1, paddingBottom: 32 },
+  safe: { paddingHorizontal: 22 },
+
+  // top bar
+  topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 6, marginBottom: 6 },
+  date: { fontFamily: 'Raleway_400Regular', fontSize: 9.5, letterSpacing: 2, textTransform: 'uppercase' },
+  todayHeading: { fontFamily: 'Marcellus_400Regular', fontSize: 24, marginTop: 3 },
+  avatar: { width: 34, height: 34 },
+
+  // hero
+  hero: { alignItems: 'center', paddingTop: 4 },
+  sealCluster: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   seal: { width: 84, height: 84 },
-  vibe: {
-    fontFamily: 'Raleway_600SemiBold',
-    fontSize: 11,
-    letterSpacing: 3,
-  },
-  phaseName: {
-    fontFamily: 'Marcellus_400Regular',
-    fontSize: 40,
-    marginTop: 8,
-  },
-  heroSub: { fontFamily: 'Raleway_400Regular', fontSize: 13, marginTop: 8 },
-  segments: { flexDirection: 'row', gap: 6, marginTop: 20 },
-  segment: { height: 4, width: 42, borderRadius: 2 },
+  eyebrow: { fontFamily: 'Raleway_600SemiBold', fontSize: 9.5, letterSpacing: 3, textTransform: 'uppercase' },
+  phaseName: { fontFamily: 'Marcellus_400Regular', fontSize: 52, marginTop: 12, lineHeight: 54 },
+  tagline: { fontFamily: 'Raleway_400Regular', fontSize: 13, letterSpacing: 3.5, textTransform: 'uppercase', marginTop: 12 },
+  line: { fontFamily: 'Raleway_300Light', fontSize: 12, opacity: 0.82, marginTop: 12, textAlign: 'center' },
 
-  body: { padding: 20, gap: 20, marginTop: 4 },
-  sectionLabel: { fontFamily: 'Raleway_400Regular', fontSize: 13, marginBottom: 10, marginLeft: 2 },
-  containerRow: { flexDirection: 'row', gap: 10 },
-  containerCard: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: 2,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  containerNum: { fontFamily: 'Marcellus_400Regular', fontSize: 28 },
+  // progress
+  progress: { flexDirection: 'row', gap: 6, marginTop: 20, alignSelf: 'stretch' },
+  seg: { flex: 1, height: 4, borderRadius: 4, overflow: 'hidden' },
+  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 9, alignSelf: 'stretch' },
+  segLabel: { fontSize: 8, letterSpacing: 1 },
 
-  card: { borderRadius: 18, borderWidth: 1, padding: 18, gap: 12 },
-  cardHeading: { fontFamily: 'Raleway_600SemiBold', fontSize: 15 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9999, borderWidth: 1.5 },
-  tagText: { fontFamily: 'Raleway_500Medium', fontSize: 13 },
+  // section label
+  sectionLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', marginTop: 22, marginBottom: 10 },
 
-  supplementList: { gap: 8 },
-  supplementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 12,
-    padding: 14,
-  },
-  supplementInfo: { flex: 1, gap: 3 },
-  supplementName: { fontFamily: 'Raleway_600SemiBold', fontSize: 14 },
-  supplementPurpose: { fontFamily: 'Raleway_400Regular', fontSize: 12, lineHeight: 17 },
-  dosagePill: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  dosageText: { fontFamily: 'Raleway_600SemiBold', fontSize: 12 },
+  // phase rail
+  rail: { flexDirection: 'row', gap: 8 },
+  railCard: { flex: 1, borderRadius: 13, borderWidth: 1, paddingVertical: 11, paddingHorizontal: 6, alignItems: 'center' },
+  dotHalo: { width: 19, height: 19, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 13, height: 13, borderRadius: 999 },
+  railName: { fontFamily: 'Marcellus_400Regular', fontSize: 12, marginTop: 8 },
+  railDays: { fontFamily: 'Raleway_400Regular', fontSize: 8, marginTop: 1 },
+
+  // chips
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  chip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  chipText: { fontFamily: 'Raleway_500Medium', fontSize: 11 },
+
+  // supplement focus
+  suppHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10 },
+  suppCount: { fontFamily: 'Raleway_600SemiBold', fontSize: 9, letterSpacing: 0.5 },
+  suppList: { gap: 9 },
+  supp: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 15, borderRadius: 14, borderWidth: 1 },
+  suppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  suppCheck: { width: 21, height: 21, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  suppCheckMark: { fontSize: 11, fontWeight: '700' },
+  suppInfo: { flex: 1 },
+  suppName: { fontFamily: 'Marcellus_400Regular', fontSize: 14.5 },
+  suppNote: { fontFamily: 'Raleway_300Light', fontSize: 9.5, marginTop: 2 },
+  suppDose: { fontFamily: 'Marcellus_400Regular', fontSize: 15, marginLeft: 10 },
 })
