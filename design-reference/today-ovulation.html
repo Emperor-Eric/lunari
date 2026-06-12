@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lunari — Today (Ovulation) — static reference</title>
+
+<!--
+  ============================================================================
+  lunari · Today screen · OVULATION phase — exact static reference
+  ============================================================================
+  Extracted verbatim from the "lunari Goddess" prototype. All prototype
+  JS/interactivity stripped; this is markup + CSS only.
+
+  PHASE THEME (Ovulation) — the only values that change per phase:
+    --wash       linear-gradient(170deg,#FCEFCB 0%,#F8D88F 48%,#F3C566 100%)
+    --ink        #3A2708   (primary text on the flood)
+    --sub        #9A6F24   (muted text / inactive labels)
+    --gold       #A8791E   (gold linework on this LIGHT phase; on dark phases this is #C9A84C)
+    --solid      #E3A82E   (phase solid — rail dot, etc.)
+    --cardwash   rgba(255,255,255,0.42)   (card fill on flood)
+    --cardbd     rgba(58,40,8,0.16)       (card / hairline border)
+    --ringtrack  rgba(58,40,8,0.16)       (progress-bar track)
+    --chip-on-bg #3A2708     --chip-on-text #F8E2A8     (active feeling chip)
+    --chip-idle-bd rgba(58,40,8,0.28)     (inactive chip / empty supplement check border)
+    --halo       rgba(201,168,76,0.40)    (active rail-dot glow — uses brand gold #C9A84C)
+
+  Fonts: Marcellus (display) + Raleway (body). Seal asset: seal-ink.png
+  (dark-ink version, for this light phase; use seal-gold.png on dark phases).
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Raleway:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2a1f12;                 /* page backdrop only — not part of the screen */
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Raleway', sans-serif;
+  }
+
+  /* ---- OVULATION phase theme variables ---- */
+  .today {
+    --wash: linear-gradient(170deg, #FCEFCB 0%, #F8D88F 48%, #F3C566 100%);
+    --ink: #3A2708;
+    --sub: #9A6F24;
+    --gold: #A8791E;
+    --solid: #E3A82E;
+    --cardwash: rgba(255, 255, 255, 0.42);
+    --cardbd: rgba(58, 40, 8, 0.16);
+    --ringtrack: rgba(58, 40, 8, 0.16);
+    --chip-on-bg: #3A2708;
+    --chip-on-text: #F8E2A8;
+    --chip-idle-bd: rgba(58, 40, 8, 0.28);
+    --halo: rgba(201, 168, 76, 0.40);
+
+    width: 390px;                         /* phone screen width (prototype frame inner ≈ 362) */
+    min-height: 800px;
+    border-radius: 40px;                  /* screen radius token */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--wash);
+    color: var(--ink);
+  }
+
+  /* ---- status bar ---- */
+  .today__status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px 0;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .today__status .signal { font-size: 10px; }
+
+  /* ---- scroll body ---- */
+  .today__body { flex: 1; padding: 10px 22px 24px; }
+
+  /* ---- top bar (date / Today / seal) ---- */
+  .today__topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 6px 0 14px;
+  }
+  .today__date {
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--sub);
+  }
+  .today__heading {
+    font-family: 'Marcellus', serif;
+    font-size: 24px;
+    line-height: 1;
+    margin-top: 3px;
+  }
+  .today__avatar { width: 34px; height: 34px; }
+
+  /* ---- HERO ---- */
+  .hero { text-align: center; padding: 6px 0 2px; position: relative; }
+  .hero__ring {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+  }
+  .hero__ring--lg { top: -6px; width: 230px; height: 230px; opacity: 0.18; }
+  .hero__ring--sm { top: 24px; width: 160px; height: 160px; opacity: 0.14; }
+  .hero__seal {
+    width: 84px;
+    height: 84px;
+    position: relative;
+    display: block;
+    margin: 6px auto 14px;
+    animation: lunGlow 4s ease-in-out infinite;
+  }
+  .hero__eyebrow {
+    position: relative;
+    font-size: 9.5px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .hero__name {
+    position: relative;
+    font-family: 'Marcellus', serif;
+    font-size: 52px;
+    line-height: 1;
+    margin-top: 12px;
+  }
+  .hero__tagline {
+    position: relative;
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--sub);
+    margin-top: 12px;
+  }
+  .hero__line {
+    position: relative;
+    font-size: 12px;
+    color: var(--ink);
+    opacity: 0.82;
+    margin-top: 12px;
+    font-weight: 300;
+  }
+
+  /* ---- progress segments ---- */
+  .progress {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    margin-top: 20px;
+  }
+  .progress__seg {
+    flex: 1;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--ringtrack);
+    overflow: hidden;
+  }
+  .progress__fill { height: 100%; background: var(--gold); }
+  .progress__labels {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 9px;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+  .progress__labels span { color: var(--sub); font-weight: 400; }
+  .progress__labels span.is-active { color: var(--gold); font-weight: 700; }
+
+  /* ---- section label ---- */
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sub);
+    margin: 22px 0 10px;
+  }
+  .section-label--symptoms { margin: 20px 0 10px; }
+
+  /* ---- phase rail ---- */
+  .rail {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .rail__card {
+    border-radius: 13px;
+    padding: 11px 6px;
+    text-align: center;
+    border: 1px solid var(--cardbd);
+    background: transparent;
+    transition: all 0.3s ease;
+  }
+  .rail__card.is-active {
+    border: 1px solid var(--gold);
+    background: var(--cardwash);
+  }
+  .rail__dot {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    margin: 0 auto;
+  }
+  .rail__card.is-active .rail__dot { box-shadow: 0 0 0 3px var(--halo); }
+  .rail__name {
+    font-family: 'Marcellus', serif;
+    font-size: 12px;
+    margin-top: 8px;
+    color: var(--ink);
+  }
+  .rail__days { font-size: 8px; color: var(--sub); margin-top: 1px; }
+
+  /* ---- feeling chips ---- */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    font-size: 11px;
+    padding: 7px 13px;
+    border-radius: 20px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--chip-idle-bd);
+  }
+  .chip.is-active {
+    background: var(--chip-on-bg);
+    color: var(--chip-on-text);
+    border: 1px solid transparent;
+  }
+
+  /* ---- supplement focus ---- */
+  .supp-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 22px 0 10px;
+  }
+  .supp-head__label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sub);
+  }
+  .supp-head__count {
+    font-size: 9px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+  .supp-list { display: flex; flex-direction: column; gap: 9px; }
+  .supp {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 15px;
+    border-radius: 14px;
+    background: var(--cardwash);
+    border: 1px solid var(--cardbd);
+  }
+  .supp__left { display: flex; align-items: center; gap: 12px; }
+  .supp__check {
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    background: transparent;
+    color: transparent;
+    border: 1.5px solid var(--chip-idle-bd);
+  }
+  .supp__check.is-on {
+    background: var(--gold);
+    color: var(--solid);
+    border: 1px solid transparent;
+  }
+  .supp__name {
+    font-family: 'Marcellus', serif;
+    font-size: 14.5px;
+    color: var(--ink);
+  }
+  .supp__note {
+    font-size: 9.5px;
+    color: var(--sub);
+    margin-top: 2px;
+    font-weight: 300;
+  }
+  .supp__dose {
+    font-family: 'Marcellus', serif;
+    font-size: 15px;
+    color: var(--gold);
+  }
+
+  @keyframes lunGlow { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.9; } }
+</style>
+</head>
+<body>
+
+  <!-- ======================= TODAY · OVULATION ======================= -->
+  <main class="today">
+
+    <!-- status bar -->
+    <div class="today__status">
+      <span>9:41</span>
+      <span class="signal">5G</span>
+    </div>
+
+    <div class="today__body">
+
+      <!-- top bar -->
+      <div class="today__topbar">
+        <div>
+          <div class="today__date">Tue, Jun 11</div>
+          <div class="today__heading">Today</div>
+        </div>
+        <!-- light phase → ink seal. Use seal-gold.png on dark phases. -->
+        <img class="today__avatar" src="seal-ink.png" alt="">
+      </div>
+
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero__ring hero__ring--lg"></div>
+        <div class="hero__ring hero__ring--sm"></div>
+        <img class="hero__seal" src="seal-ink.png" alt="lunari seal">
+        <div class="hero__eyebrow">Phase 03 / 04 &middot; Day 14</div>
+        <div class="hero__name">Ovulation</div>
+        <div class="hero__tagline">Radiance + Connection</div>
+        <div class="hero__line">Peak radiance &mdash; connect and shine. Your highest-output window.</div>
+
+        <!-- progress: Ovulation fills = 100% / 100% / 40% / 0% -->
+        <div class="progress">
+          <div class="progress__seg"><div class="progress__fill" style="width:100%"></div></div>
+          <div class="progress__seg"><div class="progress__fill" style="width:100%"></div></div>
+          <div class="progress__seg"><div class="progress__fill" style="width:40%"></div></div>
+          <div class="progress__seg"><div class="progress__fill" style="width:0%"></div></div>
+        </div>
+        <div class="progress__labels">
+          <span>MENS</span>
+          <span>FOLL</span>
+          <span class="is-active">OVUL</span>
+          <span>LUT</span>
+        </div>
+      </div>
+
+      <!-- phase rail -->
+      <div class="section-label">Your four phases &middot; tap to explore</div>
+      <div class="rail">
+        <div class="rail__card">
+          <div class="rail__dot" style="background:#102B53"></div>
+          <div class="rail__name">Menstrual</div>
+          <div class="rail__days">D1&ndash;5</div>
+        </div>
+        <div class="rail__card">
+          <div class="rail__dot" style="background:#5F6E5A"></div>
+          <div class="rail__name">Follicular</div>
+          <div class="rail__days">D6&ndash;13</div>
+        </div>
+        <div class="rail__card is-active">
+          <div class="rail__dot" style="background:#E3A82E"></div>
+          <div class="rail__name">Ovulation</div>
+          <div class="rail__days">D14&ndash;16</div>
+        </div>
+        <div class="rail__card">
+          <div class="rail__dot" style="background:#461D3A"></div>
+          <div class="rail__name">Luteal</div>
+          <div class="rail__days">D17&ndash;28</div>
+        </div>
+      </div>
+
+      <!-- feeling chips: Ovulation → Energised(on), Confident(on), Social, Tender, Glowing -->
+      <div class="section-label section-label--symptoms">How are you feeling?</div>
+      <div class="chips">
+        <span class="chip is-active">Energised</span>
+        <span class="chip is-active">Confident</span>
+        <span class="chip">Social</span>
+        <span class="chip">Tender</span>
+        <span class="chip">Glowing</span>
+      </div>
+
+      <!-- supplement focus -->
+      <div class="supp-head">
+        <span class="supp-head__label">Today&rsquo;s supplement focus</span>
+        <span class="supp-head__count">3 actives</span>
+      </div>
+      <div class="supp-list">
+        <div class="supp">
+          <div class="supp__left">
+            <span class="supp__check is-on">&#10003;</span>
+            <div>
+              <div class="supp__name">Zinc picolinate</div>
+              <div class="supp__note">supports ovulation</div>
+            </div>
+          </div>
+          <div class="supp__dose">15mg</div>
+        </div>
+        <div class="supp">
+          <div class="supp__left">
+            <span class="supp__check is-on">&#10003;</span>
+            <div>
+              <div class="supp__name">Magnesium glycinate</div>
+              <div class="supp__note">hormone balance</div>
+            </div>
+          </div>
+          <div class="supp__dose">300mg</div>
+        </div>
+        <div class="supp">
+          <div class="supp__left">
+            <span class="supp__check"></span>
+            <div>
+              <div class="supp__name">Vitamin C</div>
+              <div class="supp__note">progesterone prep</div>
+            </div>
+          </div>
+          <div class="supp__dose">500mg</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>
