@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { FoodItem, SupplementCard } from '@lunari/ui'
 import { getPhaseForDay } from '@lunari/phase-data'
-import { useCycleContext } from '../layout'
+import { useCycleContext } from '../cycle-context'
 
 const CORE_BLEND = [
   { name: 'Myo-Inositol', dosage: '3500mg', purpose: 'Hormonal balance and insulin sensitivity' },

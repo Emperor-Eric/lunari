@@ -6,7 +6,7 @@ import { getPhaseForDay } from '@lunari/phase-data'
 import { buildShopifyUrl } from '@lunari/utils'
 import type { UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost } from '@/src/lib/api'
-import { useCycleContext } from '../layout'
+import { useCycleContext } from '../cycle-context'
 
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 const KIT_URL = process.env.NEXT_PUBLIC_SHOPIFY_PRODUCT_KIT_URL || 'https://herlunari.myshopify.com/products/30-day-kit'

@@ -1,13 +1,11 @@
 'use client'
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { TodayCycleResponse } from '@lunari/types'
 import { getPhaseForDay } from '@lunari/phase-data'
 import { apiFetch } from '@/src/lib/api'
-
-const CycleContext = createContext<{ cycleData: TodayCycleResponse | null }>({ cycleData: null })
-export const useCycleContext = () => useContext(CycleContext)
+import { CycleContext } from './cycle-context'
 
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 

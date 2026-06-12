@@ -2,7 +2,7 @@
 import React from 'react'
 import { WorkoutCard } from '@lunari/ui'
 import { getPhaseForDay } from '@lunari/phase-data'
-import { useCycleContext } from '../layout'
+import { useCycleContext } from '../cycle-context'
 
 export default function WorkoutsPage() {
   const { cycleData } = useCycleContext()

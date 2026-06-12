@@ -5,7 +5,7 @@ import {
   SleepInput, WaterTracker, JournalInput, Toast,
 } from '@lunari/ui'
 import { getPhaseForDay } from '@lunari/phase-data'
-import { useCycleContext } from '../layout'
+import { useCycleContext } from '../cycle-context'
 import { apiPost } from '@/src/lib/api'
 
 export default function LogPage() {
