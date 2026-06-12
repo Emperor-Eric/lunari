@@ -32,7 +32,7 @@ export default function TrackerToday() {
         {/* ─── HERO: top-down flood + orbit rings + reserved seal slot ─── */}
         <div className="rounded-[28px] overflow-hidden" style={{ background: heroFlood }}>
           <div className="px-6 pt-7 pb-6 flex flex-col items-center text-center">
-            {/* Celestial cluster: gold orbit rings around the reserved seal space */}
+            {/* Celestial cluster: gold goddess seal within 2 gold orbit rings */}
             <div className="relative w-[120px] h-[120px] flex items-center justify-center mb-3">
               <svg
                 width="120"
@@ -42,14 +42,17 @@ export default function TrackerToday() {
                 className="absolute inset-0"
                 aria-hidden
               >
-                <circle cx="60" cy="60" r="58" stroke={palette.gold} strokeOpacity="0.2" strokeWidth="1" />
-                <circle cx="60" cy="60" r="44" stroke={palette.gold} strokeOpacity="0.28" strokeWidth="1" />
-                <circle cx="60" cy="60" r="30" stroke={palette.gold} strokeOpacity="0.38" strokeWidth="1" />
+                <circle cx="60" cy="60" r="58" stroke={palette.gold} strokeOpacity="0.3" strokeWidth="1" />
+                <circle cx="60" cy="60" r="50" stroke={palette.gold} strokeOpacity="0.22" strokeWidth="1" />
               </svg>
-              {/* RESERVED: goddess seal drops in here later, e.g.
-                  <img src={`/brand/seal-${phaseKeyFor(phase.id)}.png`}
-                       alt="" className="w-16 h-16" /> */}
-              <div className="w-16 h-16" aria-hidden />
+              {/* Goddess seal — gold line-art on transparent, reads on the flood.
+                  Asset: apps/web/public/brand/seal-gold.png */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/seal-gold.png"
+                alt="Lunari goddess seal"
+                className="relative w-[84px] h-[84px] object-contain"
+              />
             </div>
 
             <p

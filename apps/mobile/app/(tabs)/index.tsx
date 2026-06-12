@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, Image, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
@@ -71,17 +71,19 @@ export default function Today() {
         >
           <SafeAreaView edges={['top']}>
             <View style={styles.heroInner}>
-              {/* Celestial cluster: gold orbit rings around the reserved seal space */}
+              {/* Celestial cluster: gold goddess seal within 2 gold orbit rings */}
               <View style={styles.sealCluster}>
                 <Svg width={120} height={120} style={StyleSheet.absoluteFill}>
-                  <Circle cx={60} cy={60} r={58} stroke={palette.gold} strokeOpacity={0.2} strokeWidth={1} fill="none" />
-                  <Circle cx={60} cy={60} r={44} stroke={palette.gold} strokeOpacity={0.28} strokeWidth={1} fill="none" />
-                  <Circle cx={60} cy={60} r={30} stroke={palette.gold} strokeOpacity={0.38} strokeWidth={1} fill="none" />
+                  <Circle cx={60} cy={60} r={58} stroke={palette.gold} strokeOpacity={0.3} strokeWidth={1} fill="none" />
+                  <Circle cx={60} cy={60} r={50} stroke={palette.gold} strokeOpacity={0.22} strokeWidth={1} fill="none" />
                 </Svg>
-                {/* RESERVED: goddess seal drops in here later, e.g.
-                    <Image source={require('../../assets/brand/seal-<phase>.png')}
-                           style={{ width: 64, height: 64 }} /> */}
-                <View style={styles.sealSlot} />
+                {/* Goddess seal — gold line-art on transparent.
+                    Asset: apps/mobile/assets/brand/seal-gold.png */}
+                <Image
+                  source={require('../../assets/brand/seal-gold.png')}
+                  style={styles.seal}
+                  resizeMode="contain"
+                />
               </View>
 
               <Text style={[styles.vibe, { color: t.headerLabel }]}>{t.vibe.toUpperCase()}</Text>
@@ -199,7 +201,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  sealSlot: { width: 64, height: 64 },
+  seal: { width: 84, height: 84 },
   vibe: {
     fontFamily: 'Raleway_600SemiBold',
     fontSize: 11,
