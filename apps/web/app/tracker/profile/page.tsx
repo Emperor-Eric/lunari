@@ -13,13 +13,8 @@ const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 // Static settings rows — no destination screens exist yet (flagged: not wired).
 const SETTINGS = ['Notifications', 'Phase predictions', 'Connected apps', 'Privacy & data']
 
-// Kit tubes (real PNGs in /public/brand). Heights + order per the reference.
-const TUBES: { key: string; src: string; h: number }[] = [
-  { key: 'menstrual', src: '/brand/tube-menstrual.png', h: 64 },
-  { key: 'follicular', src: '/brand/tube-follicular.png', h: 88 },
-  { key: 'ovulation', src: '/brand/tube-ovulation.png', h: 66 },
-  { key: 'luteal', src: '/brand/tube-luteal.png', h: 90 },
-]
+// Cycle order for the mini phase rail (matches phase-data day ranges).
+const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
 
 // Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
 const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
@@ -90,6 +85,13 @@ export default function ProfilePage() {
   const menstrual = allPhases.find((p) => p.id === 'menstrual')
   const periodDays = menstrual ? menstrual.cycleDays.end - menstrual.cycleDays.start + 1 : 5
 
+  // "Where you are" — all derived from the real current day + phase day-ranges.
+  const dayOfPhase = day - phase.cycleDays.start + 1
+  const phaseLength = phase.cycleDays.end - phase.cycleDays.start + 1
+  const daysUntilNext = phase.cycleDays.end - day
+  const currentIndex = PHASE_ORDER.indexOf(activeKey as (typeof PHASE_ORDER)[number])
+  const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
+
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '··'
@@ -136,33 +138,43 @@ export default function ProfilePage() {
           <StatCard value={day} caption="today" today t={t} />
         </div>
 
-        {/* Your kit */}
+        {/* Where you are — non-product cycle summary (real data only) */}
         <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
-          Your kit
+          Where you are
         </div>
-        <div
-          className="flex items-end justify-around"
-          style={{ gap: 6, background: t.labWhy, border: `1px solid ${t.labBorder}`, borderRadius: 15, padding: '14px 12px 12px', height: 118 }}
-        >
-          {TUBES.map((tube) => {
-            const active = tube.key === activeKey
-            return (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={tube.key}
-                src={tube.src}
-                alt=""
-                style={{
-                  height: tube.h,
-                  width: 'auto',
-                  filter: active
-                    ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.18))'
-                    : 'drop-shadow(0 6px 8px rgba(0,0,0,0.18)) grayscale(0.2) opacity(0.7)',
-                  transform: active ? 'translateY(-6px)' : undefined,
-                }}
+        <div style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 15, padding: 16 }}>
+          <div className="flex items-baseline justify-between">
+            <div className="font-display" style={{ fontSize: 19, color: t.accent }}>
+              {t.label}
+            </div>
+            <div className="font-display" style={{ fontSize: 15, color: N.text }}>
+              Day {dayOfPhase}{' '}
+              <span className="font-body" style={{ fontSize: 11, color: N.section }}>
+                of {phaseLength}
+              </span>
+            </div>
+          </div>
+          <div className="font-body" style={{ fontSize: 11, color: N.section, marginTop: 2 }}>
+            {t.vibe}
+          </div>
+
+          {/* mini phase rail */}
+          <div className="flex" style={{ gap: 5, marginTop: 14 }}>
+            {PHASE_ORDER.map((key) => (
+              <div
+                key={key}
+                className="flex-1"
+                style={{ height: 6, borderRadius: 3, background: phaseTheme[key].phase, opacity: key === activeKey ? 1 : 0.28 }}
               />
-            )
-          })}
+            ))}
+          </div>
+
+          <div className="font-body" style={{ fontSize: 10.5, color: N.section, marginTop: 10 }}>
+            Phase {currentIndex + 1} of {PHASE_ORDER.length}
+            {daysUntilNext > 0
+              ? ` · ${daysUntilNext} ${daysUntilNext === 1 ? 'day' : 'days'} until ${nextLabel}`
+              : ' · last day of this phase'}
+          </div>
         </div>
 
         {/* Settings (static — no destination screens yet) */}

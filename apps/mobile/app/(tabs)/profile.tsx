@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, Pressable, Switch, Alert, Image, StyleSheet, ScrollView,
+  View, Text, TextInput, TouchableOpacity, Pressable, Switch, Alert, StyleSheet, ScrollView,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -15,13 +15,8 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 // Referral entry turns on with the shop — a code only matters once there's a product.
 const SHOP_ENABLED = process.env.EXPO_PUBLIC_SHOP_ENABLED === 'true'
 
-// Kit tubes (real PNGs in assets/brand). Heights + order per the reference.
-const TUBES: { key: string; src: number; h: number }[] = [
-  { key: 'menstrual', src: require('../../assets/brand/tube-menstrual.png'), h: 64 },
-  { key: 'follicular', src: require('../../assets/brand/tube-follicular.png'), h: 88 },
-  { key: 'ovulation', src: require('../../assets/brand/tube-ovulation.png'), h: 66 },
-  { key: 'luteal', src: require('../../assets/brand/tube-luteal.png'), h: 90 },
-]
+// Cycle order for the mini phase rail (matches phase-data day ranges).
+const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
 
 // Settings rows beyond Notifications — no destination screens yet (flagged: not wired).
 const EXTRA_SETTINGS = ['Phase predictions', 'Connected apps', 'Privacy & data']
@@ -138,6 +133,13 @@ export default function Profile() {
   const menstrual = allPhases.find((p) => p.id === 'menstrual')
   const periodDays = menstrual ? menstrual.cycleDays.end - menstrual.cycleDays.start + 1 : 5
 
+  // "Where you are" — all derived from the real current day + phase day-ranges.
+  const dayOfPhase = day - phase.cycleDays.start + 1
+  const phaseLength = phase.cycleDays.end - phase.cycleDays.start + 1
+  const daysUntilNext = phase.cycleDays.end - day
+  const currentIndex = PHASE_ORDER.indexOf(activeKey as (typeof PHASE_ORDER)[number])
+  const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
+
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : '··'
@@ -180,25 +182,34 @@ export default function Profile() {
             <StatCard value={day} caption="today" today t={t} />
           </View>
 
-          {/* Your kit */}
-          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Your kit</Text>
-          <View style={[styles.kit, { backgroundColor: t.labWhy, borderColor: t.labBorder }]}>
-            {TUBES.map((tube) => {
-              const active = tube.key === activeKey
-              return (
-                <Image
-                  key={tube.key}
-                  source={tube.src}
-                  resizeMode="contain"
-                  style={{
-                    height: tube.h,
-                    width: 34,
-                    opacity: active ? 1 : 0.7,
-                    transform: [{ translateY: active ? -6 : 0 }],
-                  }}
+          {/* Where you are — non-product cycle summary (real data only) */}
+          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Where you are</Text>
+          <View style={[styles.summary, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
+            <View style={styles.summaryHead}>
+              <Text style={[styles.summaryPhase, { color: t.accent }]}>{t.label}</Text>
+              <Text style={[styles.summaryDay, { color: N.text }]}>
+                Day {dayOfPhase}
+                <Text style={[styles.summaryDayOf, { color: N.section }]}> of {phaseLength}</Text>
+              </Text>
+            </View>
+            <Text style={[styles.summaryVibe, { color: N.section }]}>{t.vibe}</Text>
+
+            {/* mini phase rail */}
+            <View style={styles.rail}>
+              {PHASE_ORDER.map((key) => (
+                <View
+                  key={key}
+                  style={[styles.railSeg, { backgroundColor: phaseTheme[key].phase, opacity: key === activeKey ? 1 : 0.28 }]}
                 />
-              )
-            })}
+              ))}
+            </View>
+
+            <Text style={[styles.summaryMeta, { color: N.section }]}>
+              Phase {currentIndex + 1} of {PHASE_ORDER.length}
+              {daysUntilNext > 0
+                ? ` · ${daysUntilNext} ${daysUntilNext === 1 ? 'day' : 'days'} until ${nextLabel}`
+                : ' · last day of this phase'}
+            </Text>
           </View>
 
           {/* Settings */}
@@ -328,8 +339,16 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: 'Marcellus_400Regular', fontSize: 23 },
   statCaption: { fontFamily: 'Raleway_400Regular', fontSize: 8.5, marginTop: 2 },
 
-  // kit shelf
-  kit: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', gap: 6, borderRadius: 15, borderWidth: 1, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12, height: 118 },
+  // where-you-are summary
+  summary: { borderRadius: 15, borderWidth: 1, padding: 16 },
+  summaryHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  summaryPhase: { fontFamily: 'Marcellus_400Regular', fontSize: 19 },
+  summaryDay: { fontFamily: 'Marcellus_400Regular', fontSize: 15 },
+  summaryDayOf: { fontFamily: 'Raleway_400Regular', fontSize: 11 },
+  summaryVibe: { fontFamily: 'Raleway_400Regular', fontSize: 11, marginTop: 2 },
+  rail: { flexDirection: 'row', gap: 5, marginTop: 14 },
+  railSeg: { flex: 1, height: 6, borderRadius: 3 },
+  summaryMeta: { fontFamily: 'Raleway_400Regular', fontSize: 10.5, marginTop: 10 },
 
   // settings
   settingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
