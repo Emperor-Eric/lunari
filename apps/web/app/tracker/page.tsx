@@ -65,7 +65,7 @@ export default function TrackerToday() {
   return (
     // CONTINUOUS FLOOD — one phase wash fills the whole main area, full-bleed.
     <div className="min-h-screen" style={{ background: t.flood, color: ink }}>
-      <div className="max-w-md mx-auto px-6 pt-8 pb-14 font-body">
+      <div className="max-w-4xl mx-auto px-6 md:px-10 pt-8 pb-14 font-body">
         {/* ── Top bar: date / Today / seal ── */}
         <div className="flex justify-between items-start mb-3">
           <div>
@@ -81,8 +81,8 @@ export default function TrackerToday() {
           <img src="/brand/seal-gold.png" alt="" className="object-contain" style={{ width: 34, height: 34 }} />
         </div>
 
-        {/* ── HERO ── */}
-        <div className="relative text-center" style={{ paddingTop: 6 }}>
+        {/* ── HERO (stays centered + readable even on a wide column) ── */}
+        <div className="relative text-center max-w-lg mx-auto" style={{ paddingTop: 6 }}>
           {/* gold orbit rings */}
           <div
             className="absolute left-1/2 rounded-full"
@@ -107,7 +107,10 @@ export default function TrackerToday() {
           >
             Phase {String(containerNumber).padStart(2, '0')} / 04 · Day {day}
           </div>
-          <h1 className="relative font-display" style={{ fontSize: 52, lineHeight: 1, marginTop: 12, color: ink }}>
+          <h1
+            className="relative font-display text-[52px] lg:text-[64px]"
+            style={{ lineHeight: 1, marginTop: 12, color: ink }}
+          >
             {phase.name}
           </h1>
           <div
@@ -210,7 +213,7 @@ export default function TrackerToday() {
           </span>
           <span style={{ fontSize: 9, color: gold, letterSpacing: '0.08em' }}>{supps.length} actives</span>
         </div>
-        <div className="flex flex-col" style={{ gap: 9 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 9 }}>
           {supps.map((s) => {
             const note = s.purpose.split('—')[0].trim()
             return (
