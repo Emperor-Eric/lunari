@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay, getAllPhases } from '@lunari/phase-data'
+import { getPhaseForDay, getAllPhases, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
 import type { TodayCycleResponse, PhaseId } from '@lunari/types'
@@ -35,6 +35,7 @@ export default function Today() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
+  const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
 
   const fetchToday = useCallback(async () => {
     if (!session) return
@@ -62,15 +63,19 @@ export default function Today() {
     setQuickSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
 
   const allPhases = getAllPhases()
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
-  const t = phaseTheme[phaseKeyFor(phase.id)]
+
+  // The user's REAL position — drives day + progress (never faked).
+  const day = cycleData?.day ?? 1
+  const currentPhase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+
+  // Which phase the screen previews. null = follow current phase.
+  const viewedPhase = viewedPhaseId ? getPhaseById(viewedPhaseId) : currentPhase
+  const previewing = viewedPhaseId !== null && viewedPhaseId !== currentPhase.id
+  const t = phaseTheme[phaseKeyFor(viewedPhase.id)]
 
   if (loading) return <LoadingSpinner phaseColor={t.accent} />
 
-  const day = cycleData?.day ?? 1
-  const containerNumber = cycleData?.containerNumber ?? 1
-
-  // ── Derive the reference's theme values from our tokens (same as web) ──
+  // ── Derive theme from the VIEWED phase's tokens (same as web) ──
   const light = isLightHex(t.phase)
   const gold = light ? palette.goldOnLight : palette.gold
   const ink = t.floodText
@@ -95,10 +100,10 @@ export default function Today() {
     return Math.round(((day - p.cycleDays.start + 1) / span) * 100)
   }
 
-  const supps = phase.supplements.slice(8, 11)
+  const supps = viewedPhase.supplements.slice(8, 11)
 
   return (
-    // CONTINUOUS FLOOD — one phase wash fills the full scrollable area.
+    // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
     <View style={{ flex: 1, backgroundColor: baseColor }}>
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -121,7 +126,7 @@ export default function Today() {
               <Image source={require('../../assets/brand/seal-gold.png')} style={styles.avatar} resizeMode="contain" />
             </View>
 
-            {/* ── HERO ── */}
+            {/* ── HERO (themed to the viewed phase) ── */}
             <View style={styles.hero}>
               <View style={styles.sealCluster}>
                 <Svg width={150} height={150} style={StyleSheet.absoluteFill}>
@@ -132,13 +137,13 @@ export default function Today() {
               </View>
 
               <Text style={[styles.eyebrow, { color: gold }]}>
-                Phase {String(containerNumber).padStart(2, '0')} / 04 · Day {day}
+                Phase {String(viewedPhase.containerNumber).padStart(2, '0')} / 04 · Day {day}
               </Text>
               <Text style={[styles.phaseName, { color: ink }]}>{t.label}</Text>
               <Text style={[styles.tagline, { color: sub }]}>{t.vibe}</Text>
-              <Text style={[styles.line, { color: ink }]}>{phase.tagline}</Text>
+              <Text style={[styles.line, { color: ink }]}>{viewedPhase.tagline}</Text>
 
-              {/* progress segments */}
+              {/* progress segments — reflect the REAL current day */}
               <View style={styles.progress}>
                 {allPhases.map((p) => (
                   <View key={p.id} style={[styles.seg, { backgroundColor: cardbd }]}>
@@ -148,13 +153,13 @@ export default function Today() {
               </View>
               <View style={styles.progressLabels}>
                 {allPhases.map((p) => {
-                  const active = p.id === phase.id
+                  const isNow = p.id === currentPhase.id
                   return (
                     <Text
                       key={p.id}
                       style={[
                         styles.segLabel,
-                        { color: active ? gold : sub, fontFamily: active ? 'Raleway_600SemiBold' : 'Raleway_400Regular' },
+                        { color: isNow ? gold : sub, fontFamily: isNow ? 'Raleway_600SemiBold' : 'Raleway_400Regular' },
                       ]}
                     >
                       {SHORT[p.id]}
@@ -164,15 +169,30 @@ export default function Today() {
               </View>
             </View>
 
-            {/* ── Phase rail ── */}
+            {/* ── Preview banner (only when viewing a non-current phase) ── */}
+            {previewing && (
+              <View style={[styles.banner, { backgroundColor: cardwash, borderColor: cardbd }]}>
+                <Text style={[styles.bannerText, { color: ink }]}>
+                  Previewing {t.label} · You&apos;re in {phaseTheme[phaseKeyFor(currentPhase.id)].label} today
+                </Text>
+                <TouchableOpacity onPress={() => setViewedPhaseId(null)}>
+                  <Text style={[styles.bannerBack, { color: gold }]}>Back to today</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ── Phase rail (tap to preview) ── */}
             <Text style={[styles.sectionLabel, { color: sub }]}>Your four phases · tap to explore</Text>
             <View style={styles.rail}>
               {allPhases.map((p) => {
-                const active = p.id === phase.id
+                const active = p.id === viewedPhase.id
+                const isNow = p.id === currentPhase.id
                 const pt = phaseTheme[phaseKeyFor(p.id)]
                 return (
-                  <View
+                  <TouchableOpacity
                     key={p.id}
+                    activeOpacity={0.8}
+                    onPress={() => setViewedPhaseId(p.id)}
                     style={[styles.railCard, { borderColor: active ? gold : cardbd, backgroundColor: active ? cardwash : 'transparent' }]}
                   >
                     {active ? (
@@ -186,15 +206,16 @@ export default function Today() {
                     <Text style={[styles.railDays, { color: sub }]}>
                       D{p.cycleDays.start}–{p.cycleDays.end}
                     </Text>
-                  </View>
+                    {isNow && <Text style={[styles.railNow, { color: gold }]}>NOW</Text>}
+                  </TouchableOpacity>
                 )
               })}
             </View>
 
-            {/* ── Feeling chips ── */}
+            {/* ── Feeling chips (viewed phase's symptoms) ── */}
             <Text style={[styles.sectionLabel, { color: sub }]}>How are you feeling?</Text>
             <View style={styles.chips}>
-              {phase.symptoms.slice(0, 5).map((s) => {
+              {viewedPhase.symptoms.slice(0, 5).map((s) => {
                 const on = quickSymptoms.includes(s)
                 return (
                   <TouchableOpacity
@@ -208,7 +229,7 @@ export default function Today() {
               })}
             </View>
 
-            {/* ── Supplement focus ── */}
+            {/* ── Supplement focus (viewed phase's actives) ── */}
             <View style={styles.suppHead}>
               <Text style={[styles.sectionLabel, { color: sub, marginBottom: 0 }]}>Today&apos;s supplement focus</Text>
               <Text style={[styles.suppCount, { color: gold }]}>{supps.length} actives</Text>
@@ -267,6 +288,21 @@ const styles = StyleSheet.create({
   progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 9, alignSelf: 'stretch' },
   segLabel: { fontSize: 8, letterSpacing: 1 },
 
+  // preview banner
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 16,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  bannerText: { fontFamily: 'Raleway_400Regular', fontSize: 11, flex: 1 },
+  bannerBack: { fontFamily: 'Raleway_600SemiBold', fontSize: 11 },
+
   // section label
   sectionLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', marginTop: 22, marginBottom: 10 },
 
@@ -277,6 +313,7 @@ const styles = StyleSheet.create({
   dot: { width: 13, height: 13, borderRadius: 999 },
   railName: { fontFamily: 'Marcellus_400Regular', fontSize: 12, marginTop: 8 },
   railDays: { fontFamily: 'Raleway_400Regular', fontSize: 8, marginTop: 1 },
+  railNow: { fontFamily: 'Raleway_600SemiBold', fontSize: 7.5, letterSpacing: 1.2, marginTop: 3 },
 
   // chips
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
