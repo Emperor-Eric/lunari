@@ -49,10 +49,11 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen bg-brand-cream flex">
         {/* Desktop sidebar */}
         <aside className="hidden md:flex w-[220px] flex-col border-r border-brand-stone bg-white p-6 gap-8 fixed h-full">
-          {/* Ink wordmark — sidebar is on a light background.
-              Asset: apps/web/public/brand/wordmark-ink.png */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/wordmark-ink.png" alt="lunari" className="w-[110px] h-auto" />
+          {/* Live wordmark in Marcellus — goldOnLight (#A8791E) reads legibly on
+              the light sidebar (the brighter #C9A84C is too pale on cream). */}
+          <span className="font-display lowercase text-[26px] tracking-[0.04em]" style={{ color: '#A8791E' }}>
+            lunari
+          </span>
           <nav className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => {
               const active = pathname === link.href
