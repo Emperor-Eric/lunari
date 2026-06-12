@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lunari — Me / Profile (Ovulation) — static reference</title>
+
+<!--
+  ============================================================================
+  lunari · Me / Profile · OVULATION phase — exact static reference
+  ============================================================================
+  Extracted verbatim from the "lunari Goddess" prototype. Prototype
+  JS/interactivity stripped; markup + CSS only.
+
+  TREATMENT — Profile is a "LAB" screen (like Move/Fuel/Log): phase-colored
+  HEADER BAND + phase-TINTED body. The header carries the avatar + name and an
+  orbit ring (bottom-right). Gold linework, Marcellus/Raleway, frost cards.
+
+  WHAT THE PROTOTYPE'S PROFILE CONTAINS (reproduced exactly):
+    • Header: avatar (gold-ring monogram) + name + handle / member-since
+    • Cycle: three stat cards — cycle days (28), period days (5), today (Day 14,
+      on a phase-solid card)
+    • Your kit: the four phase tubes on a shelf, current phase raised + full-color,
+      others dimmed (grayscale) — this is the kit/subscription surface
+    • Settings: Notifications · Phase predictions · Connected apps · Privacy & data
+    • Sign out
+    (No separate "last period date" row or subscription-billing block in this
+     version — say the word and I'll add them in the same language.)
+
+  ASSETS — references the four tube PNGs beside this file:
+    tube-menstrual.png · tube-follicular.png · tube-ovulation.png · tube-luteal.png
+    (keep them in the same folder; they're in the brand-assets handoff zip)
+
+  PHASE THEME (Ovulation) — values that change per phase:
+    --header   linear-gradient(165deg,#F8DC97,#F3C566)
+    --on-hdr   #3A2708     --on-hdr-sub #8A6420   (→ #F5EBD6 / rgba(245,235,214,.72) on dark phases)
+    --gold     #A8791E     (→ #C9A84C on dark phases)
+    --solid    #E3A82E     (phase solid — the "today" stat card + Sign out text)
+    --lab-bg   #F8F1DE   --lab-card #FDF9EE   --lab-border #ECE1C8   --lab-why #F1E8D0
+
+  Fixed neutrals: section labels / stat captions #A99E88 · stat & settings text
+                  #2C2825 · chevron #CDC2AD
+
+  Fonts: Marcellus (display) + Raleway (body).
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Raleway:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2a1f12;                  /* page backdrop only */
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Raleway', sans-serif;
+  }
+
+  /* ---- OVULATION phase theme variables ---- */
+  .me {
+    --header: linear-gradient(165deg, #F8DC97, #F3C566);
+    --on-hdr: #3A2708;
+    --on-hdr-sub: #8A6420;
+    --gold: #A8791E;
+    --solid: #E3A82E;
+    --lab-bg: #F8F1DE;
+    --lab-card: #FDF9EE;
+    --lab-border: #ECE1C8;
+    --lab-why: #F1E8D0;
+
+    width: 390px;
+    min-height: 800px;
+    border-radius: 40px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--lab-bg);
+  }
+
+  /* ---- HEADER BAND (avatar + name, orbit bottom-right) ---- */
+  .me__header {
+    background: var(--header);
+    color: var(--on-hdr);
+    padding: 14px 24px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .me__header-orbit {
+    position: absolute;
+    right: -30px;
+    bottom: -44px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    opacity: 0.25;
+  }
+  .me__status {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    position: relative;
+  }
+  .me__status .signal { font-size: 10px; }
+  .me__user {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 18px;
+    position: relative;
+  }
+  .me__avatar {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Marcellus', serif;
+    font-size: 22px;
+    color: var(--gold);
+    flex: 0 0 auto;
+  }
+  .me__name {
+    font-family: 'Marcellus', serif;
+    font-size: 21px;
+  }
+  .me__handle {
+    font-size: 10.5px;
+    color: var(--on-hdr-sub);
+    font-weight: 300;
+    margin-top: 1px;
+  }
+
+  /* ---- TINTED BODY ---- */
+  .me__body { flex: 1; padding: 16px 22px 16px; }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #A99E88;
+    margin: 0 0 11px;
+  }
+  .section-label--gap { margin-top: 20px; }
+
+  /* cycle stat cards */
+  .stats { display: flex; gap: 9px; }
+  .stat {
+    flex: 1;
+    background: var(--lab-card);
+    border: 1px solid var(--lab-border);
+    border-radius: 13px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat--today {
+    background: var(--solid);
+    border: 1px solid transparent;
+  }
+  .stat__value {
+    font-family: 'Marcellus', serif;
+    font-size: 23px;
+    color: #2C2825;
+  }
+  .stat--today .stat__value { color: var(--gold); }
+  .stat__caption {
+    font-size: 8.5px;
+    color: #A99E88;
+    margin-top: 2px;
+  }
+  .stat--today .stat__caption { color: var(--on-hdr); opacity: 0.8; }
+
+  /* kit shelf */
+  .kit {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 6px;
+    background: var(--lab-why);
+    border: 1px solid var(--lab-border);
+    border-radius: 15px;
+    padding: 14px 12px 12px;
+    height: 118px;
+  }
+  .kit__tube {
+    width: auto;
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18)) grayscale(0.2) opacity(0.7);
+  }
+  .kit__tube--active {
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18));
+    transform: translateY(-6px);
+  }
+  .kit__tube--menstrual  { height: 64px; }
+  .kit__tube--follicular { height: 88px; }
+  .kit__tube--ovulation  { height: 66px; }
+  .kit__tube--luteal     { height: 90px; }
+
+  /* settings list */
+  .settings { display: flex; flex-direction: column; font-family: 'Marcellus', serif; }
+  .settings__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--lab-border);
+    font-size: 15.5px;
+    color: #2C2825;
+  }
+  .settings__chev {
+    color: #CDC2AD;
+    font-family: 'Raleway', sans-serif;
+  }
+
+  /* sign out */
+  .me__signout {
+    margin-top: 18px;
+    font-size: 11.5px;
+    color: var(--solid);
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ======================= ME / PROFILE · OVULATION ======================= -->
+  <main class="me">
+
+    <!-- header band -->
+    <div class="me__header">
+      <div class="me__header-orbit"></div>
+      <div class="me__status">
+        <span>9:41</span>
+        <span class="signal">5G</span>
+      </div>
+      <div class="me__user">
+        <div class="me__avatar">M</div>
+        <div>
+          <div class="me__name">Maya Alvarez</div>
+          <div class="me__handle">@maya.alvarez &middot; member since 2025</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tinted body -->
+    <div class="me__body">
+
+      <!-- Cycle stats -->
+      <div class="section-label">Cycle</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__value">28</div>
+          <div class="stat__caption">cycle days</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value">5</div>
+          <div class="stat__caption">period days</div>
+        </div>
+        <div class="stat stat--today">
+          <div class="stat__value">14</div>
+          <div class="stat__caption">today</div>
+        </div>
+      </div>
+
+      <!-- Your kit (Ovulation tube raised + full-color) -->
+      <div class="section-label section-label--gap">Your kit</div>
+      <div class="kit">
+        <img class="kit__tube kit__tube--menstrual"  src="tube-menstrual.png"  alt="Menstrual formula">
+        <img class="kit__tube kit__tube--follicular" src="tube-follicular.png" alt="Follicular formula">
+        <img class="kit__tube kit__tube--active kit__tube--ovulation" src="tube-ovulation.png" alt="Ovulation formula">
+        <img class="kit__tube kit__tube--luteal"     src="tube-luteal.png"     alt="Luteal formula">
+      </div>
+
+      <!-- Settings -->
+      <div class="section-label section-label--gap">Settings</div>
+      <div class="settings">
+        <div class="settings__row">Notifications <span class="settings__chev">&rsaquo;</span></div>
+        <div class="settings__row">Phase predictions <span class="settings__chev">&rsaquo;</span></div>
+        <div class="settings__row">Connected apps <span class="settings__chev">&rsaquo;</span></div>
+        <div class="settings__row">Privacy &amp; data <span class="settings__chev">&rsaquo;</span></div>
+      </div>
+
+      <!-- Sign out -->
+      <div class="me__signout">Sign out</div>
+
+    </div>
+  </main>
+
+</body>
+</html>

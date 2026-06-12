@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lunari — Log (Ovulation) — static reference</title>
+
+<!--
+  ============================================================================
+  lunari · Log (Daily check-in) · OVULATION phase — exact static reference
+  ============================================================================
+  Extracted verbatim from the "lunari Goddess" prototype. Prototype
+  JS/interactivity stripped; markup + CSS only. The selected/unselected,
+  toggle, slider and button STATES are all shown so your dev can see each.
+
+  TREATMENT — Log is a "LAB" screen (like Move/Fuel): phase-colored HEADER BAND
+  + phase-TINTED body (NOT a full flood). Note: the Log header has NO orbit ring
+  (Move/Fuel/Profile do).
+
+  WHAT THE PROTOTYPE'S LOG CONTAINS (recorded exactly — there is no separate
+  flow/bleeding control in this version):
+    • Symptoms — multi-select chips (tap to toggle)
+    • Mood — single-select segmented row (Low / Tender / Calm / Bright / Wired)
+    • Energy — slider (0–100; Ovulation default 90)
+    • Sleep — read-out card
+    • Water — stepper card (− / +, 0–8 glasses)
+    • Save check-in — primary button
+
+  INPUT STATES (Goddess design language):
+    Symptom chip — SELECTED: solid phase fill (--solid) + header-ink text (--on-hdr).
+                   UNSELECTED: frost card (--lab-card) + #6A655D text + --lab-border.
+    Mood pill    — SELECTED: 12%-tint of --solid bg + --solid border + --solid text.
+                   UNSELECTED: frost card + #6A655D text + --lab-border.
+    Slider       — track --lab-track, fill --solid, knob --lab-bg w/ 2px --solid ring.
+    Water +      — --solid fill + --on-hdr glyph;   Water − : #D9CDB8 border + #8A8275.
+    Save button  — --solid fill + --on-hdr text.
+
+  PHASE THEME (Ovulation) — values that change per phase:
+    --header   linear-gradient(165deg,#F8DC97,#F3C566)
+    --on-hdr   #3A2708     --on-hdr-sub #8A6420   (→ #F5EBD6 / rgba(245,235,214,.72) on dark phases)
+    --gold     #A8791E     (→ #C9A84C on dark phases)
+    --solid    #E3A82E     --solid-12 rgba(227,168,46,0.12)
+    --lab-bg   #F8F1DE     --lab-card #FDF9EE   --lab-border #ECE1C8   --lab-track #E6DBC0
+
+  Fixed neutrals: section labels #A99E88 · readout value #2C2825 · unit #B3A890 ·
+                  unselected chip/mood text #6A655D · minus btn #D9CDB8 / #8A8275
+
+  Fonts: Marcellus (display) + Raleway (body).
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Raleway:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2a1f12;                  /* page backdrop only */
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Raleway', sans-serif;
+  }
+
+  /* ---- OVULATION phase theme variables ---- */
+  .log {
+    --header: linear-gradient(165deg, #F8DC97, #F3C566);
+    --on-hdr: #3A2708;
+    --on-hdr-sub: #8A6420;
+    --gold: #A8791E;
+    --solid: #E3A82E;
+    --solid-12: rgba(227, 168, 46, 0.12);
+    --lab-bg: #F8F1DE;
+    --lab-card: #FDF9EE;
+    --lab-border: #ECE1C8;
+    --lab-track: #E6DBC0;
+
+    width: 390px;
+    min-height: 800px;
+    border-radius: 40px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--lab-bg);
+  }
+
+  /* ---- HEADER BAND (no orbit ring on Log) ---- */
+  .log__header {
+    background: var(--header);
+    color: var(--on-hdr);
+    padding: 14px 24px 20px;
+  }
+  .log__status {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .log__status .signal { font-size: 10px; }
+  .log__title {
+    font-family: 'Marcellus', serif;
+    font-size: 27px;
+    margin-top: 16px;
+  }
+  .log__sub {
+    font-size: 10.5px;
+    color: var(--on-hdr-sub);
+    margin-top: 4px;
+    font-weight: 300;
+  }
+
+  /* ---- TINTED BODY ---- */
+  .log__body { flex: 1; padding: 16px 22px 16px; }
+
+  .field-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #A99E88;
+    margin: 0 0 10px;
+  }
+  .field-label--gap { margin-top: 20px; }
+
+  /* symptom chips (multi-select) */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    font-size: 10.5px;
+    padding: 6px 12px;
+    border-radius: 18px;
+    background: var(--lab-card);
+    color: #6A655D;
+    border: 1px solid var(--lab-border);
+    cursor: pointer;
+  }
+  .chip.is-active {
+    background: var(--solid);
+    color: var(--on-hdr);
+    border: 1px solid transparent;
+  }
+
+  /* mood segmented row (single-select) */
+  .moods { display: flex; gap: 8px; }
+  .mood {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    padding: 9px 0;
+    border-radius: 10px;
+    background: var(--lab-card);
+    color: #6A655D;
+    border: 1px solid var(--lab-border);
+    cursor: pointer;
+  }
+  .mood.is-active {
+    background: var(--solid-12);
+    border: 1px solid var(--solid);
+    color: var(--solid);
+  }
+
+  /* energy slider */
+  .slider {
+    height: 6px;
+    background: var(--lab-track);
+    border-radius: 4px;
+    position: relative;
+  }
+  .slider__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--solid);
+    border-radius: 4px;
+  }
+  .slider__knob {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--lab-bg);
+    border: 2px solid var(--solid);
+  }
+  .slider__ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #A99E88;
+    margin-top: 7px;
+  }
+
+  /* sleep + water readout cards */
+  .readouts { display: flex; gap: 11px; margin-top: 20px; }
+  .readout {
+    flex: 1;
+    background: var(--lab-card);
+    border: 1px solid var(--lab-border);
+    border-radius: 13px;
+    padding: 13px;
+  }
+  .readout__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .readout__label {
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #A99E88;
+  }
+  .readout__value {
+    font-family: 'Marcellus', serif;
+    font-size: 21px;
+    margin-top: 3px;
+    color: #2C2825;
+  }
+  .readout__unit {
+    font-size: 10px;
+    font-family: 'Raleway', sans-serif;
+    color: #B3A890;
+  }
+  .stepper { display: flex; gap: 6px; }
+  .stepper__btn {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .stepper__btn--minus { border: 1px solid #D9CDB8; color: #8A8275; }
+  .stepper__btn--plus { background: var(--solid); color: var(--on-hdr); }
+
+  /* save button */
+  .log__save-wrap { padding: 13px 22px 14px; }
+  .log__save {
+    background: var(--solid);
+    color: var(--on-hdr);
+    text-align: center;
+    border-radius: 13px;
+    padding: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ======================= LOG · OVULATION ======================= -->
+  <main class="log">
+
+    <!-- header band (no orbit) -->
+    <div class="log__header">
+      <div class="log__status">
+        <span>9:41</span>
+        <span class="signal">5G</span>
+      </div>
+      <div class="log__title">Daily check-in</div>
+      <div class="log__sub">Tue, June 11 &middot; Ovulation &middot; Day 14</div>
+    </div>
+
+    <!-- tinted body -->
+    <div class="log__body">
+
+      <!-- Symptoms (multi-select) — Ovulation: Energised + Confident selected -->
+      <div class="field-label">Symptoms</div>
+      <div class="chips">
+        <span class="chip is-active">Energised</span>
+        <span class="chip is-active">Confident</span>
+        <span class="chip">Social</span>
+        <span class="chip">Tender</span>
+        <span class="chip">Glowing</span>
+      </div>
+
+      <!-- Mood (single-select) — Bright selected -->
+      <div class="field-label field-label--gap">Mood</div>
+      <div class="moods">
+        <span class="mood">Low</span>
+        <span class="mood">Tender</span>
+        <span class="mood">Calm</span>
+        <span class="mood is-active">Bright</span>
+        <span class="mood">Wired</span>
+      </div>
+
+      <!-- Energy slider — Ovulation default 90% -->
+      <div class="field-label field-label--gap">Energy</div>
+      <div class="slider">
+        <div class="slider__fill" style="width:90%"></div>
+        <div class="slider__knob" style="left:90%"></div>
+      </div>
+      <div class="slider__ends">
+        <span>Drained</span>
+        <span>Energised</span>
+      </div>
+
+      <!-- Sleep + Water readouts -->
+      <div class="readouts">
+        <div class="readout">
+          <div class="readout__head">
+            <div class="readout__label">Sleep</div>
+          </div>
+          <div class="readout__value">7.8<span class="readout__unit">h</span></div>
+        </div>
+        <div class="readout">
+          <div class="readout__head">
+            <div class="readout__label">Water</div>
+            <div class="stepper">
+              <span class="stepper__btn stepper__btn--minus">&minus;</span>
+              <span class="stepper__btn stepper__btn--plus">+</span>
+            </div>
+          </div>
+          <div class="readout__value">5<span class="readout__unit"> / 8 glasses</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- save -->
+    <div class="log__save-wrap">
+      <div class="log__save">Save check-in</div>
+    </div>
+
+  </main>
+
+</body>
+</html>
