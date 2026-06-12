@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
+import Svg, { Circle } from 'react-native-svg'
 import { useAuth } from '@lunari/utils'
 import { getPhaseForDay } from '@lunari/phase-data'
 import { phases, phaseKeyFor, palette } from '@lunari/design-tokens'
@@ -64,12 +65,25 @@ export default function Today() {
         {/* ─── HERO: floods with the phase gradient ─── */}
         <LinearGradient
           colors={t.floodColors as [string, string, ...string[]]}
-          start={{ x: 0.1, y: 0 }}
-          end={{ x: 0, y: 1 }}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
           style={styles.hero}
         >
           <SafeAreaView edges={['top']}>
             <View style={styles.heroInner}>
+              {/* Celestial cluster: gold orbit rings around the reserved seal space */}
+              <View style={styles.sealCluster}>
+                <Svg width={120} height={120} style={StyleSheet.absoluteFill}>
+                  <Circle cx={60} cy={60} r={58} stroke={palette.gold} strokeOpacity={0.2} strokeWidth={1} fill="none" />
+                  <Circle cx={60} cy={60} r={44} stroke={palette.gold} strokeOpacity={0.28} strokeWidth={1} fill="none" />
+                  <Circle cx={60} cy={60} r={30} stroke={palette.gold} strokeOpacity={0.38} strokeWidth={1} fill="none" />
+                </Svg>
+                {/* RESERVED: goddess seal drops in here later, e.g.
+                    <Image source={require('../../assets/brand/seal-<phase>.png')}
+                           style={{ width: 64, height: 64 }} /> */}
+                <View style={styles.sealSlot} />
+              </View>
+
               <Text style={[styles.vibe, { color: t.headerLabel }]}>{t.vibe.toUpperCase()}</Text>
               <Text style={[styles.phaseName, { color: t.floodText }]}>{t.label}</Text>
               <Text style={[styles.heroSub, { color: t.floodSub }]}>
@@ -176,8 +190,16 @@ export default function Today() {
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: 40 },
-  hero: { paddingBottom: 36 },
-  heroInner: { paddingHorizontal: 24, paddingTop: 24, alignItems: 'center' },
+  hero: { paddingBottom: 28 },
+  heroInner: { paddingHorizontal: 24, paddingTop: 12, alignItems: 'center' },
+  sealCluster: {
+    width: 120,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  sealSlot: { width: 64, height: 64 },
   vibe: {
     fontFamily: 'Raleway_600SemiBold',
     fontSize: 11,
@@ -185,12 +207,12 @@ const styles = StyleSheet.create({
   },
   phaseName: {
     fontFamily: 'Marcellus_400Regular',
-    fontSize: 44,
-    marginTop: 10,
+    fontSize: 40,
+    marginTop: 8,
   },
   heroSub: { fontFamily: 'Raleway_400Regular', fontSize: 13, marginTop: 8 },
-  segments: { flexDirection: 'row', gap: 6, marginTop: 24 },
-  segment: { height: 4, width: 44, borderRadius: 2 },
+  segments: { flexDirection: 'row', gap: 6, marginTop: 20 },
+  segment: { height: 4, width: 42, borderRadius: 2 },
 
   body: { padding: 20, gap: 20, marginTop: 4 },
   sectionLabel: { fontFamily: 'Raleway_400Regular', fontSize: 13, marginBottom: 10, marginLeft: 2 },

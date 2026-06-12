@@ -21,32 +21,56 @@ export default function TrackerToday() {
     day: 'numeric',
   })
 
+  // Top-down luminous flood (lighter at top, deepening down) built from the
+  // phase gradient stops — keeps the hero vertical rather than the token's diagonal.
+  const heroFlood = `linear-gradient(180deg, ${t.floodColors[0]}, ${t.floodColors[1]} 55%, ${t.floodColors[2]})`
+
   return (
     // Lab background — phase-tinted, light, legible
     <div className="min-h-screen" style={{ backgroundColor: t.labBg }}>
       <div className="max-w-2xl mx-auto flex flex-col gap-6 p-6">
-        {/* ─── HERO: floods with the phase gradient ─── */}
-        <div className="rounded-[28px] overflow-hidden" style={{ background: t.flood }}>
-          <div className="px-8 py-10 text-center">
+        {/* ─── HERO: top-down flood + orbit rings + reserved seal slot ─── */}
+        <div className="rounded-[28px] overflow-hidden" style={{ background: heroFlood }}>
+          <div className="px-6 pt-7 pb-6 flex flex-col items-center text-center">
+            {/* Celestial cluster: gold orbit rings around the reserved seal space */}
+            <div className="relative w-[120px] h-[120px] flex items-center justify-center mb-3">
+              <svg
+                width="120"
+                height="120"
+                viewBox="0 0 120 120"
+                fill="none"
+                className="absolute inset-0"
+                aria-hidden
+              >
+                <circle cx="60" cy="60" r="58" stroke={palette.gold} strokeOpacity="0.2" strokeWidth="1" />
+                <circle cx="60" cy="60" r="44" stroke={palette.gold} strokeOpacity="0.28" strokeWidth="1" />
+                <circle cx="60" cy="60" r="30" stroke={palette.gold} strokeOpacity="0.38" strokeWidth="1" />
+              </svg>
+              {/* RESERVED: goddess seal drops in here later, e.g.
+                  <img src={`/brand/seal-${phaseKeyFor(phase.id)}.png`}
+                       alt="" className="w-16 h-16" /> */}
+              <div className="w-16 h-16" aria-hidden />
+            </div>
+
             <p
               className="font-body text-[11px] font-medium uppercase tracking-[0.28em]"
               style={{ color: t.headerLabel }}
             >
               {t.vibe}
             </p>
-            <h1 className="font-display text-5xl mt-3 leading-none" style={{ color: t.floodText }}>
+            <h1 className="font-display text-4xl mt-2 leading-none" style={{ color: t.floodText }}>
               {t.label}
             </h1>
-            <p className="font-body text-sm mt-3" style={{ color: t.floodSub }}>
+            <p className="font-body text-sm mt-2.5" style={{ color: t.floodSub }}>
               Day {day} · {dateLabel}
             </p>
 
             {/* Phase progress segments — current = gold */}
-            <div className="flex gap-1.5 mt-7 justify-center">
+            <div className="flex gap-1.5 mt-5 justify-center">
               {[1, 2, 3, 4].map((n) => (
                 <span
                   key={n}
-                  className="h-1 w-12 rounded-full transition-colors"
+                  className="h-1 w-11 rounded-full transition-colors"
                   style={{ backgroundColor: n === containerNumber ? palette.gold : 'rgba(255,255,255,0.22)' }}
                 />
               ))}

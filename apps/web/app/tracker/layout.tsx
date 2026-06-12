@@ -49,7 +49,10 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
       <div className="min-h-screen bg-brand-cream flex">
         {/* Desktop sidebar */}
         <aside className="hidden md:flex w-[220px] flex-col border-r border-brand-stone bg-white p-6 gap-8 fixed h-full">
-          <span className="font-display text-2xl text-brand-ink">lunari</span>
+          {/* Ink wordmark — sidebar is on a light background.
+              Asset: apps/web/public/brand/wordmark-ink.png */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/wordmark-ink.png" alt="lunari" className="w-[110px] h-auto" />
           <nav className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => {
               const active = pathname === link.href
