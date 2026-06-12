@@ -111,7 +111,7 @@ export default function TrackerToday() {
             className="relative font-display text-[52px] lg:text-[64px]"
             style={{ lineHeight: 1, marginTop: 12, color: ink }}
           >
-            {phase.name}
+            {t.label}
           </h1>
           <div
             className="relative uppercase"
@@ -153,7 +153,8 @@ export default function TrackerToday() {
         <div className="grid grid-cols-4" style={{ gap: 8 }}>
           {allPhases.map((p) => {
             const active = p.id === phase.id
-            const dot = phaseTheme[phaseKeyFor(p.id)].phase
+            const pt = phaseTheme[phaseKeyFor(p.id)]
+            const dot = pt.phase
             return (
               <div
                 key={p.id}
@@ -170,7 +171,7 @@ export default function TrackerToday() {
                   style={{ width: 13, height: 13, background: dot, boxShadow: active ? `0 0 0 3px ${halo}` : 'none' }}
                 />
                 <div className="font-display" style={{ fontSize: 12, marginTop: 8, color: ink }}>
-                  {p.name}
+                  {pt.label}
                 </div>
                 <div style={{ fontSize: 8, color: sub, marginTop: 1 }}>
                   D{p.cycleDays.start}–{p.cycleDays.end}
