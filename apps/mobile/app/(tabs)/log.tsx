@@ -50,6 +50,7 @@ export default function Log() {
   // History state
   const [logs, setLogs] = useState<SymptomLog[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
 
@@ -72,23 +73,40 @@ export default function Log() {
   const fetchHistory = useCallback(async (pageNum = 1) => {
     if (!session) return
     setHistoryLoading(true)
+    if (pageNum === 1) setHistoryError(false)
+    // Time out a hanging request so it surfaces as an error instead of an
+    // endless spinner.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
       const res = await fetch(`${API_URL}/me/logs?page=${pageNum}&perPage=20`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
+        signal: controller.signal,
       })
-      if (res.ok) {
-        const data = await res.json()
-        setLogs((prev) => (pageNum === 1 ? data.data : [...prev, ...data.data]))
-        setHasMore(data.data.length === 20)
-      }
+      if (!res.ok) throw new Error(`Request failed (${res.status})`)
+      const data = await res.json()
+      const rows: SymptomLog[] = Array.isArray(data?.data) ? data.data : []
+      setLogs((prev) => (pageNum === 1 ? rows : [...prev, ...rows]))
+      setHasMore(rows.length === 20)
+    } catch {
+      // Any failure (non-OK, network, timeout, bad shape) → recoverable error,
+      // never an infinite spinner.
+      if (pageNum === 1) setHistoryError(true)
+      setHasMore(false)
     } finally {
+      clearTimeout(timeout)
       setHistoryLoading(false)
     }
   }, [session])
 
+  const loadHistory = useCallback(() => {
+    setPage(1)
+    fetchHistory(1)
+  }, [fetchHistory])
+
   useEffect(() => {
-    if (tab === 'history') fetchHistory(1)
-  }, [tab, fetchHistory])
+    if (tab === 'history') loadHistory()
+  }, [tab, loadHistory])
 
   const handleSave = async () => {
     if (!session) return
@@ -273,6 +291,20 @@ export default function Log() {
         </ScrollView>
       ) : historyLoading && logs.length === 0 ? (
         <LoadingSpinner phaseColor={t.accent} />
+      ) : historyError && logs.length === 0 ? (
+        <View style={styles.historyState}>
+          <EmptyState
+            title="Couldn't load history"
+            subtitle="Something went wrong fetching your check-ins. Please try again."
+          />
+          <TouchableOpacity
+            style={[styles.retryBtn, { borderColor: t.accent }]}
+            onPress={loadHistory}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.retryText, { color: t.accent }]}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       ) : logs.length === 0 ? (
         <EmptyState title="No logs yet" subtitle="Your check-ins will appear here after you start tracking." />
       ) : (
@@ -381,4 +413,7 @@ const styles = StyleSheet.create({
 
   // history
   historyList: { padding: 20, gap: 10 },
+  historyState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  retryBtn: { marginTop: 4, borderWidth: 1.5, borderRadius: 9999, paddingVertical: 10, paddingHorizontal: 26 },
+  retryText: { fontFamily: 'Raleway_600SemiBold', fontSize: 13 },
 })
