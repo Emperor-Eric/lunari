@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { getDayInCycle, getPhaseForDay, getPhaseRanges } from '@lunari/phase-data'
-import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
+import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { CycleSettings, PhaseId } from '@lunari/types'
 import { addMonths, format, getDay, getDaysInMonth, isSameDay, startOfMonth } from 'date-fns'
 import type { PredictionSurface } from './NextUpCard'
@@ -9,7 +9,8 @@ import type { PredictionSurface } from './NextUpCard'
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 const phaseColor = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].phase
-const PERIOD_NUM = '#FBF6EC' // light number inside the navy period circle
+const NUM = palette.goldOnLight // readable gold for every date number
+const TODAY_FILL = `${palette.goldOnLight}26` // subtle gold wash marks today
 
 /**
  * Self-contained month calendar. Each day is tinted by its PREDICTED phase
@@ -23,7 +24,7 @@ export function CycleCalendar({
   settings: CycleSettings | null
   surface: PredictionSurface
 }) {
-  const { ink, sub, gold, cardbd } = surface
+  const { ink, sub, gold } = surface
   const [view, setView] = useState(() => startOfMonth(new Date()))
   // Blend straight into the Lab body — no white card surface.
   const card = styles.card
@@ -86,7 +87,7 @@ export function CycleCalendar({
         ))}
       </View>
 
-      {/* day grid — bordered neutral cells; only navy period circle + ovulation star */}
+      {/* day grid — phase = border colour, gold numbers; bold navy = period, ★ = peak ovulation */}
       <View style={styles.grid}>
         {cells.map((dayNum, i) => {
           if (dayNum === null) return <View key={`b${i}`} style={styles.cell} />
@@ -94,23 +95,28 @@ export function CycleCalendar({
           const isToday = isSameDay(date, today)
           const isMenstrual = id === 'menstrual'
           const isPeak = id === 'ovulatory' && cycleDay === peakCycleDay
+          // Phase = border colour; period days get a heavier navy border.
+          const borderW = isMenstrual ? 3 : 1.5
           return (
             <View key={dayNum} style={styles.cell}>
-              <View style={[styles.cellInner, { borderColor: isToday ? gold : cardbd }]}>
-                {isMenstrual ? (
-                  <View style={[styles.periodCircle, { backgroundColor: phaseColor('menstrual') }]}>
-                    <Text style={[styles.periodNum, { color: PERIOD_NUM }]}>{dayNum}</Text>
-                  </View>
-                ) : (
-                  <Text
-                    style={[
-                      styles.cellNum,
-                      { color: ink, fontFamily: isToday ? 'Marcellus_400Regular' : 'Raleway_400Regular' },
-                    ]}
-                  >
-                    {dayNum}
-                  </Text>
-                )}
+              <View
+                style={[
+                  styles.cellInner,
+                  {
+                    borderWidth: borderW,
+                    borderColor: phaseColor(id),
+                    backgroundColor: isToday ? TODAY_FILL : 'transparent',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.cellNum,
+                    { color: NUM, fontFamily: isToday ? 'Marcellus_400Regular' : 'Raleway_500Medium' },
+                  ]}
+                >
+                  {dayNum}
+                </Text>
                 {/* mark slot — only the peak-ovulation star; fixed height keeps rows aligned */}
                 <View style={styles.markSlot}>
                   {isPeak && <Text style={[styles.star, { color: phaseColor('ovulatory') }]}>★</Text>}
@@ -121,18 +127,28 @@ export function CycleCalendar({
         })}
       </View>
 
-      {/* legend — only the two real marks */}
+      {/* legend — phase = cell border colour */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendCircle, { backgroundColor: phaseColor('menstrual') }]} />
-          <Text style={[styles.legendLabel, { color: sub }]}>Period day</Text>
+          <View style={[styles.legendSwatch, { borderColor: phaseColor('menstrual'), borderWidth: 2.5 }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Menstrual</Text>
         </View>
         <View style={styles.legendItem}>
-          <Text style={[styles.legendStar, { color: phaseColor('ovulatory') }]}>★</Text>
-          <Text style={[styles.legendLabel, { color: sub }]}>Peak ovulation (estimated)</Text>
+          <View style={[styles.legendSwatch, { borderColor: phaseColor('follicular') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Follicular</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSwatch, { borderColor: phaseColor('ovulatory') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Ovulation</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSwatch, { borderColor: phaseColor('luteal') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Luteal</Text>
         </View>
       </View>
-      <Text style={[styles.note, { color: sub }]}>Estimated from your cycle · today is ringed in gold.</Text>
+      <Text style={[styles.note, { color: sub }]}>
+        Estimated phases · phase = cell border · bolder navy = period days · ★ = peak ovulation · today filled in gold.
+      </Text>
     </View>
   )
 }
@@ -151,17 +167,14 @@ const styles = StyleSheet.create({
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
-  cellInner: { flex: 1, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  cellInner: { flex: 1, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   cellNum: { fontSize: 11.5, lineHeight: 13 },
-  periodCircle: { width: 22, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  periodNum: { fontFamily: 'Raleway_600SemiBold', fontSize: 10.5 },
   markSlot: { height: 9, marginTop: 2, alignItems: 'center', justifyContent: 'center' },
   star: { fontSize: 10, lineHeight: 10 },
 
   legend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 14 },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16, marginBottom: 6 },
-  legendCircle: { width: 11, height: 11, borderRadius: 999, marginRight: 5 },
-  legendStar: { fontSize: 11, marginRight: 5 },
+  legendSwatch: { width: 12, height: 12, borderRadius: 4, borderWidth: 1.5, marginRight: 5 },
   legendLabel: { fontFamily: 'Raleway_400Regular', fontSize: 9 },
 
   note: { fontFamily: 'Raleway_400Regular', fontSize: 9, marginTop: 8, opacity: 0.85 },

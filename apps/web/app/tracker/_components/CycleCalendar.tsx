@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { getDayInCycle, getPhaseForDay, getPhaseRanges } from '@lunari/phase-data'
-import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
+import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { CycleSettings, PhaseId } from '@lunari/types'
 import { addMonths, format, getDay, getDaysInMonth, isSameDay, startOfMonth } from 'date-fns'
 import type { PredictionSurface } from './NextUpCard'
@@ -9,7 +9,8 @@ import type { PredictionSurface } from './NextUpCard'
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 const phaseColor = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].phase
-const PERIOD_NUM = '#FBF6EC' // light number inside the navy period circle
+const NUM = palette.goldOnLight // readable gold for every date number
+const TODAY_FILL = `${palette.goldOnLight}26` // subtle gold wash marks today
 
 /**
  * Self-contained month calendar. Each day is tinted by its PREDICTED phase
@@ -23,7 +24,7 @@ export function CycleCalendar({
   settings: CycleSettings | null
   surface: PredictionSurface
 }) {
-  const { ink, sub, gold, cardbd } = surface
+  const { ink, sub, gold } = surface
   const [view, setView] = useState(() => startOfMonth(new Date()))
 
   // Blend straight into the Lab body — no white card surface.
@@ -107,27 +108,25 @@ export function CycleCalendar({
           const isToday = isSameDay(date, today)
           const isMenstrual = id === 'menstrual'
           const isPeak = id === 'ovulatory' && cycleDay === peakCycleDay
+          // Phase = border colour; period days get a heavier navy border.
+          const borderW = isMenstrual ? 3 : 1.5
           return (
             <div
               key={dayNum}
               className="flex flex-col items-center justify-center"
-              style={{ aspectRatio: '1 / 1', borderRadius: 9, border: `1px solid ${isToday ? gold : cardbd}` }}
+              style={{
+                aspectRatio: '1 / 1',
+                borderRadius: 9,
+                border: `${borderW}px solid ${phaseColor(id)}`,
+                background: isToday ? TODAY_FILL : 'transparent',
+              }}
             >
-              {isMenstrual ? (
-                <span
-                  className="flex items-center justify-center"
-                  style={{ width: 22, height: 22, borderRadius: 999, background: phaseColor('menstrual'), color: PERIOD_NUM, fontSize: 11, fontWeight: 600 }}
-                >
-                  {dayNum}
-                </span>
-              ) : (
-                <span
-                  className={isToday ? 'font-display' : undefined}
-                  style={{ fontSize: 11.5, color: ink, fontWeight: isToday ? 700 : 400, lineHeight: 1 }}
-                >
-                  {dayNum}
-                </span>
-              )}
+              <span
+                className={isToday ? 'font-display' : undefined}
+                style={{ fontSize: 11.5, color: NUM, fontWeight: isToday ? 700 : 500, lineHeight: 1 }}
+              >
+                {dayNum}
+              </span>
               {/* mark slot — only the peak-ovulation star; fixed height keeps rows aligned */}
               <span className="flex items-center justify-center" style={{ height: 9, marginTop: 2 }}>
                 {isPeak && <span style={{ fontSize: 10, color: phaseColor('ovulatory'), lineHeight: 1 }}>★</span>}
@@ -137,17 +136,23 @@ export function CycleCalendar({
         })}
       </div>
 
-      {/* legend — only the two real marks */}
-      <div className="flex flex-wrap" style={{ gap: '7px 16px', marginTop: 14 }}>
-        <LegendItem sub={sub} label="Period day">
-          <span style={{ width: 11, height: 11, borderRadius: 999, background: phaseColor('menstrual') }} />
+      {/* legend — phase = cell border colour */}
+      <div className="flex flex-wrap" style={{ gap: '7px 14px', marginTop: 14 }}>
+        <LegendItem sub={sub} label="Menstrual">
+          <span style={{ width: 12, height: 12, borderRadius: 4, border: `2.5px solid ${phaseColor('menstrual')}` }} />
         </LegendItem>
-        <LegendItem sub={sub} label="Peak ovulation (estimated)">
-          <span style={{ fontSize: 11, color: phaseColor('ovulatory'), lineHeight: 1 }}>★</span>
+        <LegendItem sub={sub} label="Follicular">
+          <span style={{ width: 12, height: 12, borderRadius: 4, border: `1.5px solid ${phaseColor('follicular')}` }} />
+        </LegendItem>
+        <LegendItem sub={sub} label="Ovulation">
+          <span style={{ width: 12, height: 12, borderRadius: 4, border: `1.5px solid ${phaseColor('ovulatory')}` }} />
+        </LegendItem>
+        <LegendItem sub={sub} label="Luteal">
+          <span style={{ width: 12, height: 12, borderRadius: 4, border: `1.5px solid ${phaseColor('luteal')}` }} />
         </LegendItem>
       </div>
-      <div style={{ fontSize: 9, color: sub, marginTop: 8, opacity: 0.85 }}>
-        Estimated from your cycle · today is ringed in gold.
+      <div style={{ fontSize: 9, color: sub, marginTop: 8, opacity: 0.85, lineHeight: 1.5 }}>
+        Estimated phases · phase = cell border · bolder navy = period days · ★ = peak ovulation · today filled in gold.
       </div>
     </div>
   )
