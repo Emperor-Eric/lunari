@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { View, Text, Image, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
+import { router } from 'expo-router'
 import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getAllPhases, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
 import type { TodayCycleResponse, PhaseId, CycleSettings } from '@lunari/types'
 import { NextUpCard } from '../../src/components/NextUpCard'
-import { CycleCalendar } from '../../src/components/CycleCalendar'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -33,6 +33,7 @@ function isLightHex(hex: string): boolean {
 
 export default function Today() {
   const { session } = useAuth()
+  const insets = useSafeAreaInsets()
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -127,7 +128,7 @@ export default function Today() {
           end={{ x: 0.5, y: 1 }}
           style={styles.flood}
         >
-          <SafeAreaView edges={['top']} style={styles.safe}>
+          <View style={[styles.safe, { paddingTop: insets.top + 6 }]}>
             {/* ── Top bar ── */}
             <View style={styles.topbar}>
               <View>
@@ -268,13 +269,14 @@ export default function Today() {
               })}
             </View>
 
-            {/* ── Predictions: Next up + month calendar ── */}
+            {/* ── Predictions: Next up (taps through to the Calendar screen) ── */}
             <Text style={[styles.sectionLabel, { color: sub }]}>Looking ahead</Text>
-            <NextUpCard settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
-            <View style={{ marginTop: 12 }}>
-              <CycleCalendar settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
-            </View>
-          </SafeAreaView>
+            <NextUpCard
+              settings={settings}
+              surface={{ ink, sub, gold, cardwash, cardbd }}
+              onOpen={() => router.push('/calendar')}
+            />
+          </View>
         </LinearGradient>
       </ScrollView>
     </View>

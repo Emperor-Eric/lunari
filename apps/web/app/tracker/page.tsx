@@ -1,12 +1,12 @@
 'use client'
 import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { getPhaseForDay, getAllPhases, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { PhaseId, CycleSettings } from '@lunari/types'
 import { apiGet } from '@/src/lib/api'
 import { useCycleContext } from './cycle-context'
 import { NextUpCard } from './_components/NextUpCard'
-import { CycleCalendar } from './_components/CycleCalendar'
 
 // Short progress labels per phase.
 const SHORT: Record<PhaseId, string> = {
@@ -27,6 +27,7 @@ function isLightHex(hex: string): boolean {
 }
 
 export default function TrackerToday() {
+  const router = useRouter()
   const { cycleData } = useCycleContext()
   const allPhases = getAllPhases()
 
@@ -289,16 +290,15 @@ export default function TrackerToday() {
           })}
         </div>
 
-        {/* ── Predictions: Next up summary ── */}
+        {/* ── Predictions: Next up summary (taps through to the calendar) ── */}
         <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '24px 0 10px' }}>
           Looking ahead
         </div>
-        <NextUpCard settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
-
-        {/* ── Predictions: month calendar ── */}
-        <div style={{ marginTop: 14 }}>
-          <CycleCalendar settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
-        </div>
+        <NextUpCard
+          settings={settings}
+          surface={{ ink, sub, gold, cardwash, cardbd }}
+          onOpen={() => router.push('/tracker/calendar')}
+        />
       </div>
     </div>
   )

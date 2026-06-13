@@ -86,29 +86,29 @@ export function CycleCalendar({
           const { date, cycleDay, id } = dayInfo(dayNum)
           const isToday = isSameDay(date, today)
           const isPeriodStart = cycleDay === 1
+          const ringColor = isToday ? gold : isPeriodStart ? phaseColor('menstrual') : 'transparent'
           return (
             <View key={dayNum} style={styles.cell}>
               <View
                 style={[
                   styles.cellInner,
                   {
-                    backgroundColor: `${phaseColor(id)}40`,
-                    borderColor: isToday ? gold : 'transparent',
+                    // Soft tint of the phase colour on the light Lab card.
+                    backgroundColor: `${phaseColor(id)}2E`,
+                    borderColor: ringColor,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.cellNum,
-                    {
-                      color: ink,
-                      fontFamily: isToday || isPeriodStart ? 'Marcellus_400Regular' : 'Raleway_400Regular',
-                    },
+                    { color: ink, fontFamily: isToday ? 'Marcellus_400Regular' : 'Raleway_400Regular' },
                   ]}
                 >
                   {dayNum}
                 </Text>
-                {isPeriodStart && <View style={[styles.periodDot, { backgroundColor: phaseColor('menstrual') }]} />}
+                {/* Crisp phase dot — matches the legend colours exactly. */}
+                <View style={[styles.phaseDot, { backgroundColor: phaseColor(id) }]} />
               </View>
             </View>
           )
@@ -124,7 +124,9 @@ export function CycleCalendar({
           </View>
         ))}
       </View>
-      <Text style={[styles.note, { color: sub }]}>Colours are estimated phases · ◦ marks a predicted period start.</Text>
+      <Text style={[styles.note, { color: sub }]}>
+        Estimated phases · today is ringed in gold · a coloured ring marks a predicted period start.
+      </Text>
     </View>
   )
 }
@@ -144,8 +146,8 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
   cellInner: { flex: 1, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  cellNum: { fontSize: 11.5 },
-  periodDot: { width: 4, height: 4, borderRadius: 999, marginTop: 2 },
+  cellNum: { fontSize: 11.5, lineHeight: 13 },
+  phaseDot: { width: 5, height: 5, borderRadius: 999, marginTop: 3 },
 
   legend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 14, marginBottom: 6 },

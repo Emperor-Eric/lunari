@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { getCyclePrediction } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type { CycleSettings, PhaseId } from '@lunari/types'
@@ -22,19 +22,24 @@ const plural = (n: number) => (n === 1 ? '' : 's')
 export function NextUpCard({
   settings,
   surface,
+  onOpen,
 }: {
   settings: CycleSettings | null
   surface: PredictionSurface
+  onOpen?: () => void
 }) {
   const { ink, sub, gold, cardwash, cardbd } = surface
   const card = [styles.card, { backgroundColor: cardwash, borderColor: cardbd }]
 
   if (!settings) {
     return (
-      <View style={card}>
-        <Text style={[styles.eyebrow, { color: gold }]}>Next up</Text>
+      <TouchableOpacity style={card} onPress={onOpen} disabled={!onOpen} activeOpacity={0.85}>
+        <View style={styles.headRow}>
+          <Text style={[styles.eyebrow, { color: gold }]}>Next up</Text>
+          {onOpen && <Text style={[styles.link, { color: gold }]}>View calendar →</Text>}
+        </View>
         <Text style={[styles.placeholder, { color: ink }]}>Predictions appear once your cycle is set up.</Text>
-      </View>
+      </TouchableOpacity>
     )
   }
 
@@ -51,7 +56,7 @@ export function NextUpCard({
   const curLabel = phaseLabel(pred.currentPhase)
 
   return (
-    <View style={card}>
+    <TouchableOpacity style={card} onPress={onOpen} disabled={!onOpen} activeOpacity={0.85}>
       <View style={styles.headRow}>
         <Text style={[styles.eyebrow, { color: gold }]}>Next up</Text>
         <Text style={[styles.estimated, { color: sub }]}>estimated</Text>
@@ -73,8 +78,11 @@ export function NextUpCard({
         <Text style={{ color: gold }}>{phaseLabel(nextPhaseId)}</Text> starts ~{format(nextPhaseStart, 'EEE, MMM d')}
       </Text>
 
-      <Text style={[styles.disclaimer, { color: sub }]}>Estimated from your cycle — not a medical prediction.</Text>
-    </View>
+      <View style={styles.footRow}>
+        <Text style={[styles.disclaimer, { color: sub }]}>Estimated from your cycle — not a medical prediction.</Text>
+        {onOpen && <Text style={[styles.link, { color: gold }]}>View calendar →</Text>}
+      </View>
+    </TouchableOpacity>
   )
 }
 
@@ -90,5 +98,8 @@ const styles = StyleSheet.create({
   predicted: { fontFamily: 'Raleway_400Regular', fontSize: 11, marginTop: 3 },
   divider: { height: 1, marginVertical: 11 },
   transition: { fontFamily: 'Raleway_300Light', fontSize: 11.5, lineHeight: 17 },
-  disclaimer: { fontFamily: 'Raleway_400Regular', fontSize: 9, marginTop: 10, opacity: 0.85 },
+  footRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  disclaimer: { fontFamily: 'Raleway_400Regular', fontSize: 9, opacity: 0.85, flex: 1, marginRight: 10 },
+  link: { fontFamily: 'Raleway_600SemiBold', fontSize: 10 },
 })
+

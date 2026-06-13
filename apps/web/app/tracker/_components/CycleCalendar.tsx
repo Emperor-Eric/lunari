@@ -104,6 +104,7 @@ export function CycleCalendar({
           const { date, cycleDay, id } = dayInfo(dayNum)
           const isToday = isSameDay(date, today)
           const isPeriodStart = cycleDay === 1 // predicted next-period start
+          const ringColor = isToday ? gold : isPeriodStart ? phaseColor('menstrual') : 'transparent'
           return (
             <div
               key={dayNum}
@@ -111,19 +112,19 @@ export function CycleCalendar({
               style={{
                 aspectRatio: '1 / 1',
                 borderRadius: 9,
-                background: `${phaseColor(id)}40`,
-                border: isToday ? `2px solid ${gold}` : '2px solid transparent',
+                // Soft tint of the phase colour on the light Lab card.
+                background: `${phaseColor(id)}2E`,
+                border: `2px solid ${ringColor}`,
               }}
             >
               <span
-                className={isToday || isPeriodStart ? 'font-display' : undefined}
-                style={{ fontSize: 11.5, color: ink, fontWeight: isToday ? 700 : 400 }}
+                className={isToday ? 'font-display' : undefined}
+                style={{ fontSize: 11.5, color: ink, fontWeight: isToday ? 700 : 400, lineHeight: 1 }}
               >
                 {dayNum}
               </span>
-              {isPeriodStart && (
-                <span style={{ width: 4, height: 4, borderRadius: 999, background: phaseColor('menstrual'), marginTop: 2 }} />
-              )}
+              {/* Crisp phase dot — matches the legend colours exactly. */}
+              <span style={{ width: 5, height: 5, borderRadius: 999, background: phaseColor(id), marginTop: 3 }} />
             </div>
           )
         })}
@@ -139,7 +140,7 @@ export function CycleCalendar({
         ))}
       </div>
       <div style={{ fontSize: 9, color: sub, marginTop: 8, opacity: 0.85 }}>
-        Colours are estimated phases · ◦ marks a predicted period start.
+        Estimated phases · today is ringed in gold · a coloured ring marks a predicted period start.
       </div>
     </div>
   )

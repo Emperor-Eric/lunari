@@ -24,9 +24,11 @@ const phaseLabel = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].label
 export function NextUpCard({
   settings,
   surface,
+  onOpen,
 }: {
   settings: CycleSettings | null
   surface: PredictionSurface
+  onOpen?: () => void
 }) {
   const { ink, sub, gold, cardwash, cardbd } = surface
   const cardStyle: React.CSSProperties = {
@@ -34,18 +36,26 @@ export function NextUpCard({
     borderRadius: 14,
     background: cardwash,
     border: `1px solid ${cardbd}`,
+    cursor: onOpen ? 'pointer' : 'default',
+    width: '100%',
+    textAlign: 'left',
+    display: 'block',
+    font: 'inherit', // buttons reset font — keep Raleway/Marcellus from the page
   }
 
   if (!settings) {
     return (
-      <div style={cardStyle}>
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: gold, fontWeight: 600 }}>
-          Next up
+      <button type="button" onClick={onOpen} style={cardStyle}>
+        <div className="flex justify-between items-baseline">
+          <span className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: gold, fontWeight: 600 }}>
+            Next up
+          </span>
+          {onOpen && <span style={{ fontSize: 10, color: gold }}>View calendar →</span>}
         </div>
         <div style={{ fontSize: 12, color: ink, opacity: 0.85, marginTop: 6, fontWeight: 300 }}>
           Predictions appear once your cycle is set up.
         </div>
-      </div>
+      </button>
     )
   }
 
@@ -66,7 +76,7 @@ export function NextUpCard({
   const plural = (n: number) => (n === 1 ? '' : 's')
 
   return (
-    <div style={cardStyle}>
+    <button type="button" onClick={onOpen} style={cardStyle}>
       <div className="flex justify-between items-baseline">
         <span className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: gold, fontWeight: 600 }}>
           Next up
@@ -97,9 +107,12 @@ export function NextUpCard({
         <span style={{ color: gold }}>{phaseLabel(nextPhaseId)}</span> starts ~{format(nextPhaseStart, 'EEE, MMM d')}
       </div>
 
-      <div style={{ fontSize: 9, color: sub, marginTop: 10, opacity: 0.85 }}>
-        Estimated from your cycle — not a medical prediction.
+      <div className="flex items-center justify-between" style={{ marginTop: 10 }}>
+        <span style={{ fontSize: 9, color: sub, opacity: 0.85 }}>
+          Estimated from your cycle — not a medical prediction.
+        </span>
+        {onOpen && <span style={{ fontSize: 10, color: gold, whiteSpace: 'nowrap', marginLeft: 10 }}>View calendar →</span>}
       </div>
-    </div>
+    </button>
   )
 }
