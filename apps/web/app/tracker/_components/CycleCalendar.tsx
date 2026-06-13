@@ -24,7 +24,7 @@ export function CycleCalendar({
   settings: CycleSettings | null
   surface: PredictionSurface
 }) {
-  const { ink, sub, gold } = surface
+  const { ink, sub, gold, cardbd } = surface
   const [view, setView] = useState(() => startOfMonth(new Date()))
 
   // Blend straight into the Lab body — no white card surface.
@@ -100,16 +100,20 @@ export function CycleCalendar({
         ))}
       </div>
 
-      {/* day grid — neutral cells; phase is shown by dot/star/navy-circle */}
+      {/* day grid — uniform neutral border; marks: navy/saffron dash + peak star */}
       <div className="grid grid-cols-7" style={{ gap: 4, marginTop: 6 }}>
         {cells.map((dayNum, i) => {
           if (dayNum === null) return <div key={`b${i}`} />
           const { date, cycleDay, id } = dayInfo(dayNum)
           const isToday = isSameDay(date, today)
-          const isMenstrual = id === 'menstrual'
           const isPeak = id === 'ovulatory' && cycleDay === peakCycleDay
-          // Phase = border colour; period days get a heavier navy border.
-          const borderW = isMenstrual ? 3 : 1.5
+          // Only menstrual + ovulation-window days get a dash; peak gets a star.
+          const dashColor =
+            id === 'menstrual'
+              ? phaseColor('menstrual')
+              : id === 'ovulatory' && !isPeak
+                ? phaseColor('ovulatory')
+                : null
           return (
             <div
               key={dayNum}
@@ -117,7 +121,7 @@ export function CycleCalendar({
               style={{
                 aspectRatio: '1 / 1',
                 borderRadius: 9,
-                border: `${borderW}px solid ${phaseColor(id)}`,
+                border: `1px solid ${cardbd}`,
                 background: isToday ? TODAY_FILL : 'transparent',
               }}
             >
@@ -127,32 +131,36 @@ export function CycleCalendar({
               >
                 {dayNum}
               </span>
-              {/* mark slot — only the peak-ovulation star; fixed height keeps rows aligned */}
-              <span className="flex items-center justify-center" style={{ height: 9, marginTop: 2 }}>
-                {isPeak && <span style={{ fontSize: 10, color: phaseColor('ovulatory'), lineHeight: 1 }}>★</span>}
+              {/* mark slot — fixed height keeps rows aligned whether dash / star / none */}
+              <span className="flex items-center justify-center" style={{ height: 7, marginTop: 3 }}>
+                {isPeak ? (
+                  <span style={{ fontSize: 10, color: phaseColor('ovulatory'), lineHeight: 1 }}>★</span>
+                ) : dashColor ? (
+                  <span style={{ width: 11, height: 2.5, borderRadius: 2, background: dashColor }} />
+                ) : null}
               </span>
             </div>
           )
         })}
       </div>
 
-      {/* legend — phase = cell border colour */}
+      {/* legend — only the marks that are actually shown */}
       <div className="flex flex-wrap" style={{ gap: '7px 14px', marginTop: 14 }}>
-        <LegendItem sub={sub} label="Menstrual">
-          <span style={{ width: 12, height: 12, borderRadius: 4, border: `2.5px solid ${phaseColor('menstrual')}` }} />
+        <LegendItem sub={sub} label="Period day">
+          <span style={{ width: 11, height: 2.5, borderRadius: 2, background: phaseColor('menstrual') }} />
         </LegendItem>
-        <LegendItem sub={sub} label="Follicular">
-          <span style={{ width: 12, height: 12, borderRadius: 4, border: `1.5px solid ${phaseColor('follicular')}` }} />
+        <LegendItem sub={sub} label="Fertile window">
+          <span style={{ width: 11, height: 2.5, borderRadius: 2, background: phaseColor('ovulatory') }} />
         </LegendItem>
-        <LegendItem sub={sub} label="Ovulation">
-          <span style={{ width: 12, height: 12, borderRadius: 4, border: `1.5px solid ${phaseColor('ovulatory')}` }} />
+        <LegendItem sub={sub} label="Peak ovulation (estimated)">
+          <span style={{ fontSize: 11, color: phaseColor('ovulatory'), lineHeight: 1 }}>★</span>
         </LegendItem>
-        <LegendItem sub={sub} label="Luteal">
-          <span style={{ width: 12, height: 12, borderRadius: 4, border: `1.5px solid ${phaseColor('luteal')}` }} />
+        <LegendItem sub={sub} label="Today">
+          <span style={{ width: 12, height: 12, borderRadius: 4, background: TODAY_FILL, border: `1px solid ${cardbd}` }} />
         </LegendItem>
       </div>
       <div style={{ fontSize: 9, color: sub, marginTop: 8, opacity: 0.85, lineHeight: 1.5 }}>
-        Estimated phases · phase = cell border · bolder navy = period days · ★ = peak ovulation · today filled in gold.
+        Estimated from your cycle.
       </div>
     </div>
   )
