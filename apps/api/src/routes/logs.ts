@@ -1,7 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { differenceInDays } from 'date-fns'
-import { getPhaseForDay } from '@lunari/phase-data'
 import { sendError } from '../lib/errors'
+import { cycleDayAndPhase, todayRange } from '../lib/cycleDay'
 
 interface LogBody {
   symptoms?: string[]
@@ -13,55 +12,75 @@ interface LogBody {
 }
 
 const logsRoutes: FastifyPluginAsync = async (fastify) => {
+  // Upsert TODAY's single entry for the user, MERGING — only the fields present in
+  // the body are written, so a quick { symptoms } tap doesn't wipe mood/sleep/etc.
   fastify.post<{ Body: LogBody }>(
     '/me/logs',
     { preHandler: [fastify.verifyAuth] },
     async (request, reply) => {
-      const { symptoms = [], journalNote = '', mood, energyLevel, sleepHours, waterGlasses } =
-        request.body ?? {}
+      const body = request.body ?? {}
 
-      // Derive cycle day from latest cycle
       const cycle = await fastify.prisma.cycle.findFirst({
         where: { userId: request.user.id },
         orderBy: { createdAt: 'desc' },
       })
+      const { cycleDay, phase } = cycleDayAndPhase(cycle)
+      const { start, end } = todayRange()
 
-      let cycleDay = 1
-      if (cycle) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const start = new Date(cycle.startDate)
-        start.setHours(0, 0, 0, 0)
-        const len = cycle.cycleLength
-        cycleDay = (((differenceInDays(today, start) % len) + len) % len) + 1
+      // Only one entry per calendar day — find today's row (loggedAt within today).
+      const existing = await fastify.prisma.symptomLog.findFirst({
+        where: { userId: request.user.id, loggedAt: { gte: start, lt: end } },
+        orderBy: { loggedAt: 'desc' },
+      })
+
+      // Fields explicitly provided in the request (merge semantics).
+      const provided = {
+        ...(body.symptoms !== undefined && { symptoms: body.symptoms }),
+        ...(body.journalNote !== undefined && { journalNote: body.journalNote }),
+        ...(body.mood !== undefined && { mood: body.mood }),
+        ...(body.energyLevel !== undefined && { energyLevel: body.energyLevel }),
+        ...(body.sleepHours !== undefined && { sleepHours: body.sleepHours }),
+        ...(body.waterGlasses !== undefined && { waterGlasses: body.waterGlasses }),
       }
 
-      const phase = cycle
-        ? getPhaseForDay(cycleDay, cycle.cycleLength, cycle.periodLength)
-        : getPhaseForDay(cycleDay)
-
-      const log = await fastify.prisma.symptomLog.create({
-        data: {
-          userId: request.user.id,
-          cycleDay,
-          phase: phase.id,
-          symptoms,
-          journalNote,
-          ...(mood !== undefined && { mood }),
-          ...(energyLevel !== undefined && { energyLevel }),
-          ...(sleepHours !== undefined && { sleepHours }),
-          ...(waterGlasses !== undefined && { waterGlasses }),
-        },
-      })
+      const log = existing
+        ? await fastify.prisma.symptomLog.update({
+            where: { id: existing.id },
+            // Always refresh cycleDay/phase to today's; merge the provided fields.
+            data: { cycleDay, phase: phase.id, ...provided },
+          })
+        : await fastify.prisma.symptomLog.create({
+            data: {
+              userId: request.user.id,
+              cycleDay,
+              phase: phase.id,
+              symptoms: body.symptoms ?? [],
+              journalNote: body.journalNote ?? '',
+              ...(body.mood !== undefined && { mood: body.mood }),
+              ...(body.energyLevel !== undefined && { energyLevel: body.energyLevel }),
+              ...(body.sleepHours !== undefined && { sleepHours: body.sleepHours }),
+              ...(body.waterGlasses !== undefined && { waterGlasses: body.waterGlasses }),
+            },
+          })
 
       // Touch lastActiveAt so the admin dashboard reflects this activity.
       await fastify.prisma.user
         .update({ where: { id: request.user.id }, data: { lastActiveAt: new Date() } })
         .catch(() => {})
 
-      return reply.status(201).send(log)
+      return reply.status(existing ? 200 : 201).send(log)
     }
   )
+
+  // Today's entry for the user (or null) — used to prefill Today chips + the Log form.
+  fastify.get('/me/logs/today', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
+    const { start, end } = todayRange()
+    const log = await fastify.prisma.symptomLog.findFirst({
+      where: { userId: request.user.id, loggedAt: { gte: start, lt: end } },
+      orderBy: { loggedAt: 'desc' },
+    })
+    return reply.send(log ?? null)
+  })
 
   fastify.get<{
     Querystring: { page?: string; perPage?: string; from?: string; to?: string }

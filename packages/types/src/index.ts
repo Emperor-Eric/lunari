@@ -135,6 +135,10 @@ export interface SymptomLog {
   phase: PhaseId
   symptoms: string[]
   journalNote: string
+  mood?: number | null
+  energyLevel?: number | null
+  sleepHours?: number | string | null // Prisma Decimal serializes to string
+  waterGlasses?: number | null
   loggedAt: string
 }
 

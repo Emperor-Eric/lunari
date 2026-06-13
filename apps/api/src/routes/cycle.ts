@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { differenceInDays } from 'date-fns'
 import { getPhaseForDay, getCurrentContainer } from '@lunari/phase-data'
 import { sendError } from '../lib/errors'
+import { cycleDayAndPhase } from '../lib/cycleDay'
 
 const cycleRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { startDate: string; cycleLength?: number; periodLength?: number } }>(
@@ -58,16 +58,8 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
     })
     if (!cycle) return sendError(reply, 404, 'No cycle found. Complete onboarding first.')
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const start = new Date(cycle.startDate)
-    start.setHours(0, 0, 0, 0)
-
-    const diffDays = differenceInDays(today, start)
-    const day = ((diffDays % cycle.cycleLength) + cycle.cycleLength) % cycle.cycleLength + 1
-
-    // Proportional phase model — accurate for any cycle/period length.
-    const phase = getPhaseForDay(day, cycle.cycleLength, cycle.periodLength)
+    // Same day/phase computation reused everywhere (see lib/cycleDay).
+    const { cycleDay: day, phase } = cycleDayAndPhase(cycle)
     const container = getCurrentContainer(day, cycle.cycleLength, cycle.periodLength)
 
     return reply.send({

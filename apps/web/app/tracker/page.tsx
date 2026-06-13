@@ -3,8 +3,9 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
-import type { PhaseId, CycleSettings } from '@lunari/types'
-import { apiGet } from '@/src/lib/api'
+import type { PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
+import { Toast } from '@lunari/ui'
+import { apiGet, apiPost } from '@/src/lib/api'
 import { useCycleContext } from './cycle-context'
 import { NextUpCard } from './_components/NextUpCard'
 
@@ -42,9 +43,35 @@ export default function TrackerToday() {
 
   const t = phaseTheme[phaseKeyFor(viewedPhase.id)]
 
+  // "How are you feeling?" chips — persisted to today's single log entry.
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
-  const toggleSymptom = (s: string) =>
-    setQuickSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  // Prefill chips from today's saved entry so they survive refresh.
+  useEffect(() => {
+    apiGet<SymptomLog | null>('/me/logs/today')
+      .then((log) => {
+        if (log?.symptoms) setQuickSymptoms(log.symptoms)
+      })
+      .catch(() => {})
+  }, [])
+
+  // Tapping a chip IS the save: optimistic toggle, then persist (merge keeps other fields).
+  const toggleSymptom = (s: string) => {
+    const prev = quickSymptoms
+    const next = prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    setQuickSymptoms(next)
+    apiPost('/me/logs', { symptoms: next })
+      .then(() => {
+        setToast({ msg: 'Saved ✓', type: 'success' })
+        setTimeout(() => setToast(null), 1200)
+      })
+      .catch(() => {
+        setQuickSymptoms(prev) // revert on failure
+        setToast({ msg: "Couldn't save — try again", type: 'error' })
+        setTimeout(() => setToast(null), 2500)
+      })
+  }
 
   // Raw cycle settings (start date + lengths) for client-side prediction. One fetch.
   const [settings, setSettings] = useState<CycleSettings | null>(null)
@@ -311,6 +338,7 @@ export default function TrackerToday() {
         </div>
 
       </div>
+      {toast && <Toast message={toast.msg} type={toast.type} />}
     </div>
   )
 }

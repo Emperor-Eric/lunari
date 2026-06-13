@@ -7,8 +7,8 @@ import { router } from 'expo-router'
 import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
-import { LoadingSpinner } from '@lunari/ui'
-import type { TodayCycleResponse, PhaseId, CycleSettings } from '@lunari/types'
+import { LoadingSpinner, Toast } from '@lunari/ui'
+import type { TodayCycleResponse, PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
 import { NextUpCard } from '../../src/components/NextUpCard'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
@@ -40,6 +40,7 @@ export default function Today() {
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
   const [settings, setSettings] = useState<CycleSettings | null>(null)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const fetchToday = useCallback(async () => {
     if (!session) return
@@ -67,13 +68,44 @@ export default function Today() {
       .catch(() => setSettings(null))
   }, [session])
 
+  // Prefill "How are you feeling?" chips from today's saved entry (survives refresh).
+  useEffect(() => {
+    if (!session) return
+    fetch(`${API_URL}/me/logs/today`, { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((log: SymptomLog | null) => {
+        if (log?.symptoms) setQuickSymptoms(log.symptoms)
+      })
+      .catch(() => {})
+  }, [session])
+
   const onRefresh = () => {
     setRefreshing(true)
     fetchToday()
   }
 
-  const toggleSymptom = (s: string) =>
-    setQuickSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+  // Tapping a chip IS the save: optimistic toggle, then persist (merge keeps other fields).
+  const toggleSymptom = (s: string) => {
+    if (!session) return
+    const prev = quickSymptoms
+    const next = prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    setQuickSymptoms(next)
+    fetch(`${API_URL}/me/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ symptoms: next }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('save failed')
+        setToast({ msg: 'Saved ✓', type: 'success' })
+        setTimeout(() => setToast(null), 1200)
+      })
+      .catch(() => {
+        setQuickSymptoms(prev) // revert on failure
+        setToast({ msg: "Couldn't save — try again", type: 'error' })
+        setTimeout(() => setToast(null), 2500)
+      })
+  }
 
   const allPhases = getAllPhases()
 
@@ -287,6 +319,7 @@ export default function Today() {
           </View>
         </LinearGradient>
       </ScrollView>
+      {toast && <Toast message={toast.msg} type={toast.type} />}
     </View>
   )
 }

@@ -1,10 +1,11 @@
 'use client'
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
+import type { SymptomLog } from '@lunari/types'
 import { useCycleContext } from '../cycle-context'
-import { apiPost } from '@/src/lib/api'
+import { apiGet, apiPost } from '@/src/lib/api'
 
 // Mood scale stays numeric (1–5) so the saved `mood` field is unchanged — only the
 // labels are restyled to the Goddess reference.
@@ -36,6 +37,21 @@ export default function LogPage() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const trackRef = useRef<HTMLDivElement>(null)
+
+  // Prefill from today's saved entry — edit today's log instead of starting blank.
+  useEffect(() => {
+    apiGet<SymptomLog | null>('/me/logs/today')
+      .then((log) => {
+        if (!log) return
+        setSymptoms(log.symptoms ?? [])
+        if (log.mood != null) setMood(log.mood)
+        if (log.energyLevel != null) setEnergy(log.energyLevel)
+        if (log.sleepHours != null) setSleep(Number(log.sleepHours))
+        if (log.waterGlasses != null) setWater(log.waterGlasses)
+        if (log.journalNote) setJournal(log.journalNote)
+      })
+      .catch(() => {})
+  }, [])
 
   const toggleSymptom = (s: string) =>
     setSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))

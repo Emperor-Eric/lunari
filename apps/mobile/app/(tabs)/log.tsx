@@ -70,6 +70,23 @@ export default function Log() {
     fetchToday()
   }, [fetchToday])
 
+  // Prefill the form from today's saved entry — edit it instead of starting blank.
+  useEffect(() => {
+    if (!session) return
+    fetch(`${API_URL}/me/logs/today`, { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((log: SymptomLog | null) => {
+        if (!log) return
+        setSymptoms(log.symptoms ?? [])
+        if (log.mood != null) setMood(log.mood)
+        if (log.energyLevel != null) setEnergy(log.energyLevel)
+        if (log.sleepHours != null) setSleep(Number(log.sleepHours))
+        if (log.waterGlasses != null) setWater(log.waterGlasses)
+        if (log.journalNote) setJournal(log.journalNote)
+      })
+      .catch(() => {})
+  }, [session])
+
   const fetchHistory = useCallback(async (pageNum = 1) => {
     if (!session) return
     setHistoryLoading(true)
