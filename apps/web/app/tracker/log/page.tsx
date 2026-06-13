@@ -1,6 +1,6 @@
 'use client'
 import React, { useRef, useState } from 'react'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
 import { useCycleContext } from '../cycle-context'
@@ -23,7 +23,7 @@ const N = {
 export default function LogPage() {
   const { cycleData } = useCycleContext()
   const day = cycleData?.day ?? 1
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
 
   const [symptoms, setSymptoms] = useState<string[]>([])

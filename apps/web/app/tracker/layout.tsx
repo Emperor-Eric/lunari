@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import type { TodayCycleResponse } from '@lunari/types'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { apiFetch } from '@/src/lib/api'
 import { CycleContext } from './cycle-context'
 
@@ -42,7 +42,7 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
       })
   }, [router])
 
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
 
   return (
     <CycleContext.Provider value={{ cycleData }}>

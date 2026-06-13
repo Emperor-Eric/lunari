@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type { PhaseId } from '@lunari/types'
 import { useCycleContext } from '../cycle-context'
@@ -42,7 +42,7 @@ const N = { section: '#A99E88', title: '#2C2825', stat: '#6A655D' }
 export default function NutritionPage() {
   const { cycleData } = useCycleContext()
   const day = cycleData?.day ?? 1
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
   const [coreOpen, setCoreOpen] = useState(false)
 

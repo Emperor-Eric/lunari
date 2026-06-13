@@ -37,24 +37,26 @@ export default function OnboardingPage() {
   // Manual path
   const [daysAgo, setDaysAgo] = useState(14)
   const [cycleLength, setCycleLength] = useState(28)
+  const [periodLength, setPeriodLength] = useState(5)
 
   // Smart path
   const [q, setQ] = useState(0)
   const [smartPhase, setSmartPhase] = useState<PhaseId | null>(null)
   const [smartDaysAgo, setSmartDaysAgo] = useState<number | null>(null)
+  const [smartPeriodLength, setSmartPeriodLength] = useState(5)
   const [smartConfirmed, setSmartConfirmed] = useState(false)
 
   const manualStart = format(subDays(new Date(), daysAgo), 'yyyy-MM-dd')
   const manualDay = getDayInCycle(manualStart, undefined, cycleLength)
-  const manualPhase = getPhaseForDay(manualDay)
+  const manualPhase = getPhaseForDay(manualDay, cycleLength, periodLength)
 
-  const submit = async (startDate: string, length: number) => {
+  const submit = async (startDate: string, length: number, period: number) => {
     setSaving(true)
     setError('')
     try {
       // apiPost reads the bearer token from the Supabase session cookie and
       // throws on a non-2xx response.
-      await apiPost('/me/cycle', { startDate, cycleLength: length })
+      await apiPost('/me/cycle', { startDate, cycleLength: length, periodLength: period })
       router.push('/tracker')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
@@ -62,6 +64,8 @@ export default function OnboardingPage() {
       setSaving(false)
     }
   }
+
+  const PERIOD_OPTIONS = [3, 4, 5, 6, 7, 8]
 
   const DAY_OPTIONS = [1, 7, 14, 21, 28]
 
@@ -139,6 +143,31 @@ export default function OnboardingPage() {
             </div>
 
             <div>
+              <label className="text-sm font-semibold text-brand-ink">
+                How long does your period last? — {periodLength} days
+              </label>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {PERIOD_OPTIONS.map((d) => {
+                  const active = d === periodLength
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setPeriodLength(d)}
+                      className="px-3.5 py-2 rounded-full border-2 text-sm font-medium transition-all"
+                      style={{
+                        backgroundColor: active ? '#2C2825' : '#FFFFFF',
+                        borderColor: active ? '#2C2825' : '#E8E2D6',
+                        color: active ? '#FFFFFF' : '#2C2825',
+                      }}
+                    >
+                      {d}d
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
               <p className="text-sm text-brand-ink-soft mb-3">Your estimated phase</p>
               <PhaseHero phase={manualPhase} cycleDay={manualDay} />
             </div>
@@ -146,7 +175,7 @@ export default function OnboardingPage() {
             {error && <p className="text-xs text-phase-menstrual">{error}</p>}
 
             <button
-              onClick={() => submit(manualStart, cycleLength)}
+              onClick={() => submit(manualStart, cycleLength, periodLength)}
               disabled={saving}
               className="w-full py-4 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
             >
@@ -192,7 +221,7 @@ export default function OnboardingPage() {
                 {Q3_OPTIONS.map((o) => (
                   <button
                     key={o.len}
-                    onClick={() => setSmartConfirmed(true)}
+                    onClick={() => { setSmartPeriodLength(o.len); setSmartConfirmed(true) }}
                     className="w-full text-left bg-white rounded-xl border-2 border-brand-stone p-4 text-sm text-brand-ink hover:border-brand-gold transition-colors"
                   >
                     {o.label}
@@ -215,7 +244,7 @@ export default function OnboardingPage() {
             </h2>
             {error && <p className="text-xs text-phase-menstrual">{error}</p>}
             <button
-              onClick={() => submit(format(subDays(new Date(), smartDaysAgo ?? 14), 'yyyy-MM-dd'), 28)}
+              onClick={() => submit(format(subDays(new Date(), smartDaysAgo ?? 14), 'yyyy-MM-dd'), 28, smartPeriodLength)}
               disabled={saving}
               className="w-full py-4 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
             >

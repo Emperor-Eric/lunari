@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
 import type { TodayCycleResponse, PhaseId } from '@lunari/types'
@@ -78,7 +78,7 @@ export default function Nutrition() {
   }
 
   const day = cycleData?.day ?? 1
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
 
   if (loading) return <LoadingSpinner phaseColor={t.accent} />

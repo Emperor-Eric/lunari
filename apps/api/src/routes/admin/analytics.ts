@@ -143,7 +143,7 @@ const adminAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
   // ─── symptoms (anonymised) ────────────────────────────────────────────────────
   async function computeSymptoms() {
     const [cycles, logs] = await Promise.all([
-      fastify.prisma.cycle.findMany({ select: { startDate: true, cycleLength: true } }),
+      fastify.prisma.cycle.findMany({ select: { startDate: true, cycleLength: true, periodLength: true } }),
       fastify.prisma.symptomLog.findMany({ select: { symptoms: true } }),
     ])
 
@@ -155,7 +155,7 @@ const adminAnalyticsRoutes: FastifyPluginAsync = async (fastify) => {
     }
     for (const c of cycles) {
       const day = getDayInCycle(ymd(c.startDate), undefined, c.cycleLength)
-      phaseDistribution[getPhaseForDay(day).id] += 1
+      phaseDistribution[getPhaseForDay(day, c.cycleLength, c.periodLength).id] += 1
     }
 
     const counts: Record<string, number> = {}

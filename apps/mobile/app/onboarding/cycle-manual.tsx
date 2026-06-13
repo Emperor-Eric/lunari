@@ -8,18 +8,21 @@ import { getDayInCycle, getPhaseForDay } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
 import { useOnboardingStore } from '../../src/stores/onboarding'
 
+const PERIOD_OPTIONS = [3, 4, 5, 6, 7, 8]
+
 export default function CycleManual() {
   const { setStep, setCycleData } = useOnboardingStore()
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 14), 'yyyy-MM-dd'))
   const [cycleLength, setCycleLength] = useState(28)
+  const [periodLength, setPeriodLength] = useState(5)
 
   useEffect(() => { setStep(4) }, [setStep])
 
   const day = getDayInCycle(startDate, undefined, cycleLength)
-  const phase = getPhaseForDay(day)
+  const phase = getPhaseForDay(day, cycleLength, periodLength)
 
   const handleContinue = () => {
-    setCycleData(startDate, cycleLength)
+    setCycleData(startDate, cycleLength, periodLength)
     router.push('/onboarding/notifications')
   }
 
@@ -69,6 +72,24 @@ export default function CycleManual() {
           </View>
         </View>
 
+        <View style={styles.periodSection}>
+          <Text style={styles.sliderLabel}>Period length</Text>
+          <View style={styles.periodRow}>
+            {PERIOD_OPTIONS.map((d) => {
+              const active = d === periodLength
+              return (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.periodPill, active && styles.periodPillActive]}
+                  onPress={() => setPeriodLength(d)}
+                >
+                  <Text style={[styles.periodPillText, active && styles.periodPillTextActive]}>{d}d</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
+
         <View>
           <Text style={styles.previewLabel}>Your estimated phase</Text>
           <PhaseHero phase={phase} cycleDay={day} />
@@ -98,6 +119,15 @@ const styles = StyleSheet.create({
   sliderLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#2C2825' },
   sliderTicks: { flexDirection: 'row', justifyContent: 'space-between' },
   tickLabel: { fontFamily: 'Inter', fontSize: 11, color: '#6B6460' },
+  periodSection: { gap: 10 },
+  periodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  periodPill: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9999,
+    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E8E2D6',
+  },
+  periodPillActive: { backgroundColor: '#2C2825', borderColor: '#2C2825' },
+  periodPillText: { fontFamily: 'Inter', fontSize: 13, color: '#2C2825' },
+  periodPillTextActive: { color: '#FFFFFF' },
   previewLabel: {
     fontFamily: 'Inter', fontSize: 13, color: '#6B6460', marginBottom: 8,
   },

@@ -33,6 +33,7 @@ export default function CycleSmart() {
   const [q, setQ] = useState(0)
   const [phase, setPhase] = useState<PhaseId | null>(null)
   const [daysAgo, setDaysAgo] = useState<number | null>(null)
+  const [periodLength, setPeriodLength] = useState(5)
   const [confirmed, setConfirmed] = useState(false)
 
   useEffect(() => { setStep(4) }, [setStep])
@@ -41,7 +42,7 @@ export default function CycleSmart() {
 
   const handleConfirm = () => {
     const startDate = format(subDays(new Date(), daysAgo ?? 14), 'yyyy-MM-dd')
-    setCycleData(startDate, 28)
+    setCycleData(startDate, 28, periodLength)
     router.push('/onboarding/notifications')
   }
 
@@ -111,7 +112,7 @@ export default function CycleSmart() {
                 <TouchableOpacity
                   key={o.len}
                   style={styles.option}
-                  onPress={() => setConfirmed(true)}
+                  onPress={() => { setPeriodLength(o.len); setConfirmed(true) }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.optionText}>{o.label}</Text>

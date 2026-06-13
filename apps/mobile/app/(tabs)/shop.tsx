@@ -5,7 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import * as WebBrowser from 'expo-web-browser'
 import { useAuth, buildShopifyUrl } from '@lunari/utils'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { LoadingSpinner } from '@lunari/ui'
 import type { TodayCycleResponse, UserReferralCode } from '@lunari/types'
 
@@ -89,7 +89,7 @@ export default function Shop() {
 
   if (loading) return <LoadingSpinner />
 
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const lowStock = (cycleData?.daysRemainingInPhase ?? 99) <= 3
 
   return (

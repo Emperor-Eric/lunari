@@ -10,7 +10,7 @@ import { useOnboardingStore } from '../../src/stores/onboarding'
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
 export default function Ready() {
-  const { setStep, cycleStartDate, cycleLength, dailyReminder, reminderTime } = useOnboardingStore()
+  const { setStep, cycleStartDate, cycleLength, periodLength, dailyReminder, reminderTime } = useOnboardingStore()
   const { session } = useAuth()
   const { fetchUser } = useUser()
   const [loading, setLoading] = useState(false)
@@ -19,7 +19,7 @@ export default function Ready() {
 
   const startDate = cycleStartDate ?? new Date().toISOString().split('T')[0]
   const day = getDayInCycle(startDate, undefined, cycleLength)
-  const phase = getPhaseForDay(day)
+  const phase = getPhaseForDay(day, cycleLength, periodLength)
 
   const handleStart = async () => {
     if (!session) return
@@ -32,7 +32,7 @@ export default function Ready() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ startDate, cycleLength }),
+        body: JSON.stringify({ startDate, cycleLength, periodLength }),
       })
       // Save notification prefs
       await fetch(`${API_URL}/me`, {

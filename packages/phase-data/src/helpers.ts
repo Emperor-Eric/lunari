@@ -1,4 +1,4 @@
-import type { Phase, PhaseId } from '@lunari/types'
+import type { Phase, PhaseId, CyclePrediction, PhaseRange } from '@lunari/types'
 import { phases } from './phases'
 
 export interface ContainerInfo {
@@ -10,17 +10,104 @@ export interface ContainerInfo {
   isLastDay: boolean
 }
 
-/**
- * Returns the Phase object for a given cycle day (1–28).
- * Falls back to the luteal phase if day is out of range.
- */
-export function getPhaseForDay(day: number): Phase {
-  const phase = phases.find((p) => day >= p.cycleDays.start && day <= p.cycleDays.end)
-  if (!phase) {
-    // Day out of bounds — return luteal as safe fallback
-    return phases.find((p) => p.id === 'luteal') as Phase
+/** A phase's day window within a cycle (1-based, inclusive). */
+export interface PhaseDayRange {
+  phase: PhaseId
+  startDay: number
+  endDay: number
+}
+
+// ─── Pure date helpers (no date-fns dependency) ──────────────────────────────
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+/** Parse "YYYY-MM-DD" as a LOCAL midnight date (avoids UTC off-by-one), or pass through a Date. */
+function parseDate(input: string | Date): Date {
+  if (input instanceof Date) {
+    const d = new Date(input)
+    d.setHours(0, 0, 0, 0)
+    return d
   }
-  return phase
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(input)
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  const d = new Date(input)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d)
+  x.setDate(x.getDate() + n)
+  return x
+}
+
+function diffDays(a: Date, b: Date): number {
+  return Math.floor((a.getTime() - b.getTime()) / MS_PER_DAY)
+}
+
+function toISODate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// ─── Proportional phase model ────────────────────────────────────────────────
+
+/**
+ * Computes the four phase day-windows for a cycle, scaled to the user's real
+ * cycle + period length (luteal-anchored, medically standard):
+ *
+ *   • Menstrual  — day 1 .. periodLength
+ *   • Luteal     — the last ~14 days (lutealLength = min(14, cycleLength - periodLength - 1))
+ *   • Ovulation  — up to a 4-day window ending the day before luteal starts
+ *   • Follicular — everything between menstrual and ovulation (stretches/shrinks with length)
+ *
+ * The returned ranges are contiguous and tile day 1..cycleLength with NO gaps or
+ * overlaps. On very short cycles a middle phase may collapse to 0 days and is
+ * omitted (coverage is still complete).
+ */
+export function getPhaseRanges(cycleLength = 28, periodLength = 5): PhaseDayRange[] {
+  const L = Math.max(1, Math.round(cycleLength))
+  const P = Math.min(Math.max(1, Math.round(periodLength)), L)
+
+  const menEnd = P
+
+  // Luteal ~14 days; leave a day for ovulation between menstrual and luteal when possible.
+  const lutLen = Math.min(14, Math.max(1, L - P - 1))
+  let lutStart = L - lutLen + 1
+  if (lutStart <= menEnd) lutStart = menEnd + 1
+  const hasLut = lutStart <= L
+
+  // Ovulation: up to 4 days ending the day before luteal, never overlapping menstrual.
+  const ovEnd = lutStart - 1
+  const ovStart = Math.max(menEnd + 1, ovEnd - 3)
+  const hasOv = ovEnd >= menEnd + 1 && ovEnd >= ovStart
+
+  // Follicular: fills the gap between menstrual and ovulation (or luteal if no ovulation).
+  const folStart = menEnd + 1
+  const folEnd = (hasOv ? ovStart : lutStart) - 1
+  const hasFol = folEnd >= folStart
+
+  const ranges: PhaseDayRange[] = [{ phase: 'menstrual', startDay: 1, endDay: menEnd }]
+  if (hasFol) ranges.push({ phase: 'follicular', startDay: folStart, endDay: folEnd })
+  if (hasOv) ranges.push({ phase: 'ovulatory', startDay: ovStart, endDay: ovEnd })
+  if (hasLut) ranges.push({ phase: 'luteal', startDay: lutStart, endDay: L })
+  return ranges
+}
+
+/**
+ * Returns the Phase object for a given cycle day, using the proportional model.
+ * Day is clamped into [1, cycleLength]. Defaults (28, 5) reproduce a standard cycle.
+ */
+export function getPhaseForDay(day: number, cycleLength = 28, periodLength = 5): Phase {
+  const L = Math.max(1, Math.round(cycleLength))
+  let d = Math.round(day)
+  if (d < 1) d = 1
+  if (d > L) d = L
+  const ranges = getPhaseRanges(L, periodLength)
+  const match = ranges.find((r) => d >= r.startDay && d <= r.endDay)
+  return getPhaseById(match ? match.phase : 'luteal')
 }
 
 /**
@@ -43,8 +130,8 @@ export function getAllPhases(): Phase[] {
 }
 
 /**
- * Returns the current day in the cycle (1–28) based on a cycle start date.
- * Wraps at cycleLength (default 28).
+ * Returns the current day in the cycle (1-based) based on a cycle start date.
+ * Wraps at cycleLength (default 28). Handles dates before the start date.
  *
  * @param cycleStartDate - ISO date string "YYYY-MM-DD"
  * @param today - optional ISO date string override (defaults to today)
@@ -55,27 +142,32 @@ export function getDayInCycle(
   today?: string,
   cycleLength = 28
 ): number {
-  const start = new Date(cycleStartDate)
-  const current = today ? new Date(today) : new Date()
-
-  // Strip time component for accurate day diff
-  start.setHours(0, 0, 0, 0)
-  current.setHours(0, 0, 0, 0)
-
-  const diffMs = current.getTime() - start.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  // Wrap within cycle length, returning 1-based day
-  return (diffDays % cycleLength) + 1
+  const L = Math.max(1, Math.round(cycleLength))
+  const start = parseDate(cycleStartDate)
+  const current = today ? parseDate(today) : parseDate(new Date())
+  const total = diffDays(current, start)
+  const cyclesPassed = Math.floor(total / L)
+  return total - cyclesPassed * L + 1
 }
 
 /**
- * Returns container metadata for the given cycle day.
- * Maps the current phase to its numbered container (1–4).
+ * Returns container metadata for the given cycle day, using the proportional model.
+ * daysRemaining / isLastDay are computed from the (real, scaled) phase window.
  */
-export function getCurrentContainer(cycleDay: number): ContainerInfo {
-  const phase = getPhaseForDay(cycleDay)
-  const daysRemaining = phase.cycleDays.end - cycleDay
+export function getCurrentContainer(
+  cycleDay: number,
+  cycleLength = 28,
+  periodLength = 5
+): ContainerInfo {
+  const L = Math.max(1, Math.round(cycleLength))
+  let d = Math.round(cycleDay)
+  if (d < 1) d = 1
+  if (d > L) d = L
+  const ranges = getPhaseRanges(L, periodLength)
+  const match =
+    ranges.find((r) => d >= r.startDay && d <= r.endDay) ?? ranges[ranges.length - 1]
+  const phase = getPhaseById(match.phase)
+  const daysRemaining = match.endDay - d
   return {
     containerNumber: phase.containerNumber,
     containerName: phase.name,
@@ -83,5 +175,57 @@ export function getCurrentContainer(cycleDay: number): ContainerInfo {
     phaseColor: phase.color,
     daysRemaining,
     isLastDay: daysRemaining === 0,
+  }
+}
+
+// ─── Prediction ──────────────────────────────────────────────────────────────
+
+export interface CyclePredictionInput {
+  startDate: string | Date
+  cycleLength?: number
+  periodLength?: number
+}
+
+/**
+ * Predicts the current day/phase, the next period start, and each phase's date
+ * range for the CURRENT cycle — all from the user's real cycle settings, using
+ * the proportional phase model. Pure + dependency-free; reusable on web, mobile,
+ * and the API. All dates are emitted as "YYYY-MM-DD" strings.
+ */
+export function getCyclePrediction(
+  input: CyclePredictionInput,
+  fromDate: string | Date = new Date()
+): CyclePrediction {
+  const cycleLength = Math.max(1, Math.round(input.cycleLength ?? 28))
+  const periodLength = Math.min(Math.max(1, Math.round(input.periodLength ?? 5)), cycleLength)
+
+  const start = parseDate(input.startDate)
+  const from = parseDate(fromDate)
+
+  const total = diffDays(from, start)
+  const cyclesPassed = Math.floor(total / cycleLength)
+  const currentCycleStart = addDays(start, cyclesPassed * cycleLength)
+  const currentDay = total - cyclesPassed * cycleLength + 1
+  const nextPeriodStart = addDays(currentCycleStart, cycleLength)
+
+  const ranges = getPhaseRanges(cycleLength, periodLength)
+  const currentPhase: PhaseId =
+    ranges.find((r) => currentDay >= r.startDay && currentDay <= r.endDay)?.phase ?? 'luteal'
+
+  const phaseRanges: PhaseRange[] = ranges.map((r) => ({
+    phase: r.phase,
+    startDay: r.startDay,
+    endDay: r.endDay,
+    startDate: toISODate(addDays(currentCycleStart, r.startDay - 1)),
+    endDate: toISODate(addDays(currentCycleStart, r.endDay - 1)),
+  }))
+
+  return {
+    currentDay,
+    currentPhase,
+    nextPeriodStart: toISODate(nextPeriodStart),
+    cycleLength,
+    periodLength,
+    phaseRanges,
   }
 }

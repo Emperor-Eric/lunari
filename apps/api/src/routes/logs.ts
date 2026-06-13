@@ -32,10 +32,13 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
         today.setHours(0, 0, 0, 0)
         const start = new Date(cycle.startDate)
         start.setHours(0, 0, 0, 0)
-        cycleDay = (differenceInDays(today, start) % cycle.cycleLength) + 1
+        const len = cycle.cycleLength
+        cycleDay = (((differenceInDays(today, start) % len) + len) % len) + 1
       }
 
-      const phase = getPhaseForDay(cycleDay)
+      const phase = cycle
+        ? getPhaseForDay(cycleDay, cycle.cycleLength, cycle.periodLength)
+        : getPhaseForDay(cycleDay)
 
       const log = await fastify.prisma.symptomLog.create({
         data: {

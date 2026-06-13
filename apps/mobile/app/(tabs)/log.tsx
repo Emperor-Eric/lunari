@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Slider from '@react-native-community/slider'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LogCard, EmptyState, Toast, LoadingSpinner } from '@lunari/ui'
 import type { SymptomLog, TodayCycleResponse } from '@lunari/types'
@@ -113,7 +113,7 @@ export default function Log() {
   }
 
   const day = cycleData?.day ?? 1
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
 
   const toggleSymptom = (s: string) =>

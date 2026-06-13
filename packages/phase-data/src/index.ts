@@ -5,5 +5,7 @@ export {
   getAllPhases,
   getDayInCycle,
   getCurrentContainer,
+  getPhaseRanges,
+  getCyclePrediction,
 } from './helpers'
-export type { ContainerInfo } from './helpers'
+export type { ContainerInfo, PhaseDayRange, CyclePredictionInput } from './helpers'

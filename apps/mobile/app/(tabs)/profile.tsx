@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { router } from 'expo-router'
 import { useAuth, useUser } from '@lunari/utils'
-import { getPhaseForDay, getAllPhases } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type { UserReferralCode, TodayCycleResponse } from '@lunari/types'
 
@@ -121,22 +121,23 @@ export default function Profile() {
     })
   }
 
-  // Theme follows the current phase.
+  // Theme follows the current phase (authoritative phase id from the API).
   const day = cycleData?.day ?? 1
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
   const activeKey = phaseKeyFor(phase.id)
 
-  // Cycle stats from real phase-data (fixed 28-day model).
-  const allPhases = getAllPhases()
-  const cycleDays = Math.max(...allPhases.map((p) => p.cycleDays.end))
-  const menstrual = allPhases.find((p) => p.id === 'menstrual')
-  const periodDays = menstrual ? menstrual.cycleDays.end - menstrual.cycleDays.start + 1 : 5
+  // Real per-user cycle stats.
+  const cycleDays = cycleData?.cycleLength ?? 28
+  const periodDays = cycleData?.periodLength ?? 5
 
-  // "Where you are" — all derived from the real current day + phase day-ranges.
-  const dayOfPhase = day - phase.cycleDays.start + 1
-  const phaseLength = phase.cycleDays.end - phase.cycleDays.start + 1
-  const daysUntilNext = phase.cycleDays.end - day
+  // "Where you are" — derived from the real proportional phase windows.
+  const ranges = getPhaseRanges(cycleDays, periodDays)
+  const currentRange =
+    ranges.find((r) => r.phase === phase.id) ?? { startDay: 1, endDay: cycleDays }
+  const dayOfPhase = day - currentRange.startDay + 1
+  const phaseLength = currentRange.endDay - currentRange.startDay + 1
+  const daysUntilNext = currentRange.endDay - day
   const currentIndex = PHASE_ORDER.indexOf(activeKey as (typeof PHASE_ORDER)[number])
   const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
 

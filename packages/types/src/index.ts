@@ -63,10 +63,18 @@ export interface Cycle {
   userId: string
   startDate: string // ISO date "2026-06-01"
   cycleLength: number // default 28
+  periodLength: number // default 5
+}
+
+// Raw per-user cycle settings (GET /me/cycle) — the inputs to prediction.
+export interface CycleSettings {
+  startDate: string // ISO date "2026-06-01"
+  cycleLength: number // default 28
+  periodLength: number // default 5
 }
 
 export interface TodayCycleResponse {
-  day: number // 1–28
+  day: number // 1–cycleLength
   phase: PhaseId
   phaseName: string
   phaseColor: string
@@ -74,6 +82,27 @@ export interface TodayCycleResponse {
   daysRemainingInPhase: number
   isLastDayOfPhase: boolean
   isLastDayOfCycle: boolean
+  cycleLength: number
+  periodLength: number
+}
+
+// ─── Prediction (proportional phase model) ────────────────────────────────────
+
+export interface PhaseRange {
+  phase: PhaseId
+  startDay: number // 1-based inclusive day within the cycle
+  endDay: number // inclusive
+  startDate: string // ISO date for this phase in the current cycle
+  endDate: string // ISO date (inclusive)
+}
+
+export interface CyclePrediction {
+  currentDay: number // 1-based day in the current cycle
+  currentPhase: PhaseId
+  nextPeriodStart: string // ISO date the next cycle begins
+  cycleLength: number
+  periodLength: number
+  phaseRanges: PhaseRange[] // ordered, tiling the current cycle with no gaps
 }
 
 export interface ContainerInfo {

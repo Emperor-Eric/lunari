@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { redirect } from 'next/navigation'
 import { ContainerRow } from '@lunari/ui'
-import { getPhaseForDay } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { buildShopifyUrl } from '@lunari/utils'
 import type { UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost } from '@/src/lib/api'
@@ -14,7 +14,7 @@ const SUB_URL = process.env.NEXT_PUBLIC_SHOPIFY_PRODUCT_SUB_URL || 'https://herl
 
 export default function ShopPage() {
   const { cycleData } = useCycleContext()
-  const phase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
 
   const [savedCode, setSavedCode] = useState<string | null>(null)
   const [codeInput, setCodeInput] = useState('')

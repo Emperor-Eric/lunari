@@ -61,7 +61,7 @@ function toRow(u: UserWithExtras) {
   if (cycle) {
     const day = getDayInCycle(cycle.startDate.toISOString().slice(0, 10), undefined, cycle.cycleLength)
     cycleDay = day
-    currentPhase = getPhaseForDay(day).id
+    currentPhase = getPhaseForDay(day, cycle.cycleLength, cycle.periodLength).id
   }
 
   return {

@@ -29,7 +29,7 @@ export default function TrackerToday() {
 
   // The user's REAL position in their cycle — drives day + progress (never faked).
   const day = cycleData?.day ?? 1
-  const currentPhase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const currentPhase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
 
   // Which phase the screen is themed/previewing. null = follow current phase.
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)

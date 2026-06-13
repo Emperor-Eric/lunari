@@ -66,7 +66,7 @@ export default function Today() {
 
   // The user's REAL position — drives day + progress (never faked).
   const day = cycleData?.day ?? 1
-  const currentPhase = cycleData ? getPhaseForDay(cycleData.day) : getPhaseForDay(1)
+  const currentPhase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
 
   // Which phase the screen previews. null = follow current phase.
   const viewedPhase = viewedPhaseId ? getPhaseById(viewedPhaseId) : currentPhase
