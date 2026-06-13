@@ -252,6 +252,16 @@ export default function TrackerToday() {
           })}
         </div>
 
+        {/* ── Predictions: Next up summary (taps through to the calendar) ── */}
+        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '22px 0 10px' }}>
+          Looking ahead
+        </div>
+        <NextUpCard
+          settings={settings}
+          surface={{ ink, sub, gold, cardwash, cardbd }}
+          onOpen={() => router.push('/tracker/calendar')}
+        />
+
         {/* ── Supplement focus (viewed phase's actives) ── */}
         <div className="flex justify-between items-baseline" style={{ margin: '22px 0 10px' }}>
           <span className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub }}>
@@ -290,15 +300,6 @@ export default function TrackerToday() {
           })}
         </div>
 
-        {/* ── Predictions: Next up summary (taps through to the calendar) ── */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '24px 0 10px' }}>
-          Looking ahead
-        </div>
-        <NextUpCard
-          settings={settings}
-          surface={{ ink, sub, gold, cardwash, cardbd }}
-          onOpen={() => router.push('/tracker/calendar')}
-        />
       </div>
     </div>
   )

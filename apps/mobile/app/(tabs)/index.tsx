@@ -242,6 +242,14 @@ export default function Today() {
               })}
             </View>
 
+            {/* ── Predictions: Next up (taps through to the Calendar screen) ── */}
+            <Text style={[styles.sectionLabel, { color: sub }]}>Looking ahead</Text>
+            <NextUpCard
+              settings={settings}
+              surface={{ ink, sub, gold, cardwash, cardbd }}
+              onOpen={() => router.push('/calendar')}
+            />
+
             {/* ── Supplement focus (viewed phase's actives) ── */}
             <View style={styles.suppHead}>
               <Text style={[styles.sectionLabel, { color: sub, marginBottom: 0 }]}>Today&apos;s supplement focus</Text>
@@ -268,14 +276,6 @@ export default function Today() {
                 )
               })}
             </View>
-
-            {/* ── Predictions: Next up (taps through to the Calendar screen) ── */}
-            <Text style={[styles.sectionLabel, { color: sub }]}>Looking ahead</Text>
-            <NextUpCard
-              settings={settings}
-              surface={{ ink, sub, gold, cardwash, cardbd }}
-              onOpen={() => router.push('/calendar')}
-            />
           </View>
         </LinearGradient>
       </ScrollView>

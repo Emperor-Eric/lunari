@@ -1,16 +1,15 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { getDayInCycle, getPhaseForDay } from '@lunari/phase-data'
+import { getDayInCycle, getPhaseForDay, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type { CycleSettings, PhaseId } from '@lunari/types'
 import { addMonths, format, getDay, getDaysInMonth, isSameDay, startOfMonth } from 'date-fns'
 import type { PredictionSurface } from './NextUpCard'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-const LEGEND: PhaseId[] = ['menstrual', 'follicular', 'ovulatory', 'luteal']
 
 const phaseColor = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].phase
-const phaseLabel = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].label
+const PERIOD_NUM = '#FBF6EC' // light number inside the navy period circle
 
 /**
  * Self-contained month calendar. Each day is tinted by its PREDICTED phase
@@ -57,6 +56,13 @@ export function CycleCalendar({
     return { date, cycleDay, id }
   }
 
+  // Peak ovulation = ~14 days before the next period, clamped into the proportional
+  // ovulation window → exactly ONE starred day per cycle (others get the saffron dot).
+  const ovRange = getPhaseRanges(settings.cycleLength, settings.periodLength).find((r) => r.phase === 'ovulatory')
+  const peakCycleDay = ovRange
+    ? Math.min(Math.max(settings.cycleLength - 13, ovRange.startDay), ovRange.endDay)
+    : -1
+
   return (
     <View style={card}>
       {/* header: month + nav */}
@@ -79,36 +85,47 @@ export function CycleCalendar({
         ))}
       </View>
 
-      {/* day grid */}
+      {/* day grid — neutral cells; phase is shown by dot/star/navy-circle */}
       <View style={styles.grid}>
         {cells.map((dayNum, i) => {
           if (dayNum === null) return <View key={`b${i}`} style={styles.cell} />
           const { date, cycleDay, id } = dayInfo(dayNum)
           const isToday = isSameDay(date, today)
-          const isPeriodStart = cycleDay === 1
-          const ringColor = isToday ? gold : isPeriodStart ? phaseColor('menstrual') : 'transparent'
+          const isMenstrual = id === 'menstrual'
+          const isPeak = id === 'ovulatory' && cycleDay === peakCycleDay
+          const dotColor =
+            id === 'follicular'
+              ? phaseColor('follicular')
+              : id === 'luteal'
+                ? phaseColor('luteal')
+                : id === 'ovulatory' && !isPeak
+                  ? phaseColor('ovulatory')
+                  : null
           return (
             <View key={dayNum} style={styles.cell}>
-              <View
-                style={[
-                  styles.cellInner,
-                  {
-                    // Soft tint of the phase colour on the light Lab card.
-                    backgroundColor: `${phaseColor(id)}2E`,
-                    borderColor: ringColor,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.cellNum,
-                    { color: ink, fontFamily: isToday ? 'Marcellus_400Regular' : 'Raleway_400Regular' },
-                  ]}
-                >
-                  {dayNum}
-                </Text>
-                {/* Crisp phase dot — matches the legend colours exactly. */}
-                <View style={[styles.phaseDot, { backgroundColor: phaseColor(id) }]} />
+              <View style={[styles.cellInner, { borderColor: isToday ? gold : 'transparent' }]}>
+                {isMenstrual ? (
+                  <View style={[styles.periodCircle, { backgroundColor: phaseColor('menstrual') }]}>
+                    <Text style={[styles.periodNum, { color: PERIOD_NUM }]}>{dayNum}</Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={[
+                      styles.cellNum,
+                      { color: ink, fontFamily: isToday ? 'Marcellus_400Regular' : 'Raleway_400Regular' },
+                    ]}
+                  >
+                    {dayNum}
+                  </Text>
+                )}
+                {/* mark slot — fixed height keeps every row aligned */}
+                <View style={styles.markSlot}>
+                  {isPeak ? (
+                    <Text style={[styles.star, { color: phaseColor('ovulatory') }]}>★</Text>
+                  ) : dotColor ? (
+                    <View style={[styles.phaseDot, { backgroundColor: dotColor }]} />
+                  ) : null}
+                </View>
               </View>
             </View>
           )
@@ -117,15 +134,29 @@ export function CycleCalendar({
 
       {/* legend */}
       <View style={styles.legend}>
-        {LEGEND.map((id) => (
-          <View key={id} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: phaseColor(id) }]} />
-            <Text style={[styles.legendLabel, { color: sub }]}>{phaseLabel(id)}</Text>
-          </View>
-        ))}
+        <View style={styles.legendItem}>
+          <View style={[styles.legendCircle, { backgroundColor: phaseColor('menstrual') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Menstrual</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: phaseColor('follicular') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Follicular</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <Text style={[styles.legendStar, { color: phaseColor('ovulatory') }]}>★</Text>
+          <Text style={[styles.legendLabel, { color: sub }]}>Ovulation (peak)</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: phaseColor('ovulatory') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Fertile window</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: phaseColor('luteal') }]} />
+          <Text style={[styles.legendLabel, { color: sub }]}>Luteal</Text>
+        </View>
       </View>
       <Text style={[styles.note, { color: sub }]}>
-        Estimated phases · today is ringed in gold · a coloured ring marks a predicted period start.
+        Estimated phases · today ringed in gold · ★ peak ovulation · navy circle = period day.
       </Text>
     </View>
   )
@@ -147,11 +178,17 @@ const styles = StyleSheet.create({
   cell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
   cellInner: { flex: 1, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   cellNum: { fontSize: 11.5, lineHeight: 13 },
-  phaseDot: { width: 5, height: 5, borderRadius: 999, marginTop: 3 },
+  periodCircle: { width: 22, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  periodNum: { fontFamily: 'Raleway_600SemiBold', fontSize: 10.5 },
+  markSlot: { height: 9, marginTop: 2, alignItems: 'center', justifyContent: 'center' },
+  phaseDot: { width: 5, height: 5, borderRadius: 999 },
+  star: { fontSize: 10, lineHeight: 10 },
 
   legend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 14, marginBottom: 6 },
-  legendDot: { width: 9, height: 9, borderRadius: 999, marginRight: 5 },
+  legendCircle: { width: 11, height: 11, borderRadius: 999, marginRight: 5 },
+  legendDot: { width: 7, height: 7, borderRadius: 999, marginRight: 5 },
+  legendStar: { fontSize: 11, marginRight: 5 },
   legendLabel: { fontFamily: 'Raleway_400Regular', fontSize: 9 },
 
   note: { fontFamily: 'Raleway_400Regular', fontSize: 9, marginTop: 8, opacity: 0.85 },
