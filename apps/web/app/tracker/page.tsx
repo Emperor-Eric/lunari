@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getPhaseForDay, getAllPhases, getPhaseById } from '@lunari/phase-data'
+import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { PhaseId, CycleSettings } from '@lunari/types'
 import { apiGet } from '@/src/lib/api'
@@ -80,6 +80,16 @@ export default function TrackerToday() {
   }
 
   const supps = viewedPhase.supplements.slice(8, 11) // viewed phase's focus actives
+
+  // Phase day-ranges scaled to the user's real cycle — the SAME source the calendar
+  // uses (getPhaseRanges). Falls back to the static model before settings load.
+  const dynRanges = settings ? getPhaseRanges(settings.cycleLength, settings.periodLength) : null
+  const railLabel = (p: (typeof allPhases)[number]): string => {
+    const r = dynRanges?.find((x) => x.phase === p.id)
+    const start = r ? r.startDay : p.cycleDays.start
+    const end = r ? r.endDay : p.cycleDays.end
+    return start === end ? `D${start}` : `D${start}–${end}`
+  }
 
   return (
     // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
@@ -214,7 +224,7 @@ export default function TrackerToday() {
                   {pt.label}
                 </div>
                 <div style={{ fontSize: 8, color: sub, marginTop: 1 }}>
-                  D{p.cycleDays.start}–{p.cycleDays.end}
+                  {railLabel(p)}
                 </div>
                 {isNow && (
                   <div style={{ fontSize: 7.5, letterSpacing: '0.16em', color: gold, marginTop: 3, fontWeight: 700 }}>
