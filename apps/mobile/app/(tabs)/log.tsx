@@ -175,11 +175,11 @@ export default function Log() {
               return (
                 <TouchableOpacity
                   key={seg}
-                  style={[styles.segment, on && { backgroundColor: t.headerText }]}
+                  style={[styles.segment, on && { backgroundColor: t.labBg }]}
                   onPress={() => setTab(seg)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.segmentText, { color: on ? t.labBg : t.headerText }]}>
+                  <Text style={[styles.segmentText, { color: on ? t.accent : t.headerText }]}>
                     {seg === 'today' ? 'Today' : 'History'}
                   </Text>
                 </TouchableOpacity>

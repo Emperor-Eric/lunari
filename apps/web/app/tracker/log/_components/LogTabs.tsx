@@ -36,8 +36,10 @@ export function LogTabs() {
               borderRadius: 9999,
               fontSize: 11.5,
               fontWeight: 600,
-              background: active ? t.headerText : 'transparent',
-              color: active ? t.labBg : t.headerText,
+              // Active = cream pill with deep phase-ink label (dark-on-cream, like the
+              // sidebar's active nav pill). Inactive reads as header ink on the band.
+              background: active ? t.labBg : 'transparent',
+              color: active ? t.accent : t.headerText,
             }}
           >
             {tab.label}
