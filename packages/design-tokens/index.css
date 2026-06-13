@@ -30,6 +30,14 @@
   --color-metallic-gold: #C9A84C;
   --color-metallic-silver: #C0C0C0;
 
+  /* Web sidebar (stone rail) */
+  --color-sidebar-surface: #E7E1D5;
+  --color-sidebar-active-pill: #D8CFBE;
+  --color-sidebar-ink: #45403A;
+  --color-sidebar-active-ink: #5E5346;
+  --color-sidebar-active-icon: #8F6E22;
+  --color-sidebar-wordmark: #A9802C;
+
   /* Typography — Goddess direction (Marcellus + Raleway) */
   --font-display: 'Marcellus', Georgia, serif;
   --font-body: 'Raleway', system-ui, sans-serif;

@@ -2,21 +2,25 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { Moon, Dumbbell, Pencil, User, ShoppingBag } from 'lucide-react'
 import type { TodayCycleResponse } from '@lunari/types'
-import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
+import { sidebar } from '@lunari/design-tokens'
 import { apiFetch } from '@/src/lib/api'
+import { FuelIcon } from '@/src/components/FuelIcon'
 import { CycleContext } from './cycle-context'
 
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 
-const NAV_LINKS = [
-  { href: '/tracker', label: 'Today', emoji: '🌙' },
-  { href: '/tracker/workouts', label: 'Move', emoji: '🏋️' },
-  { href: '/tracker/nutrition', label: 'Fuel', emoji: '🌿' },
-  { href: '/tracker/log', label: 'Log', emoji: '✍️' },
+type IconType = (props: { size?: number; color?: string; strokeWidth?: number }) => React.ReactNode
+
+const NAV_LINKS: { href: string; label: string; Icon: IconType }[] = [
+  { href: '/tracker', label: 'Today', Icon: Moon },
+  { href: '/tracker/workouts', label: 'Move', Icon: Dumbbell },
+  { href: '/tracker/nutrition', label: 'Fuel', Icon: FuelIcon },
+  { href: '/tracker/log', label: 'Log', Icon: Pencil },
   // Shop is gated behind NEXT_PUBLIC_SHOP_ENABLED (off until the kit ships)
-  ...(SHOP_ENABLED ? [{ href: '/tracker/shop', label: 'Shop', emoji: '🛍️' }] : []),
-  { href: '/tracker/profile', label: 'Me', emoji: '👤' },
+  ...(SHOP_ENABLED ? [{ href: '/tracker/shop', label: 'Shop', Icon: ShoppingBag as IconType }] : []),
+  { href: '/tracker/profile', label: 'Me', Icon: User },
 ]
 
 export default function TrackerLayout({ children }: { children: React.ReactNode }) {
@@ -42,33 +46,32 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
       })
   }, [router])
 
-  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
-
   return (
     <CycleContext.Provider value={{ cycleData }}>
       <div className="min-h-screen bg-brand-cream flex">
-        {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-[220px] flex-col border-r border-brand-stone bg-white p-6 gap-8 fixed h-full">
-          {/* Live wordmark in Marcellus — goldOnLight (#A8791E) reads legibly on
-              the light sidebar (the brighter #C9A84C is too pale on cream). */}
-          <span className="font-display lowercase text-[26px] tracking-[0.04em]" style={{ color: '#A8791E' }}>
+        {/* Desktop sidebar — stone rail (token-driven, not the phase flood) */}
+        <aside
+          className="hidden md:flex w-[220px] flex-col border-r border-brand-stone p-6 gap-8 fixed h-full"
+          style={{ backgroundColor: sidebar.surface }}
+        >
+          <span className="font-display lowercase text-[26px] tracking-[0.04em]" style={{ color: sidebar.wordmark }}>
             lunari
           </span>
           <nav className="flex flex-col gap-1">
-            {NAV_LINKS.map((link) => {
-              const active = pathname === link.href
+            {NAV_LINKS.map(({ href, label, Icon }) => {
+              const active = pathname === href
               return (
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  key={href}
+                  href={href}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                   style={{
-                    backgroundColor: active ? phase.lightColor : 'transparent',
-                    color: active ? phase.color : '#6B6460',
+                    backgroundColor: active ? sidebar.activePill : 'transparent',
+                    color: active ? sidebar.activeInk : sidebar.ink,
                   }}
                 >
-                  <span>{link.emoji}</span>
-                  {link.label}
+                  <Icon size={18} strokeWidth={1.5} color={active ? sidebar.activeIcon : sidebar.ink} />
+                  {label}
                 </Link>
               )
             })}
@@ -80,19 +83,19 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
           {children}
         </main>
 
-        {/* Mobile bottom tab bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-brand-stone flex z-10">
-          {NAV_LINKS.map((link) => {
-            const active = pathname === link.href
+        {/* Narrow-viewport bottom tab bar (web) */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-brand-stone flex z-10" style={{ backgroundColor: sidebar.surface }}>
+          {NAV_LINKS.map(({ href, label, Icon }) => {
+            const active = pathname === href
             return (
               <Link
-                key={link.href}
-                href={link.href}
+                key={href}
+                href={href}
                 className="flex-1 flex flex-col items-center py-3 gap-0.5"
-                style={{ color: active ? phase.color : '#6B6460' }}
+                style={{ color: active ? sidebar.activeInk : sidebar.ink }}
               >
-                <span className="text-xl">{link.emoji}</span>
-                <span className="text-[10px] font-medium">{link.label}</span>
+                <Icon size={22} strokeWidth={1.5} color={active ? sidebar.activeIcon : sidebar.ink} />
+                <span className="text-[10px] font-medium">{label}</span>
               </Link>
             )
           })}

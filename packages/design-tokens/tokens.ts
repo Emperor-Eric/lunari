@@ -83,6 +83,16 @@ export const palette = {
   stage: '#120A10',
 } as const
 
+/** Web left-rail (sidebar) surface + nav colors — stone/greige, not the phase flood. */
+export const sidebar = {
+  surface: '#E7E1D5', // stone/greige rail background
+  activePill: '#D8CFBE', // active nav item pill
+  ink: '#45403A', // inactive icon + label
+  activeInk: '#5E5346', // active label
+  activeIcon: '#8F6E22', // active icon (muted gold)
+  wordmark: '#A9802C', // "lunari" wordmark on stone
+} as const
+
 /** Font families for the new system. */
 export const fonts = {
   display: 'Marcellus',

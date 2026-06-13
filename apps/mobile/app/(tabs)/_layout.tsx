@@ -1,16 +1,17 @@
 import React from 'react'
 import { Tabs } from 'expo-router'
 import { Text, View, StyleSheet } from 'react-native'
-import { useUser } from '@lunari/utils'
-import { getPhaseById } from '@lunari/phase-data'
-import type { PhaseId } from '@lunari/types'
+import { Moon, Dumbbell, Pencil, User, ShoppingBag } from 'lucide-react-native'
+import { FuelIcon } from '../../src/components/FuelIcon'
 
-type TabIconProps = { focused: boolean; color: string; label: string; emoji: string }
+type IconType = (props: { size?: number; color?: string; strokeWidth?: number }) => React.ReactNode
 
-function TabIcon({ focused, color, label, emoji }: TabIconProps) {
+type TabIconProps = { focused: boolean; color: string; label: string; Icon: IconType }
+
+function TabIcon({ focused, color, label, Icon }: TabIconProps) {
   return (
     <View style={styles.tab}>
-      <Text style={{ fontSize: 20 }}>{emoji}</Text>
+      <Icon size={22} color={color} strokeWidth={1.5} />
       <Text style={[styles.tabLabel, { color, fontWeight: focused ? '600' : '400' }]}>
         {label}
       </Text>
@@ -21,8 +22,7 @@ function TabIcon({ focused, color, label, emoji }: TabIconProps) {
 const SHOP_ENABLED = process.env.EXPO_PUBLIC_SHOP_ENABLED === 'true'
 
 export default function TabsLayout() {
-  const { user } = useUser()
-  // Default to follicular gold if phase not yet loaded
+  // Default to follicular gold if phase not yet loaded — unchanged tab bar colors.
   const phaseColor = '#C9A84C'
 
   return (
@@ -39,7 +39,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon focused={focused} color={color} label="Today" emoji="🌙" />
+            <TabIcon focused={focused} color={color} label="Today" Icon={Moon} />
           ),
         }}
       />
@@ -47,7 +47,7 @@ export default function TabsLayout() {
         name="workouts"
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon focused={focused} color={color} label="Move" emoji="🏋️" />
+            <TabIcon focused={focused} color={color} label="Move" Icon={Dumbbell} />
           ),
         }}
       />
@@ -55,7 +55,7 @@ export default function TabsLayout() {
         name="nutrition"
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon focused={focused} color={color} label="Fuel" emoji="🌿" />
+            <TabIcon focused={focused} color={color} label="Fuel" Icon={FuelIcon} />
           ),
         }}
       />
@@ -63,7 +63,7 @@ export default function TabsLayout() {
         name="log"
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon focused={focused} color={color} label="Log" emoji="✍️" />
+            <TabIcon focused={focused} color={color} label="Log" Icon={Pencil} />
           ),
         }}
       />
@@ -73,7 +73,7 @@ export default function TabsLayout() {
           SHOP_ENABLED
             ? {
                 tabBarIcon: ({ focused, color }) => (
-                  <TabIcon focused={focused} color={color} label="Shop" emoji="🛍️" />
+                  <TabIcon focused={focused} color={color} label="Shop" Icon={ShoppingBag} />
                 ),
               }
             : // Keep the route in the repo but hide it from the tab bar
@@ -84,7 +84,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon focused={focused} color={color} label="Me" emoji="👤" />
+            <TabIcon focused={focused} color={color} label="Me" Icon={User} />
           ),
         }}
       />
