@@ -1,9 +1,12 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { getPhaseForDay, getAllPhases, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
-import type { PhaseId } from '@lunari/types'
+import type { PhaseId, CycleSettings } from '@lunari/types'
+import { apiGet } from '@/src/lib/api'
 import { useCycleContext } from './cycle-context'
+import { NextUpCard } from './_components/NextUpCard'
+import { CycleCalendar } from './_components/CycleCalendar'
 
 // Short progress labels per phase.
 const SHORT: Record<PhaseId, string> = {
@@ -41,6 +44,14 @@ export default function TrackerToday() {
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
   const toggleSymptom = (s: string) =>
     setQuickSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+
+  // Raw cycle settings (start date + lengths) for client-side prediction. One fetch.
+  const [settings, setSettings] = useState<CycleSettings | null>(null)
+  useEffect(() => {
+    apiGet<CycleSettings>('/me/cycle')
+      .then(setSettings)
+      .catch(() => setSettings(null))
+  }, [])
 
   // ── Derive the reference's theme values from the VIEWED phase's tokens ──
   const light = isLightHex(t.phase)
@@ -276,6 +287,17 @@ export default function TrackerToday() {
               </div>
             )
           })}
+        </div>
+
+        {/* ── Predictions: Next up summary ── */}
+        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '24px 0 10px' }}>
+          Looking ahead
+        </div>
+        <NextUpCard settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
+
+        {/* ── Predictions: month calendar ── */}
+        <div style={{ marginTop: 14 }}>
+          <CycleCalendar settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
         </div>
       </div>
     </div>

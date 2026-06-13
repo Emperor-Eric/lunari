@@ -1,0 +1,156 @@
+import React, { useState } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { getDayInCycle, getPhaseForDay } from '@lunari/phase-data'
+import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
+import type { CycleSettings, PhaseId } from '@lunari/types'
+import { addMonths, format, getDay, getDaysInMonth, isSameDay, startOfMonth } from 'date-fns'
+import type { PredictionSurface } from './NextUpCard'
+
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+const LEGEND: PhaseId[] = ['menstrual', 'follicular', 'ovulatory', 'luteal']
+
+const phaseColor = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].phase
+const phaseLabel = (id: PhaseId) => phaseTheme[phaseKeyFor(id)].label
+
+/**
+ * Self-contained month calendar. Each day is tinted by its PREDICTED phase
+ * (proportional model, projected forward by repeating the cycle from startDate).
+ * Pure aside from its own month-navigation state — trivially relocatable.
+ */
+export function CycleCalendar({
+  settings,
+  surface,
+}: {
+  settings: CycleSettings | null
+  surface: PredictionSurface
+}) {
+  const { ink, sub, gold, cardwash, cardbd } = surface
+  const [view, setView] = useState(() => startOfMonth(new Date()))
+  const card = [styles.card, { backgroundColor: cardwash, borderColor: cardbd }]
+
+  if (!settings) {
+    return (
+      <View style={card}>
+        <Text style={[styles.eyebrow, { color: gold }]}>Cycle calendar</Text>
+        <Text style={[styles.placeholder, { color: ink }]}>
+          Your predicted phases appear here once your cycle is set up.
+        </Text>
+      </View>
+    )
+  }
+
+  const year = view.getFullYear()
+  const month = view.getMonth()
+  const daysInMonth = getDaysInMonth(view)
+  const lead = getDay(startOfMonth(view))
+  const today = new Date()
+
+  const cells: (number | null)[] = [
+    ...Array.from({ length: lead }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ]
+
+  const dayInfo = (dayNum: number) => {
+    const date = new Date(year, month, dayNum)
+    const cycleDay = getDayInCycle(settings.startDate, format(date, 'yyyy-MM-dd'), settings.cycleLength)
+    const id = getPhaseForDay(cycleDay, settings.cycleLength, settings.periodLength).id
+    return { date, cycleDay, id }
+  }
+
+  return (
+    <View style={card}>
+      {/* header: month + nav */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => setView((v) => addMonths(v, -1))} hitSlop={10}>
+          <Text style={[styles.nav, { color: gold }]}>‹</Text>
+        </TouchableOpacity>
+        <Text style={[styles.month, { color: ink }]}>{format(view, 'MMMM yyyy')}</Text>
+        <TouchableOpacity onPress={() => setView((v) => addMonths(v, 1))} hitSlop={10}>
+          <Text style={[styles.nav, { color: gold }]}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* weekday header */}
+      <View style={styles.weekRow}>
+        {WEEKDAYS.map((w, i) => (
+          <Text key={i} style={[styles.weekday, { color: sub }]}>
+            {w}
+          </Text>
+        ))}
+      </View>
+
+      {/* day grid */}
+      <View style={styles.grid}>
+        {cells.map((dayNum, i) => {
+          if (dayNum === null) return <View key={`b${i}`} style={styles.cell} />
+          const { date, cycleDay, id } = dayInfo(dayNum)
+          const isToday = isSameDay(date, today)
+          const isPeriodStart = cycleDay === 1
+          return (
+            <View key={dayNum} style={styles.cell}>
+              <View
+                style={[
+                  styles.cellInner,
+                  {
+                    backgroundColor: `${phaseColor(id)}40`,
+                    borderColor: isToday ? gold : 'transparent',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.cellNum,
+                    {
+                      color: ink,
+                      fontFamily: isToday || isPeriodStart ? 'Marcellus_400Regular' : 'Raleway_400Regular',
+                    },
+                  ]}
+                >
+                  {dayNum}
+                </Text>
+                {isPeriodStart && <View style={[styles.periodDot, { backgroundColor: phaseColor('menstrual') }]} />}
+              </View>
+            </View>
+          )
+        })}
+      </View>
+
+      {/* legend */}
+      <View style={styles.legend}>
+        {LEGEND.map((id) => (
+          <View key={id} style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: phaseColor(id) }]} />
+            <Text style={[styles.legendLabel, { color: sub }]}>{phaseLabel(id)}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={[styles.note, { color: sub }]}>Colours are estimated phases · ◦ marks a predicted period start.</Text>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  card: { padding: 16, borderRadius: 14, borderWidth: 1 },
+  eyebrow: { fontFamily: 'Raleway_600SemiBold', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' },
+  placeholder: { fontFamily: 'Raleway_300Light', fontSize: 12, marginTop: 6, opacity: 0.85 },
+
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  nav: { fontSize: 22, width: 28, textAlign: 'center' },
+  month: { fontFamily: 'Marcellus_400Regular', fontSize: 16 },
+
+  weekRow: { flexDirection: 'row', marginTop: 10 },
+  weekday: { flex: 1, textAlign: 'center', fontFamily: 'Raleway_400Regular', fontSize: 8.5 },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
+  cell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
+  cellInner: { flex: 1, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  cellNum: { fontSize: 11.5 },
+  periodDot: { width: 4, height: 4, borderRadius: 999, marginTop: 2 },
+
+  legend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 14, marginBottom: 6 },
+  legendDot: { width: 9, height: 9, borderRadius: 999, marginRight: 5 },
+  legendLabel: { fontFamily: 'Raleway_400Regular', fontSize: 9 },
+
+  note: { fontFamily: 'Raleway_400Regular', fontSize: 9, marginTop: 8, opacity: 0.85 },
+})

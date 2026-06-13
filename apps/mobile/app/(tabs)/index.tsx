@@ -7,7 +7,9 @@ import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getAllPhases, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
-import type { TodayCycleResponse, PhaseId } from '@lunari/types'
+import type { TodayCycleResponse, PhaseId, CycleSettings } from '@lunari/types'
+import { NextUpCard } from '../../src/components/NextUpCard'
+import { CycleCalendar } from '../../src/components/CycleCalendar'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -36,6 +38,7 @@ export default function Today() {
   const [refreshing, setRefreshing] = useState(false)
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
+  const [settings, setSettings] = useState<CycleSettings | null>(null)
 
   const fetchToday = useCallback(async () => {
     if (!session) return
@@ -53,6 +56,15 @@ export default function Today() {
   useEffect(() => {
     fetchToday()
   }, [fetchToday])
+
+  // Raw cycle settings (start date + lengths) for client-side prediction. One fetch.
+  useEffect(() => {
+    if (!session) return
+    fetch(`${API_URL}/me/cycle`, { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: CycleSettings | null) => setSettings(d))
+      .catch(() => setSettings(null))
+  }, [session])
 
   const onRefresh = () => {
     setRefreshing(true)
@@ -254,6 +266,13 @@ export default function Today() {
                   </View>
                 )
               })}
+            </View>
+
+            {/* ── Predictions: Next up + month calendar ── */}
+            <Text style={[styles.sectionLabel, { color: sub }]}>Looking ahead</Text>
+            <NextUpCard settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
+            <View style={{ marginTop: 12 }}>
+              <CycleCalendar settings={settings} surface={{ ink, sub, gold, cardwash, cardbd }} />
             </View>
           </SafeAreaView>
         </LinearGradient>
