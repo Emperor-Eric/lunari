@@ -2,12 +2,20 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { PhaseChip, LogCard, EmptyState, LoadingSpinner } from '@lunari/ui'
+import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
+import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type { SymptomLog } from '@lunari/types'
 import { apiFetch } from '@/src/lib/api'
+import { useCycleContext } from '../../cycle-context'
+import { LogTabs } from '../_components/LogTabs'
 
 const PER_PAGE = 20
 
 export default function HistoryPage() {
+  const { cycleData } = useCycleContext()
+  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
+  const t = phaseTheme[phaseKeyFor(phase.id)]
+
   const [logs, setLogs] = useState<SymptomLog[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -29,13 +37,14 @@ export default function HistoryPage() {
 
   useEffect(() => { fetchLogs(1) }, [fetchLogs])
 
-  if (loading && logs.length === 0) return <LoadingSpinner />
-  if (logs.length === 0) return <EmptyState title="No logs yet" subtitle="Your check-ins will appear here." />
-
-  return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="font-display text-3xl text-brand-ink mb-6">History</h1>
-
+  // The history table + fetch are unchanged — only wrapped so the header/tabs persist.
+  const body =
+    loading && logs.length === 0 ? (
+      <LoadingSpinner />
+    ) : logs.length === 0 ? (
+      <EmptyState title="No logs yet" subtitle="Your check-ins will appear here." />
+    ) : (
+      <>
       {/* Desktop table */}
       <div className="hidden md:block bg-white rounded-2xl border border-brand-stone overflow-hidden">
         <table className="w-full text-sm">
@@ -91,6 +100,28 @@ export default function HistoryPage() {
           {loading ? 'Loading…' : `Load more (${total - logs.length} remaining)`}
         </button>
       )}
+      </>
+    )
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: t.labBg }}>
+      {/* ── HEADER BAND (phase gradient — matches the check-in form) ── */}
+      <div style={{ background: t.header, color: t.headerText }}>
+        <div className="max-w-3xl mx-auto px-6 md:px-10" style={{ paddingTop: 18, paddingBottom: 20 }}>
+          <h1 className="font-display" style={{ fontSize: 27, color: t.headerText }}>
+            History
+          </h1>
+          <div className="font-body" style={{ fontSize: 10.5, marginTop: 4, fontWeight: 300, color: t.headerLabel }}>
+            Your past daily check-ins
+          </div>
+          <LogTabs />
+        </div>
+      </div>
+
+      {/* ── TINTED BODY ── */}
+      <div className="max-w-3xl mx-auto px-6 md:px-10 pt-6 pb-12">
+        {body}
+      </div>
     </div>
   )
 }

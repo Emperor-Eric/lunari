@@ -6,6 +6,7 @@ import { Toast } from '@lunari/ui'
 import type { SymptomLog } from '@lunari/types'
 import { useCycleContext } from '../cycle-context'
 import { apiGet, apiPost } from '@/src/lib/api'
+import { LogTabs } from './_components/LogTabs'
 
 // Mood scale stays numeric (1–5) so the saved `mood` field is unchanged — only the
 // labels are restyled to the Goddess reference.
@@ -104,6 +105,7 @@ export default function LogPage() {
           <div className="font-body" style={{ fontSize: 10.5, marginTop: 4, fontWeight: 300, color: t.headerLabel }}>
             {dateLabel} · {t.label} · Day {day}
           </div>
+          <LogTabs />
         </div>
       </div>
 
