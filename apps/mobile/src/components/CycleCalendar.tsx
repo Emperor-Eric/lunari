@@ -23,9 +23,10 @@ export function CycleCalendar({
   settings: CycleSettings | null
   surface: PredictionSurface
 }) {
-  const { ink, sub, gold, cardwash, cardbd } = surface
+  const { ink, sub, gold, cardbd } = surface
   const [view, setView] = useState(() => startOfMonth(new Date()))
-  const card = [styles.card, { backgroundColor: cardwash, borderColor: cardbd }]
+  // Blend straight into the Lab body — no white card surface.
+  const card = styles.card
 
   if (!settings) {
     return (
@@ -85,7 +86,7 @@ export function CycleCalendar({
         ))}
       </View>
 
-      {/* day grid — neutral cells; phase is shown by dot/star/navy-circle */}
+      {/* day grid — bordered neutral cells; only navy period circle + ovulation star */}
       <View style={styles.grid}>
         {cells.map((dayNum, i) => {
           if (dayNum === null) return <View key={`b${i}`} style={styles.cell} />
@@ -93,17 +94,9 @@ export function CycleCalendar({
           const isToday = isSameDay(date, today)
           const isMenstrual = id === 'menstrual'
           const isPeak = id === 'ovulatory' && cycleDay === peakCycleDay
-          const dotColor =
-            id === 'follicular'
-              ? phaseColor('follicular')
-              : id === 'luteal'
-                ? phaseColor('luteal')
-                : id === 'ovulatory' && !isPeak
-                  ? phaseColor('ovulatory')
-                  : null
           return (
             <View key={dayNum} style={styles.cell}>
-              <View style={[styles.cellInner, { borderColor: isToday ? gold : 'transparent' }]}>
+              <View style={[styles.cellInner, { borderColor: isToday ? gold : cardbd }]}>
                 {isMenstrual ? (
                   <View style={[styles.periodCircle, { backgroundColor: phaseColor('menstrual') }]}>
                     <Text style={[styles.periodNum, { color: PERIOD_NUM }]}>{dayNum}</Text>
@@ -118,13 +111,9 @@ export function CycleCalendar({
                     {dayNum}
                   </Text>
                 )}
-                {/* mark slot — fixed height keeps every row aligned */}
+                {/* mark slot — only the peak-ovulation star; fixed height keeps rows aligned */}
                 <View style={styles.markSlot}>
-                  {isPeak ? (
-                    <Text style={[styles.star, { color: phaseColor('ovulatory') }]}>★</Text>
-                  ) : dotColor ? (
-                    <View style={[styles.phaseDot, { backgroundColor: dotColor }]} />
-                  ) : null}
+                  {isPeak && <Text style={[styles.star, { color: phaseColor('ovulatory') }]}>★</Text>}
                 </View>
               </View>
             </View>
@@ -132,38 +121,24 @@ export function CycleCalendar({
         })}
       </View>
 
-      {/* legend */}
+      {/* legend — only the two real marks */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendCircle, { backgroundColor: phaseColor('menstrual') }]} />
-          <Text style={[styles.legendLabel, { color: sub }]}>Menstrual</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: phaseColor('follicular') }]} />
-          <Text style={[styles.legendLabel, { color: sub }]}>Follicular</Text>
+          <Text style={[styles.legendLabel, { color: sub }]}>Period day</Text>
         </View>
         <View style={styles.legendItem}>
           <Text style={[styles.legendStar, { color: phaseColor('ovulatory') }]}>★</Text>
-          <Text style={[styles.legendLabel, { color: sub }]}>Ovulation (peak)</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: phaseColor('ovulatory') }]} />
-          <Text style={[styles.legendLabel, { color: sub }]}>Fertile window</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: phaseColor('luteal') }]} />
-          <Text style={[styles.legendLabel, { color: sub }]}>Luteal</Text>
+          <Text style={[styles.legendLabel, { color: sub }]}>Peak ovulation (estimated)</Text>
         </View>
       </View>
-      <Text style={[styles.note, { color: sub }]}>
-        Estimated phases · today ringed in gold · ★ peak ovulation · navy circle = period day.
-      </Text>
+      <Text style={[styles.note, { color: sub }]}>Estimated from your cycle · today is ringed in gold.</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16, borderRadius: 14, borderWidth: 1 },
+  card: { backgroundColor: 'transparent' },
   eyebrow: { fontFamily: 'Raleway_600SemiBold', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' },
   placeholder: { fontFamily: 'Raleway_300Light', fontSize: 12, marginTop: 6, opacity: 0.85 },
 
@@ -176,18 +151,16 @@ const styles = StyleSheet.create({
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 2 },
-  cellInner: { flex: 1, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  cellInner: { flex: 1, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cellNum: { fontSize: 11.5, lineHeight: 13 },
   periodCircle: { width: 22, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   periodNum: { fontFamily: 'Raleway_600SemiBold', fontSize: 10.5 },
   markSlot: { height: 9, marginTop: 2, alignItems: 'center', justifyContent: 'center' },
-  phaseDot: { width: 5, height: 5, borderRadius: 999 },
   star: { fontSize: 10, lineHeight: 10 },
 
-  legend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 14, marginBottom: 6 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 14 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16, marginBottom: 6 },
   legendCircle: { width: 11, height: 11, borderRadius: 999, marginRight: 5 },
-  legendDot: { width: 7, height: 7, borderRadius: 999, marginRight: 5 },
   legendStar: { fontSize: 11, marginRight: 5 },
   legendLabel: { fontFamily: 'Raleway_400Regular', fontSize: 9 },
 
