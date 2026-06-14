@@ -178,6 +178,63 @@ export function getCurrentContainer(
   }
 }
 
+// ─── Effective cycle (recalibration) ─────────────────────────────────────────
+
+export interface CycleSettingsInput {
+  startDate: string | Date
+  cycleLength: number
+  periodLength: number
+}
+
+export interface PeriodEventInput {
+  startDate: string | Date
+}
+
+export interface EffectiveCycle {
+  /** ISO "YYYY-MM-DD" — the most recent logged period, else onboarding startDate. */
+  anchorDate: string
+  cycleLength: number
+  periodLength: number
+}
+
+/**
+ * The SINGLE source of truth for predictions. Real logged period events override
+ * the onboarding Cycle (which is never mutated):
+ *   • anchorDate  = most recent period-event start; else cycleSettings.startDate.
+ *   • cycleLength = LEARNED from the gaps between consecutive logged starts:
+ *       keep gaps in [21, 45], use up to the 6 most recent, cycleLength = round(mean)
+ *       clamped to [21, 45]; if no valid gap, fall back to cycleSettings.cycleLength.
+ *   • periodLength = cycleSettings.periodLength (NOT learned in v1).
+ */
+export function getEffectiveCycle(
+  settings: CycleSettingsInput,
+  periodEvents: PeriodEventInput[] = []
+): EffectiveCycle {
+  const periodLength = settings.periodLength
+
+  // Normalize + sort event dates ascending (oldest → newest).
+  const dates = periodEvents
+    .map((e) => parseDate(e.startDate))
+    .sort((a, b) => a.getTime() - b.getTime())
+
+  const anchorDate = dates.length
+    ? toISODate(dates[dates.length - 1])
+    : toISODate(parseDate(settings.startDate))
+
+  let cycleLength = settings.cycleLength
+  if (dates.length >= 2) {
+    const gaps: number[] = []
+    for (let i = 1; i < dates.length; i++) gaps.push(diffDays(dates[i], dates[i - 1]))
+    const recentValid = gaps.filter((g) => g >= 21 && g <= 45).slice(-6)
+    if (recentValid.length >= 1) {
+      const mean = recentValid.reduce((s, g) => s + g, 0) / recentValid.length
+      cycleLength = Math.min(45, Math.max(21, Math.round(mean)))
+    }
+  }
+
+  return { anchorDate, cycleLength, periodLength }
+}
+
 // ─── Prediction ──────────────────────────────────────────────────────────────
 
 export interface CyclePredictionInput {

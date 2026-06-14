@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { sendError } from '../lib/errors'
-import { cycleDayAndPhase, todayRange } from '../lib/cycleDay'
+import { cycleDayAndPhase, loadEffectiveCycle, todayRange } from '../lib/cycleDay'
 
 interface LogBody {
   symptoms?: string[]
@@ -20,11 +20,8 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const body = request.body ?? {}
 
-      const cycle = await fastify.prisma.cycle.findFirst({
-        where: { userId: request.user.id },
-        orderBy: { createdAt: 'desc' },
-      })
-      const { cycleDay, phase } = cycleDayAndPhase(cycle)
+      const eff = await loadEffectiveCycle(fastify.prisma, request.user.id)
+      const { cycleDay, phase } = cycleDayAndPhase(eff)
       const { start, end } = todayRange()
 
       // Only one entry per calendar day — find today's row (loggedAt within today).

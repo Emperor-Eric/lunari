@@ -10,6 +10,7 @@ import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-token
 import { LoadingSpinner, Toast } from '@lunari/ui'
 import type { TodayCycleResponse, PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
 import { NextUpCard } from '../../src/components/NextUpCard'
+import { LogPeriodCard } from '../../src/components/LogPeriodCard'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -60,13 +61,24 @@ export default function Today() {
   }, [fetchToday])
 
   // Raw cycle settings (start date + lengths) for client-side prediction. One fetch.
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     if (!session) return
     fetch(`${API_URL}/me/cycle`, { headers: { Authorization: `Bearer ${session.access_token}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d: CycleSettings | null) => setSettings(d))
       .catch(() => setSettings(null))
   }, [session])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
+
+  // Re-pull the effective cycle (day/phase + settings) so the whole screen recalibrates
+  // after a period start is logged/undone.
+  const recalibrate = useCallback(() => {
+    fetchToday()
+    loadSettings()
+  }, [fetchToday, loadSettings])
 
   // Prefill "How are you feeling?" chips from today's saved entry (survives refresh).
   useEffect(() => {
@@ -289,6 +301,10 @@ export default function Today() {
               surface={{ ink, sub, gold, cardwash, cardbd }}
               onOpen={() => router.push('/calendar')}
             />
+            {/* Log a real period start → recalibrates the whole screen. */}
+            <View style={{ marginTop: 12 }}>
+              <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={recalibrate} />
+            </View>
 
             {/* ── Supplement focus (viewed phase's actives) ── */}
             <View style={styles.suppHead}>

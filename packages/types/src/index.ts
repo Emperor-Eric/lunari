@@ -68,9 +68,17 @@ export interface Cycle {
 
 // Raw per-user cycle settings (GET /me/cycle) — the inputs to prediction.
 export interface CycleSettings {
-  startDate: string // ISO date "2026-06-01"
-  cycleLength: number // default 28
+  startDate: string // ISO date "2026-06-01" — EFFECTIVE anchor (most recent logged period, else onboarding)
+  cycleLength: number // default 28 — EFFECTIVE (learned from logged periods when available)
   periodLength: number // default 5
+}
+
+// A real bleed-start logged by the user (overrides onboarding at prediction time).
+export interface PeriodEvent {
+  id: string
+  userId: string
+  startDate: string // ISO date "2026-06-01"
+  createdAt: string
 }
 
 export interface TodayCycleResponse {

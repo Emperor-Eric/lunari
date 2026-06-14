@@ -1,13 +1,13 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
+import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges, getCyclePrediction } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
 import { Toast } from '@lunari/ui'
 import { apiGet, apiPost } from '@/src/lib/api'
-import { useCycleContext } from './cycle-context'
 import { NextUpCard } from './_components/NextUpCard'
+import { LogPeriodCard } from './_components/LogPeriodCard'
 
 // Short progress labels per phase.
 const SHORT: Record<PhaseId, string> = {
@@ -29,12 +29,22 @@ function isLightHex(hex: string): boolean {
 
 export default function TrackerToday() {
   const router = useRouter()
-  const { cycleData } = useCycleContext()
   const allPhases = getAllPhases()
 
-  // The user's REAL position in their cycle — drives day + progress (never faked).
-  const day = cycleData?.day ?? 1
-  const currentPhase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
+  // Effective cycle settings (recalibrated server-side from logged periods). One fetch;
+  // re-fetched after a period is logged so the whole screen recalibrates.
+  const [settings, setSettings] = useState<CycleSettings | null>(null)
+  const loadSettings = useCallback(() => {
+    apiGet<CycleSettings>('/me/cycle')
+      .then(setSettings)
+      .catch(() => setSettings(null))
+  }, [])
+  useEffect(() => { loadSettings() }, [loadSettings])
+
+  // The user's REAL position — derived from the effective cycle via the shared helper.
+  const prediction = settings ? getCyclePrediction(settings) : null
+  const day = prediction?.currentDay ?? 1
+  const currentPhase = prediction ? getPhaseById(prediction.currentPhase) : getPhaseForDay(1)
 
   // Which phase the screen is themed/previewing. null = follow current phase.
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
@@ -72,14 +82,6 @@ export default function TrackerToday() {
         setTimeout(() => setToast(null), 2500)
       })
   }
-
-  // Raw cycle settings (start date + lengths) for client-side prediction. One fetch.
-  const [settings, setSettings] = useState<CycleSettings | null>(null)
-  useEffect(() => {
-    apiGet<CycleSettings>('/me/cycle')
-      .then(setSettings)
-      .catch(() => setSettings(null))
-  }, [])
 
   // ── Derive the reference's theme values from the VIEWED phase's tokens ──
   const light = isLightHex(t.phase)
@@ -298,6 +300,10 @@ export default function TrackerToday() {
           surface={{ ink, sub, gold, cardwash, cardbd }}
           onOpen={() => router.push('/tracker/calendar')}
         />
+        {/* Log a real period start → recalibrates the whole screen via loadSettings. */}
+        <div style={{ marginTop: 12 }}>
+          <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={loadSettings} />
+        </div>
 
         {/* ── Supplement focus (viewed phase's actives) ── */}
         <div className="flex justify-between items-baseline" style={{ margin: '22px 0 10px' }}>
