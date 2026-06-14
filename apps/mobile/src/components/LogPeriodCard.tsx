@@ -105,31 +105,33 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   const gapDays = mostRecent ? daysBetween(selected, mostRecent.startDate) : 0
 
   return (
-    <View style={[styles.card, { backgroundColor: cardwash, borderColor: cardbd }]}>
-      <View style={styles.headRow}>
-        <Text style={[styles.eyebrow, { color: gold }]}>Period start</Text>
-        {!open && (
-          <Pressable onPress={() => setOpen(true)}>
-            <Text style={[styles.link, { color: gold }]}>Log period</Text>
-          </Pressable>
-        )}
+    <View>
+      {/* Compact, prominent entry point. */}
+      <View style={styles.triggerRow}>
+        <Pressable
+          onPress={() => setOpen((o) => !o)}
+          style={[styles.trigger, { borderColor: gold, backgroundColor: open ? cardwash : 'transparent' }]}
+        >
+          <View style={[styles.triggerDot, { backgroundColor: gold }]} />
+          <Text style={[styles.triggerText, { color: gold }]}>Log period</Text>
+        </Pressable>
       </View>
 
-      {!open && mostRecent && (
-        <Text style={[styles.subline, { color: sub }]}>
-          Period logged: {format(parseISO(mostRecent.startDate), 'MMM d')} ·{' '}
-          <Text style={[styles.link, { color: gold }]} onPress={busy ? undefined : undo}>
-            Undo
-          </Text>
-        </Text>
-      )}
-      {!open && !mostRecent && (
-        <Text style={[styles.hint, { color: sub }]}>Log the day your period starts to keep predictions accurate.</Text>
-      )}
-
+      {/* Inline expansion — reuses the full confirm flow + last-logged/undo. */}
       {open && (
-        <View style={{ marginTop: 10 }}>
-          <Text style={[styles.fieldLabel, { color: sub }]}>When did it start?</Text>
+        <View style={[styles.panel, { backgroundColor: cardwash, borderColor: cardbd }]}>
+          {mostRecent ? (
+            <Text style={[styles.subline, { color: sub }]}>
+              Last logged {format(parseISO(mostRecent.startDate), 'MMM d')} ·{' '}
+              <Text style={[styles.link, { color: gold }]} onPress={busy ? undefined : undo}>
+                Undo
+              </Text>
+            </Text>
+          ) : (
+            <Text style={[styles.hint, { color: sub }]}>Log the day your period starts to keep predictions accurate.</Text>
+          )}
+
+          <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>When did it start?</Text>
           <View style={styles.chips}>
             {OFFSETS.map((o) => {
               const v = ymdFromOffset(o)
@@ -179,13 +181,16 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16, borderRadius: 14, borderWidth: 1 },
-  headRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  eyebrow: { fontFamily: 'Raleway_600SemiBold', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase' },
+  triggerRow: { alignItems: 'center' },
+  trigger: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingHorizontal: 17, borderRadius: 999, borderWidth: 1 },
+  triggerDot: { width: 7, height: 7, borderRadius: 999 },
+  triggerText: { fontFamily: 'Raleway_600SemiBold', fontSize: 11.5, letterSpacing: 0.4 },
+  panel: { marginTop: 10, padding: 16, borderRadius: 14, borderWidth: 1 },
   link: { fontFamily: 'Raleway_600SemiBold', fontSize: 10.5 },
-  subline: { fontFamily: 'Raleway_400Regular', fontSize: 11, marginTop: 6 },
-  hint: { fontFamily: 'Raleway_300Light', fontSize: 11, marginTop: 6 },
+  subline: { fontFamily: 'Raleway_400Regular', fontSize: 11 },
+  hint: { fontFamily: 'Raleway_300Light', fontSize: 11 },
   fieldLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 8 },
+  fieldGap: { marginTop: 10 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { paddingVertical: 6, paddingHorizontal: 11, borderRadius: 18, borderWidth: 1 },
   chipText: { fontFamily: 'Raleway_500Medium', fontSize: 10.5 },

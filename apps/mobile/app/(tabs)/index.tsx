@@ -248,6 +248,11 @@ export default function Today() {
               </View>
             )}
 
+            {/* ── Log period — prominent top entry point (button + inline confirm) ── */}
+            <View style={{ marginTop: 18 }}>
+              <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={recalibrate} />
+            </View>
+
             {/* ── Phase rail (tap to preview) ── */}
             <Text style={[styles.sectionLabel, { color: sub }]}>Your four phases · tap to explore</Text>
             <View style={styles.rail}>
@@ -301,10 +306,6 @@ export default function Today() {
               surface={{ ink, sub, gold, cardwash, cardbd }}
               onOpen={() => router.push('/calendar')}
             />
-            {/* Log a real period start → recalibrates the whole screen. */}
-            <View style={{ marginTop: 12 }}>
-              <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={recalibrate} />
-            </View>
 
             {/* ── Supplement focus (viewed phase's actives) ── */}
             <View style={styles.suppHead}>

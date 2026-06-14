@@ -79,7 +79,31 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
     }
   }
 
-  const card: React.CSSProperties = { padding: '14px 16px', borderRadius: 14, background: cardwash, border: `1px solid ${cardbd}` }
+  const trigger: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    padding: '8px 17px',
+    borderRadius: 999,
+    background: open ? cardwash : 'transparent',
+    border: `1px solid ${gold}`,
+    color: gold,
+    fontSize: 11.5,
+    fontWeight: 600,
+    letterSpacing: '0.04em',
+    cursor: 'pointer',
+  }
+  const panel: React.CSSProperties = {
+    marginTop: 10,
+    maxWidth: 340,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    padding: '14px 16px',
+    borderRadius: 14,
+    background: cardwash,
+    border: `1px solid ${cardbd}`,
+    textAlign: 'left',
+  }
   const chip = (on: boolean): React.CSSProperties => ({
     fontSize: 10.5,
     padding: '6px 11px',
@@ -95,34 +119,29 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   const gapDays = mostRecent ? daysBetween(selected, mostRecent.startDate) : 0
 
   return (
-    <div style={card}>
-      <div className="flex justify-between items-baseline">
-        <span className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: gold, fontWeight: 600 }}>
-          Period start
-        </span>
-        {!open && (
-          <button onClick={() => setOpen(true)} style={{ fontSize: 10.5, color: gold, fontWeight: 600 }}>
-            Log period
-          </button>
-        )}
-      </div>
+    <div>
+      {/* Compact, prominent entry point. */}
+      <button onClick={() => setOpen((o) => !o)} style={trigger}>
+        <span style={{ width: 7, height: 7, borderRadius: 999, background: gold }} />
+        Log period
+      </button>
 
-      {!open && mostRecent && (
-        <div style={{ fontSize: 11, color: sub, marginTop: 6 }}>
-          Period logged: {format(parseISO(mostRecent.startDate), 'MMM d')} ·{' '}
-          <button onClick={undo} disabled={busy} style={{ color: gold, fontWeight: 600 }}>
-            Undo
-          </button>
-        </div>
-      )}
-      {!open && !mostRecent && (
-        <div style={{ fontSize: 11, color: sub, marginTop: 6, fontWeight: 300 }}>
-          Log the day your period starts to keep predictions accurate.
-        </div>
-      )}
-
+      {/* Inline expansion — reuses the full confirm flow + last-logged/undo. */}
       {open && (
-        <div style={{ marginTop: 10 }}>
+        <div style={panel}>
+          {mostRecent ? (
+            <div style={{ fontSize: 11, color: sub, marginBottom: 10 }}>
+              Last logged {format(parseISO(mostRecent.startDate), 'MMM d')} ·{' '}
+              <button onClick={undo} disabled={busy} style={{ color: gold, fontWeight: 600 }}>
+                Undo
+              </button>
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: sub, marginBottom: 10, fontWeight: 300 }}>
+              Log the day your period starts to keep predictions accurate.
+            </div>
+          )}
+
           <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.18em', color: sub, marginBottom: 8 }}>
             When did it start?
           </div>

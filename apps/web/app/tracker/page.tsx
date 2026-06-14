@@ -223,6 +223,11 @@ export default function TrackerToday() {
           </div>
         )}
 
+        {/* ── Log period — prominent top entry point (button + inline confirm) ── */}
+        <div className="text-center" style={{ marginTop: 18 }}>
+          <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={loadSettings} />
+        </div>
+
         {/* ── Phase rail (tap to preview) ── */}
         <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '22px 0 10px' }}>
           Your four phases · tap to explore
@@ -300,10 +305,6 @@ export default function TrackerToday() {
           surface={{ ink, sub, gold, cardwash, cardbd }}
           onOpen={() => router.push('/tracker/calendar')}
         />
-        {/* Log a real period start → recalibrates the whole screen via loadSettings. */}
-        <div style={{ marginTop: 12 }}>
-          <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={loadSettings} />
-        </div>
 
         {/* ── Supplement focus (viewed phase's actives) ── */}
         <div className="flex justify-between items-baseline" style={{ margin: '22px 0 10px' }}>
