@@ -46,8 +46,13 @@ export default function TrackerToday() {
   const day = prediction?.currentDay ?? 1
   const currentPhase = prediction ? getPhaseById(prediction.currentPhase) : getPhaseForDay(1)
 
-  // Which phase the screen is themed/previewing. null = follow current phase.
+  // Which phase the screen is themed/previewing. null = follow the real current phase.
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
+  // A rail tap previews another phase, but a preview is transient: reset to follow the
+  // real current phase whenever it changes (e.g. after logging a period recalibrates).
+  useEffect(() => {
+    setViewedPhaseId(null)
+  }, [currentPhase.id])
   const viewedPhase = viewedPhaseId ? getPhaseById(viewedPhaseId) : currentPhase
   const previewing = viewedPhaseId !== null && viewedPhaseId !== currentPhase.id
 

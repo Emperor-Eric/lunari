@@ -125,6 +125,12 @@ export default function Today() {
   const day = cycleData?.day ?? 1
   const currentPhase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
 
+  // A rail tap previews another phase, but a preview is transient: reset to follow the
+  // real current phase whenever it changes (e.g. after logging a period recalibrates).
+  useEffect(() => {
+    setViewedPhaseId(null)
+  }, [currentPhase.id])
+
   // Which phase the screen previews. null = follow current phase.
   const viewedPhase = viewedPhaseId ? getPhaseById(viewedPhaseId) : currentPhase
   const previewing = viewedPhaseId !== null && viewedPhaseId !== currentPhase.id
