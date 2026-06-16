@@ -195,7 +195,14 @@ export interface EffectiveCycle {
   /** ISO "YYYY-MM-DD" — the most recent logged period, else onboarding startDate. */
   anchorDate: string
   cycleLength: number
+  /** Learned-average period length — used to PROJECT other/future cycles. */
   periodLength: number
+  /**
+   * The CURRENT cycle's menstrual length. If the anchor period has a logged end,
+   * this is pinned to its actual length (so menstrual ends on the logged end);
+   * otherwise it equals the learned `periodLength`.
+   */
+  currentPeriodLength: number
 }
 
 /**
@@ -235,7 +242,8 @@ export function getEffectiveCycle(
     }
   }
 
-  // periodLength — learned from ended periods (inclusive day count).
+  // periodLength — learned-average from ended periods (inclusive day count). Used to
+  // PROJECT future cycles.
   let periodLength = settings.periodLength
   const lengths = periodEvents
     .filter((e) => e.endDate != null)
@@ -249,7 +257,21 @@ export function getEffectiveCycle(
     periodLength = Math.min(10, Math.max(2, Math.round(mean)))
   }
 
-  return { anchorDate, cycleLength, periodLength }
+  // currentPeriodLength — for the CURRENT cycle only, pin menstrual to the anchor
+  // period's ACTUAL logged end (regardless of the learned average). If the anchor
+  // period is still open, fall back to the learned/onboarding length.
+  let currentPeriodLength = periodLength
+  if (periodEvents.length) {
+    const anchorEvt = [...periodEvents].sort(
+      (a, b) => parseDate(b.startDate).getTime() - parseDate(a.startDate).getTime()
+    )[0]
+    if (anchorEvt && anchorEvt.endDate != null) {
+      const len = diffDays(parseDate(anchorEvt.endDate), parseDate(anchorEvt.startDate)) + 1
+      currentPeriodLength = Math.max(1, Math.min(cycleLength, len))
+    }
+  }
+
+  return { anchorDate, cycleLength, periodLength, currentPeriodLength }
 }
 
 // ─── Prediction ──────────────────────────────────────────────────────────────

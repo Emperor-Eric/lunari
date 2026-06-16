@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { getDayInCycle, getPhaseForDay, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { CycleSettings, PhaseId } from '@lunari/types'
-import { addMonths, format, getDay, getDaysInMonth, isSameDay, startOfMonth } from 'date-fns'
+import { addMonths, differenceInCalendarDays, format, getDay, getDaysInMonth, isSameDay, parseISO, startOfMonth } from 'date-fns'
 import type { PredictionSurface } from './NextUpCard'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -54,7 +54,10 @@ export function CycleCalendar({
   const dayInfo = (dayNum: number) => {
     const date = new Date(year, month, dayNum)
     const cycleDay = getDayInCycle(settings.startDate, format(date, 'yyyy-MM-dd'), settings.cycleLength)
-    const id = getPhaseForDay(cycleDay, settings.cycleLength, settings.periodLength).id
+    // Current cycle (cyclesPassed 0) uses the pinned period length; other cycles the learned average.
+    const cyclesPassed = Math.floor(differenceInCalendarDays(date, parseISO(settings.startDate)) / settings.cycleLength)
+    const pl = cyclesPassed === 0 ? settings.periodLength : settings.projectedPeriodLength
+    const id = getPhaseForDay(cycleDay, settings.cycleLength, pl).id
     return { date, cycleDay, id }
   }
 

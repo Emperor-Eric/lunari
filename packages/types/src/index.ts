@@ -70,7 +70,8 @@ export interface Cycle {
 export interface CycleSettings {
   startDate: string // ISO date "2026-06-01" — EFFECTIVE anchor (most recent logged period, else onboarding)
   cycleLength: number // default 28 — EFFECTIVE (learned from logged periods when available)
-  periodLength: number // default 5
+  periodLength: number // CURRENT cycle's menstrual length (pinned to the actual logged end when present)
+  projectedPeriodLength: number // learned-average period length — for projecting future cycles
 }
 
 // A real bleed-start logged by the user (overrides onboarding at prediction time).

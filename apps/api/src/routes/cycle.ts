@@ -35,7 +35,8 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({
       startDate: eff.anchorDate,
       cycleLength: eff.cycleLength,
-      periodLength: eff.periodLength,
+      periodLength: eff.currentPeriodLength, // current cycle (pinned to logged end)
+      projectedPeriodLength: eff.periodLength, // learned average — for future cycles
     })
   })
 
@@ -44,7 +45,7 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
     if (!eff) return sendError(reply, 404, 'No cycle found. Complete onboarding first.')
 
     const { cycleDay: day, phase } = cycleDayAndPhase(eff)
-    const container = getCurrentContainer(day, eff.cycleLength, eff.periodLength)
+    const container = getCurrentContainer(day, eff.cycleLength, eff.currentPeriodLength)
 
     return reply.send({
       day,
@@ -56,7 +57,7 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
       isLastDayOfPhase: container.isLastDay,
       isLastDayOfCycle: day === eff.cycleLength,
       cycleLength: eff.cycleLength,
-      periodLength: eff.periodLength,
+      periodLength: eff.currentPeriodLength,
     })
   })
 
@@ -72,7 +73,7 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
 
     const calendar = Array.from({ length: eff.cycleLength }, (_, i) => {
       const day = i + 1
-      const phase = getPhaseForDay(day, eff.cycleLength, eff.periodLength)
+      const phase = getPhaseForDay(day, eff.cycleLength, eff.currentPeriodLength)
       return { day, phase: phase.id, phaseColor: phase.color, hasLog: logDays.has(day) }
     })
 

@@ -70,6 +70,7 @@ export function cycleDayAndPhase(
   const start = parseLocalYMD(eff.anchorDate)
   const len = eff.cycleLength
   const cycleDay = (((differenceInDays(today, start) % len) + len) % len) + 1
-  const phase = getPhaseForDay(cycleDay, eff.cycleLength, eff.periodLength)
+  // Current cycle → pinned menstrual length (actual logged end when present).
+  const phase = getPhaseForDay(cycleDay, eff.cycleLength, eff.currentPeriodLength)
   return { cycleDay, phase }
 }
