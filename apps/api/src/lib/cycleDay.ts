@@ -52,7 +52,7 @@ export async function loadEffectiveCycle(
 
   return getEffectiveCycle(
     { startDate: ymd(cycle.startDate), cycleLength: cycle.cycleLength, periodLength: cycle.periodLength },
-    events.map((e) => ({ startDate: ymd(e.startDate) }))
+    events.map((e) => ({ startDate: ymd(e.startDate), endDate: e.endDate ? ymd(e.endDate) : null }))
   )
 }
 

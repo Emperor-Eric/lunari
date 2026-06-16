@@ -188,6 +188,7 @@ export interface CycleSettingsInput {
 
 export interface PeriodEventInput {
   startDate: string | Date
+  endDate?: string | Date | null
 }
 
 export interface EffectiveCycle {
@@ -204,15 +205,16 @@ export interface EffectiveCycle {
  *   • cycleLength = LEARNED from the gaps between consecutive logged starts:
  *       keep gaps in [21, 45], use up to the 6 most recent, cycleLength = round(mean)
  *       clamped to [21, 45]; if no valid gap, fall back to cycleSettings.cycleLength.
- *   • periodLength = cycleSettings.periodLength (NOT learned in v1).
+ *   • periodLength = LEARNED from ENDED periods (start + end logged):
+ *       length = endDate - startDate + 1 (inclusive); keep lengths in [2, 10], use up to
+ *       the 6 most recent, periodLength = round(mean) clamped [2, 10]; else fall back to
+ *       cycleSettings.periodLength.
  */
 export function getEffectiveCycle(
   settings: CycleSettingsInput,
   periodEvents: PeriodEventInput[] = []
 ): EffectiveCycle {
-  const periodLength = settings.periodLength
-
-  // Normalize + sort event dates ascending (oldest → newest).
+  // Normalize + sort event start dates ascending (oldest → newest).
   const dates = periodEvents
     .map((e) => parseDate(e.startDate))
     .sort((a, b) => a.getTime() - b.getTime())
@@ -221,6 +223,7 @@ export function getEffectiveCycle(
     ? toISODate(dates[dates.length - 1])
     : toISODate(parseDate(settings.startDate))
 
+  // cycleLength — learned from start-to-start gaps.
   let cycleLength = settings.cycleLength
   if (dates.length >= 2) {
     const gaps: number[] = []
@@ -230,6 +233,20 @@ export function getEffectiveCycle(
       const mean = recentValid.reduce((s, g) => s + g, 0) / recentValid.length
       cycleLength = Math.min(45, Math.max(21, Math.round(mean)))
     }
+  }
+
+  // periodLength — learned from ended periods (inclusive day count).
+  let periodLength = settings.periodLength
+  const lengths = periodEvents
+    .filter((e) => e.endDate != null)
+    .map((e) => ({ start: parseDate(e.startDate), end: parseDate(e.endDate as string | Date) }))
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+    .map((p) => diffDays(p.end, p.start) + 1)
+    .filter((n) => n >= 2 && n <= 10)
+    .slice(-6)
+  if (lengths.length >= 1) {
+    const mean = lengths.reduce((s, n) => s + n, 0) / lengths.length
+    periodLength = Math.min(10, Math.max(2, Math.round(mean)))
   }
 
   return { anchorDate, cycleLength, periodLength }

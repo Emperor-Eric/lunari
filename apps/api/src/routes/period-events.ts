@@ -17,6 +17,7 @@ interface EventRow {
   id: string
   userId: string
   startDate: Date
+  endDate: Date | null
   createdAt: Date
 }
 
@@ -24,6 +25,7 @@ const serialize = (e: EventRow) => ({
   id: e.id,
   userId: e.userId,
   startDate: ymd(e.startDate),
+  endDate: e.endDate ? ymd(e.endDate) : null,
   createdAt: e.createdAt.toISOString(),
 })
 
@@ -61,7 +63,7 @@ const periodEventRoutes: FastifyPluginAsync = async (fastify) => {
     }
   )
 
-  // List logged starts, most recent first.
+  // List logged periods, most recent first.
   fastify.get('/me/period-events', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
     const events = await fastify.prisma.periodEvent.findMany({
       where: { userId: request.user.id },
@@ -70,7 +72,49 @@ const periodEventRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send(events.map(serialize))
   })
 
-  // Delete a logged start (undo / correction).
+  // Set or clear the end date of a period. endDate=null reopens it.
+  fastify.patch<{ Params: { id: string }; Body: { endDate?: string | null } }>(
+    '/me/period-events/:id',
+    { preHandler: [fastify.verifyAuth] },
+    async (request, reply) => {
+      const event = await fastify.prisma.periodEvent.findFirst({
+        where: { id: request.params.id, userId: request.user.id },
+      })
+      if (!event) return sendError(reply, 404, 'Period event not found')
+
+      const endDate = request.body?.endDate
+      if (endDate === undefined) {
+        return sendError(reply, 400, 'endDate is required (string YYYY-MM-DD, or null to reopen)')
+      }
+
+      if (endDate === null) {
+        const cleared = await fastify.prisma.periodEvent.update({
+          where: { id: event.id },
+          data: { endDate: null },
+        })
+        return reply.status(200).send(serialize(cleared))
+      }
+
+      const raw = endDate.slice(0, 10)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return sendError(reply, 400, 'endDate must be YYYY-MM-DD or null')
+      }
+      if (raw < ymd(event.startDate)) {
+        return sendError(reply, 400, 'endDate cannot be before the period start')
+      }
+      if (raw > todayYmd()) {
+        return sendError(reply, 400, 'endDate cannot be in the future')
+      }
+
+      const updated = await fastify.prisma.periodEvent.update({
+        where: { id: event.id },
+        data: { endDate: new Date(raw) },
+      })
+      return reply.status(200).send(serialize(updated))
+    }
+  )
+
+  // Delete a logged period (undo / correction).
   fastify.delete<{ Params: { id: string } }>(
     '/me/period-events/:id',
     { preHandler: [fastify.verifyAuth] },

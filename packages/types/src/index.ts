@@ -78,6 +78,7 @@ export interface PeriodEvent {
   id: string
   userId: string
   startDate: string // ISO date "2026-06-01"
+  endDate: string | null // ISO date, null while the period is still open
   createdAt: string
 }
 
