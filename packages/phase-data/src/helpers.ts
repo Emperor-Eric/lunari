@@ -216,10 +216,19 @@ export interface EffectiveCycle {
  *       length = endDate - startDate + 1 (inclusive); keep lengths in [2, 10], use up to
  *       the 6 most recent, periodLength = round(mean) clamped [2, 10]; else fall back to
  *       cycleSettings.periodLength.
+ *   • currentPeriodLength = current-cycle menstrual length:
+ *       - anchor period ENDED → pinned to its actual length (endDate - startDate + 1).
+ *       - anchor period OPEN  → max(learned periodLength, days-since-start inclusive) so an
+ *         ongoing period stays Menstrual through today; if it has run > 10 days (forgotten
+ *         end), fall back to the learned periodLength.
+ *       - no events → learned periodLength.
+ *
+ * @param fromDate "today" used only to extend an OPEN anchor period (defaults to now).
  */
 export function getEffectiveCycle(
   settings: CycleSettingsInput,
-  periodEvents: PeriodEventInput[] = []
+  periodEvents: PeriodEventInput[] = [],
+  fromDate: string | Date = new Date()
 ): EffectiveCycle {
   // Normalize + sort event start dates ascending (oldest → newest).
   const dates = periodEvents
@@ -257,17 +266,27 @@ export function getEffectiveCycle(
     periodLength = Math.min(10, Math.max(2, Math.round(mean)))
   }
 
-  // currentPeriodLength — for the CURRENT cycle only, pin menstrual to the anchor
-  // period's ACTUAL logged end (regardless of the learned average). If the anchor
-  // period is still open, fall back to the learned/onboarding length.
+  // currentPeriodLength — current cycle's menstrual length (see doc above).
   let currentPeriodLength = periodLength
   if (periodEvents.length) {
     const anchorEvt = [...periodEvents].sort(
       (a, b) => parseDate(b.startDate).getTime() - parseDate(a.startDate).getTime()
     )[0]
-    if (anchorEvt && anchorEvt.endDate != null) {
-      const len = diffDays(parseDate(anchorEvt.endDate), parseDate(anchorEvt.startDate)) + 1
-      currentPeriodLength = Math.max(1, Math.min(cycleLength, len))
+    if (anchorEvt) {
+      const anchorStart = parseDate(anchorEvt.startDate)
+      if (anchorEvt.endDate != null) {
+        // Ended → pin menstrual to the actual logged end (inclusive).
+        const len = diffDays(parseDate(anchorEvt.endDate), anchorStart) + 1
+        currentPeriodLength = Math.max(1, Math.min(cycleLength, len))
+      } else {
+        // Open → keep menstrual through at least today (inclusive), capped at 10 days so
+        // a forgotten/never-ended period doesn't lock Menstrual forever.
+        const daysSinceStart = diffDays(parseDate(fromDate), anchorStart) + 1
+        currentPeriodLength =
+          daysSinceStart > 10
+            ? periodLength
+            : Math.min(cycleLength, Math.max(periodLength, daysSinceStart))
+      }
     }
   }
 
