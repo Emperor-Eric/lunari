@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
+import { Toast } from '@lunari/ui'
 import type { User, UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost, apiDelete } from '@/src/lib/api'
 import { useCycleContext } from '../cycle-context'
@@ -71,6 +72,26 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOut()
     window.location.assign('/auth/login')
+  }
+
+  // Clear all logged period starts/ends → predictions fall back to onboarding.
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  const clearPeriodHistory = async () => {
+    setClearing(true)
+    try {
+      await apiDelete('/me/period-events')
+      setConfirmClear(false)
+      setToast({ msg: 'Period history cleared', type: 'success' })
+      setTimeout(() => setToast(null), 2200)
+    } catch {
+      setToast({ msg: "Couldn't clear — try again", type: 'error' })
+      setTimeout(() => setToast(null), 2600)
+    } finally {
+      setClearing(false)
+    }
   }
 
   // Theme follows the current phase (authoritative phase id from the API).
@@ -195,6 +216,43 @@ export default function ProfilePage() {
           ))}
         </div>
 
+        {/* Data — destructive reset, confirm-gated */}
+        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+          Data
+        </div>
+        <div style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 13, padding: 16 }}>
+          {!confirmClear ? (
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="font-display"
+              style={{ fontSize: 15.5, color: '#7A1E2E' }}
+            >
+              Clear period history
+            </button>
+          ) : (
+            <>
+              <div className="font-body" style={{ fontSize: 12, color: N.text, fontWeight: 300, lineHeight: 1.5 }}>
+                This deletes all your logged periods and resets predictions to your onboarding cycle. Continue?
+              </div>
+              <div className="flex" style={{ gap: 8, marginTop: 12 }}>
+                <button
+                  onClick={clearPeriodHistory}
+                  disabled={clearing}
+                  style={{ background: '#7A1E2E', color: '#FBF6EC', borderRadius: 11, padding: '8px 16px', fontSize: 12, fontWeight: 600, opacity: clearing ? 0.6 : 1 }}
+                >
+                  {clearing ? 'Clearing…' : 'Clear history'}
+                </button>
+                <button
+                  onClick={() => setConfirmClear(false)}
+                  style={{ background: 'transparent', color: N.text, border: `1px solid ${t.labBorder}`, borderRadius: 11, padding: '8px 14px', fontSize: 12 }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
         {SHOP_ENABLED && (
           <>
@@ -248,6 +306,8 @@ export default function ProfilePage() {
           Sign out
         </button>
       </div>
+
+      {toast && <Toast message={toast.msg} type={toast.type} />}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { router } from 'expo-router'
 import { useAuth, useUser } from '@lunari/utils'
 import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
+import { Toast } from '@lunari/ui'
 import type { UserReferralCode, TodayCycleResponse } from '@lunari/types'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
@@ -45,13 +46,17 @@ export default function Profile() {
     [session]
   )
 
-  useEffect(() => {
+  const loadCycle = useCallback(() => {
     if (!session) return
     fetch(`${API_URL}/me/cycle/today`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((data: TodayCycleResponse | null) => data && setCycleData(data))
       .catch(() => {})
   }, [session, authHeaders])
+
+  useEffect(() => {
+    loadCycle()
+  }, [loadCycle])
 
   useEffect(() => {
     if (!SHOP_ENABLED || !session) return
@@ -119,6 +124,29 @@ export default function Profile() {
         reminderTime: user?.notificationPrefs.reminderTime ?? '08:00',
       },
     })
+  }
+
+  // Clear all logged period starts/ends → predictions fall back to onboarding.
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  const clearPeriodHistory = async () => {
+    if (!session) return
+    setClearing(true)
+    try {
+      const r = await fetch(`${API_URL}/me/period-events`, { method: 'DELETE', headers: authHeaders() })
+      if (!r.ok) throw new Error('clear failed')
+      setConfirmClear(false)
+      loadCycle() // recalibrate this screen's stats back to the onboarding fallback
+      setToast({ msg: 'Period history cleared', type: 'success' })
+      setTimeout(() => setToast(null), 2200)
+    } catch {
+      setToast({ msg: "Couldn't clear — try again", type: 'error' })
+      setTimeout(() => setToast(null), 2600)
+    } finally {
+      setClearing(false)
+    }
   }
 
   // Theme follows the current phase (authoritative phase id from the API).
@@ -238,6 +266,34 @@ export default function Profile() {
             ))}
           </View>
 
+          {/* Data — destructive reset, confirm-gated */}
+          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Data</Text>
+          <View style={[styles.card, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
+            {!confirmClear ? (
+              <Pressable onPress={() => setConfirmClear(true)}>
+                <Text style={styles.dataAction}>Clear period history</Text>
+              </Pressable>
+            ) : (
+              <>
+                <Text style={[styles.dataWarn, { color: N.text }]}>
+                  This deletes all your logged periods and resets predictions to your onboarding cycle. Continue?
+                </Text>
+                <View style={styles.dataActions}>
+                  <Pressable
+                    onPress={clearPeriodHistory}
+                    disabled={clearing}
+                    style={[styles.destructiveBtn, { opacity: clearing ? 0.6 : 1 }]}
+                  >
+                    <Text style={styles.destructiveText}>{clearing ? 'Clearing…' : 'Clear history'}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setConfirmClear(false)} style={[styles.cancelBtn, { borderColor: t.labBorder }]}>
+                    <Text style={[styles.cancelText, { color: N.text }]}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+
           {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
           {SHOP_ENABLED && (
             <>
@@ -288,6 +344,8 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {toast && <Toast message={toast.msg} type={toast.type} />}
     </View>
   )
 }
@@ -355,6 +413,15 @@ const styles = StyleSheet.create({
   settingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
   settingsText: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5 },
   chev: { fontFamily: 'Raleway_400Regular', fontSize: 18 },
+
+  // data action (clear period history)
+  dataAction: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5, color: '#7A1E2E' },
+  dataWarn: { fontFamily: 'Raleway_300Light', fontSize: 12, lineHeight: 18 },
+  dataActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  destructiveBtn: { backgroundColor: '#7A1E2E', borderRadius: 11, paddingVertical: 9, paddingHorizontal: 16 },
+  destructiveText: { fontFamily: 'Raleway_600SemiBold', fontSize: 12, color: '#FBF6EC' },
+  cancelBtn: { borderWidth: 1, borderRadius: 11, paddingVertical: 9, paddingHorizontal: 14 },
+  cancelText: { fontFamily: 'Raleway_500Medium', fontSize: 12 },
 
   // referral card
   card: { borderRadius: 13, borderWidth: 1, padding: 16, gap: 10 },

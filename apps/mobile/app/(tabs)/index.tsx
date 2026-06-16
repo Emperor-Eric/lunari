@@ -3,7 +3,7 @@ import { View, Text, Image, ScrollView, RefreshControl, StyleSheet, TouchableOpa
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
@@ -79,6 +79,16 @@ export default function Today() {
     fetchToday()
     loadSettings()
   }, [fetchToday, loadSettings])
+
+  // Re-pull on tab focus so changes made elsewhere (e.g. clearing period history on Me)
+  // recalibrate Today. The bumped key remounts LogPeriodCard so it reloads its events.
+  const [focusKey, setFocusKey] = useState(0)
+  useFocusEffect(
+    useCallback(() => {
+      recalibrate()
+      setFocusKey((k) => k + 1)
+    }, [recalibrate])
+  )
 
   // Prefill "How are you feeling?" chips from today's saved entry (survives refresh).
   useEffect(() => {
@@ -256,7 +266,7 @@ export default function Today() {
 
             {/* ── Log period — prominent top entry point (button + inline confirm) ── */}
             <View style={{ marginTop: 18 }}>
-              <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={recalibrate} />
+              <LogPeriodCard key={focusKey} surface={{ ink, sub, gold, cardwash, cardbd }} onChange={recalibrate} />
             </View>
 
             {/* ── Phase rail (tap to preview) ── */}

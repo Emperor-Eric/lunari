@@ -114,6 +114,13 @@ const periodEventRoutes: FastifyPluginAsync = async (fastify) => {
     }
   )
 
+  // Clear ALL logged periods (reset to the onboarding cycle). The Cycle row is untouched,
+  // so getEffectiveCycle falls back to onboarding startDate/cycleLength/periodLength.
+  fastify.delete('/me/period-events', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
+    const result = await fastify.prisma.periodEvent.deleteMany({ where: { userId: request.user.id } })
+    return reply.send({ count: result.count })
+  })
+
   // Delete a logged period (undo / correction).
   fastify.delete<{ Params: { id: string } }>(
     '/me/period-events/:id',
