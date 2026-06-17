@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { format, parseISO } from 'date-fns'
+import { addMonths, format, getDay, getDaysInMonth, parseISO, startOfMonth } from 'date-fns'
 import { useAuth } from '@lunari/utils'
 import { Toast } from '@lunari/ui'
 import type { PeriodEvent } from '@lunari/types'
 import type { PredictionSurface } from './NextUpCard'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
-const OFFSETS = [0, 1, 2, 3, 5, 7, 14]
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 function ymdFromOffset(days: number): string {
   const d = new Date()
@@ -18,9 +18,69 @@ function ymdFromOffset(days: number): string {
   const dd = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${dd}`
 }
-const offsetLabel = (d: number) => (d === 0 ? 'Today' : d === 1 ? 'Yesterday' : `${d}d ago`)
 const daysBetween = (a: string, b: string) =>
   Math.abs(Math.round((parseISO(a).getTime() - parseISO(b).getTime()) / 86400000))
+
+/** Compact, on-brand month date picker. Single date; min/max gate selectable days. */
+function DatePicker({
+  value,
+  min,
+  max,
+  onSelect,
+  surface,
+}: {
+  value: string
+  min?: string
+  max: string
+  onSelect: (ymd: string) => void
+  surface: PredictionSurface
+}) {
+  const { ink, sub, gold } = surface
+  const [view, setView] = useState(() => startOfMonth(parseISO(value)))
+
+  const year = view.getFullYear()
+  const month = view.getMonth()
+  const lead = getDay(startOfMonth(view))
+  const cells: (number | null)[] = [
+    ...Array.from({ length: lead }, () => null),
+    ...Array.from({ length: getDaysInMonth(view) }, (_, i) => i + 1),
+  ]
+  const ymdOf = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+
+  return (
+    <View>
+      <View style={styles.dpHeader}>
+        <Pressable onPress={() => setView((v) => addMonths(v, -1))} hitSlop={8}>
+          <Text style={[styles.dpNav, { color: gold }]}>‹</Text>
+        </Pressable>
+        <Text style={[styles.dpMonth, { color: ink }]}>{format(view, 'MMMM yyyy')}</Text>
+        <Pressable onPress={() => setView((v) => addMonths(v, 1))} hitSlop={8}>
+          <Text style={[styles.dpNav, { color: gold }]}>›</Text>
+        </Pressable>
+      </View>
+      <View style={styles.dpWeekRow}>
+        {WEEKDAYS.map((w, i) => (
+          <Text key={i} style={[styles.dpWeekday, { color: sub }]}>{w}</Text>
+        ))}
+      </View>
+      <View style={styles.dpGrid}>
+        {cells.map((d, i) => {
+          if (d === null) return <View key={`b${i}`} style={styles.dpCell} />
+          const ymd = ymdOf(d)
+          const disabled = (min !== undefined && ymd < min) || ymd > max
+          const isSel = ymd === value
+          return (
+            <Pressable key={d} disabled={disabled} onPress={() => onSelect(ymd)} style={styles.dpCell}>
+              <View style={[styles.dpCellInner, { backgroundColor: isSel ? gold : 'transparent' }]}>
+                <Text style={[styles.dpCellNum, { color: isSel ? '#2C2825' : ink, opacity: disabled ? 0.3 : 1 }]}>{d}</Text>
+              </View>
+            </Pressable>
+          )
+        })}
+      </View>
+    </View>
+  )
+}
 
 /** "Log period" control for Today — recalibrates predictions via `onChange`. */
 export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurface; onChange: () => void }) {
@@ -170,22 +230,13 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
               </Text>
 
               <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>When did it end?</Text>
-              <View style={styles.chips}>
-                {OFFSETS.map((o) => {
-                  const v = ymdFromOffset(o)
-                  if (v < openStartDate) return null
-                  const on = selected === v
-                  return (
-                    <Pressable
-                      key={o}
-                      onPress={() => setSelected(v)}
-                      style={[styles.chip, { backgroundColor: on ? gold : 'transparent', borderColor: on ? 'transparent' : cardbd }]}
-                    >
-                      <Text style={[styles.chipText, { color: on ? '#2C2825' : ink }]}>{offsetLabel(o)}</Text>
-                    </Pressable>
-                  )
-                })}
-              </View>
+              <DatePicker
+                value={selected}
+                min={openStartDate}
+                max={ymdFromOffset(0)}
+                onSelect={setSelected}
+                surface={surface}
+              />
 
               <View style={[styles.actions, { marginTop: 10 }]}>
                 <Pressable onPress={doLogEnd} disabled={busy} style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}>
@@ -214,21 +265,12 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
               )}
 
               <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>When did it start?</Text>
-              <View style={styles.chips}>
-                {OFFSETS.map((o) => {
-                  const v = ymdFromOffset(o)
-                  const on = selected === v
-                  return (
-                    <Pressable
-                      key={o}
-                      onPress={() => { setSelected(v); setConfirming(false) }}
-                      style={[styles.chip, { backgroundColor: on ? gold : 'transparent', borderColor: on ? 'transparent' : cardbd }]}
-                    >
-                      <Text style={[styles.chipText, { color: on ? '#2C2825' : ink }]}>{offsetLabel(o)}</Text>
-                    </Pressable>
-                  )
-                })}
-              </View>
+              <DatePicker
+                value={selected}
+                max={ymdFromOffset(0)}
+                onSelect={(v) => { setSelected(v); setConfirming(false) }}
+                surface={surface}
+              />
 
               {confirming ? (
                 <View style={{ marginTop: 10 }}>
@@ -275,9 +317,18 @@ const styles = StyleSheet.create({
   hint: { fontFamily: 'Raleway_300Light', fontSize: 11 },
   fieldLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 8 },
   fieldGap: { marginTop: 10 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingVertical: 6, paddingHorizontal: 11, borderRadius: 18, borderWidth: 1 },
-  chipText: { fontFamily: 'Raleway_500Medium', fontSize: 10.5 },
+
+  // date picker
+  dpHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  dpNav: { fontFamily: 'Raleway_600SemiBold', fontSize: 18, width: 24, textAlign: 'center' },
+  dpMonth: { fontFamily: 'Raleway_600SemiBold', fontSize: 11.5 },
+  dpWeekRow: { flexDirection: 'row' },
+  dpWeekday: { flex: 1, textAlign: 'center', fontFamily: 'Raleway_400Regular', fontSize: 8 },
+  dpGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 },
+  dpCell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 1.5 },
+  dpCellInner: { flex: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  dpCellNum: { fontFamily: 'Raleway_500Medium', fontSize: 10.5 },
+
   warn: { fontFamily: 'Raleway_400Regular', fontSize: 11 },
   actions: { flexDirection: 'row', gap: 8 },
   primaryBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 11 },
