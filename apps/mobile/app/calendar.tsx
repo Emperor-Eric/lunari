@@ -26,7 +26,7 @@ export default function CalendarScreen() {
     [session]
   )
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     if (!session) return
     fetch(`${API_URL}/me/cycle/today`, { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
@@ -37,6 +37,10 @@ export default function CalendarScreen() {
       .then((d: CycleSettings | null) => setSettings(d))
       .catch(() => setSettings(null))
   }, [session, authHeaders])
+
+  useEffect(() => {
+    reload()
+  }, [reload])
 
   const day = cycleData?.day ?? 1
   const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
@@ -68,7 +72,7 @@ export default function CalendarScreen() {
 
       {/* ── TINTED BODY ── */}
       <ScrollView contentContainerStyle={styles.body}>
-        <CycleCalendar settings={settings} surface={surface} />
+        <CycleCalendar settings={settings} surface={surface} onChange={reload} />
       </ScrollView>
     </View>
   )

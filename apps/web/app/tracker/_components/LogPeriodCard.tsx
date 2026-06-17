@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { addMonths, format, getDay, getDaysInMonth, parseISO, startOfMonth } from 'date-fns'
 import { Toast } from '@lunari/ui'
 import type { PeriodEvent } from '@lunari/types'
+import { getOpenPeriod, needsStartGuard, daysBetweenYmd } from '@lunari/phase-data'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/src/lib/api'
 import type { PredictionSurface } from './NextUpCard'
 
@@ -17,8 +18,6 @@ function ymdFromOffset(days: number): string {
   const dd = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${dd}`
 }
-const daysBetween = (a: string, b: string) =>
-  Math.abs(Math.round((parseISO(a).getTime() - parseISO(b).getTime()) / 86400000))
 
 /** Compact, on-brand month date picker. Single date; min/max gate selectable days. */
 function DatePicker({
@@ -103,9 +102,8 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   useEffect(() => { load() }, [])
 
   const mostRecent = events[0] ?? null
-  // Open period = most recent start with no end, within the last 12 days.
-  const openPeriod =
-    events.find((e) => !e.endDate && daysBetween(ymdFromOffset(0), e.startDate) <= 12) ?? null
+  // Open-period detection uses the SHARED rule (same as the calendar).
+  const openPeriod = getOpenPeriod(events, ymdFromOffset(0))
   const openStartDate = openPeriod?.startDate ?? ''
 
   const flash = (msg: string, type: 'success' | 'error') => {
@@ -146,7 +144,7 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   }
 
   const attemptLogStart = () => {
-    if (mostRecent && daysBetween(selected, mostRecent.startDate) < 10) {
+    if (needsStartGuard(events, selected)) {
       setConfirming(true)
       return
     }
@@ -204,7 +202,7 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   const primaryBtn: React.CSSProperties = { fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 11, background: gold, color: '#2C2825', opacity: busy ? 0.6 : 1 }
   const ghostBtn: React.CSSProperties = { fontSize: 11, padding: '8px 14px', borderRadius: 11, background: 'transparent', color: ink, border: `1px solid ${cardbd}` }
 
-  const gapDays = mostRecent ? daysBetween(selected, mostRecent.startDate) : 0
+  const gapDays = mostRecent ? daysBetweenYmd(selected, mostRecent.startDate) : 0
 
   return (
     <div>

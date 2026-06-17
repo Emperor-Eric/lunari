@@ -4,6 +4,7 @@ import { addMonths, format, getDay, getDaysInMonth, parseISO, startOfMonth } fro
 import { useAuth } from '@lunari/utils'
 import { Toast } from '@lunari/ui'
 import type { PeriodEvent } from '@lunari/types'
+import { getOpenPeriod, needsStartGuard, daysBetweenYmd } from '@lunari/phase-data'
 import type { PredictionSurface } from './NextUpCard'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
@@ -18,8 +19,6 @@ function ymdFromOffset(days: number): string {
   const dd = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${dd}`
 }
-const daysBetween = (a: string, b: string) =>
-  Math.abs(Math.round((parseISO(a).getTime() - parseISO(b).getTime()) / 86400000))
 
 /** Compact, on-brand month date picker. Single date; min/max gate selectable days. */
 function DatePicker({
@@ -111,9 +110,8 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   useEffect(() => { load() }, [load])
 
   const mostRecent = events[0] ?? null
-  // Open period = most recent start with no end, within the last 12 days.
-  const openPeriod =
-    events.find((e) => !e.endDate && daysBetween(ymdFromOffset(0), e.startDate) <= 12) ?? null
+  // Open-period detection uses the SHARED rule (same as the calendar).
+  const openPeriod = getOpenPeriod(events, ymdFromOffset(0))
   const openStartDate = openPeriod?.startDate ?? ''
 
   const flash = (msg: string, type: 'success' | 'error') => {
@@ -165,7 +163,7 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   }
 
   const attemptLogStart = () => {
-    if (mostRecent && daysBetween(selected, mostRecent.startDate) < 10) {
+    if (needsStartGuard(events, selected)) {
       setConfirming(true)
       return
     }
@@ -201,7 +199,7 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
     }
   }
 
-  const gapDays = mostRecent ? daysBetween(selected, mostRecent.startDate) : 0
+  const gapDays = mostRecent ? daysBetweenYmd(selected, mostRecent.startDate) : 0
 
   return (
     <View>

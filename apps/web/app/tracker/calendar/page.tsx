@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getPhaseById, getPhaseForDay } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
@@ -15,11 +15,12 @@ export default function CalendarPage() {
   const t = phaseTheme[phaseKeyFor(phase.id)]
 
   const [settings, setSettings] = useState<CycleSettings | null>(null)
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     apiGet<CycleSettings>('/me/cycle')
       .then(setSettings)
       .catch(() => setSettings(null))
   }, [])
+  useEffect(() => { loadSettings() }, [loadSettings])
 
   // Light Lab surface so the phase colours read clearly (NOT the dark flood).
   const surface = { ink: '#2C2825', sub: '#A99E88', gold: t.accent, cardwash: t.labCard, cardbd: t.labBorder }
@@ -55,7 +56,7 @@ export default function CalendarPage() {
 
       {/* ── TINTED BODY ── */}
       <div className="max-w-2xl mx-auto px-6 md:px-10 pt-5 pb-12">
-        <CycleCalendar settings={settings} surface={surface} />
+        <CycleCalendar settings={settings} surface={surface} onChange={loadSettings} />
       </div>
     </div>
   )

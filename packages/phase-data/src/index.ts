@@ -17,3 +17,13 @@ export type {
   PeriodEventInput,
   EffectiveCycle,
 } from './helpers'
+export {
+  daysBetweenYmd,
+  getOpenPeriod,
+  loggedPeriodDays,
+  needsStartGuard,
+  resolveCalendarTap,
+  OPEN_PERIOD_WINDOW_DAYS,
+  MAX_LOGGED_RUN_DAYS,
+} from './period-log'
+export type { CalendarTap } from './period-log'
