@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, Pressable, Switch, Alert, StyleSheet, ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Pressable,
+  Switch,
+  Alert,
+  StyleSheet,
+  ScrollView,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -11,6 +19,7 @@ import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
 import type { UserReferralCode, TodayCycleResponse } from '@lunari/types'
+import { CycleSettingsRow } from '../../src/components/CycleSettingsRow'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 // Referral entry turns on with the shop — a code only matters once there's a product.
@@ -19,8 +28,9 @@ const SHOP_ENABLED = process.env.EXPO_PUBLIC_SHOP_ENABLED === 'true'
 // Cycle order for the mini phase rail (matches phase-data day ranges).
 const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
 
-// Settings rows beyond Notifications — no destination screens yet (flagged: not wired).
-const EXTRA_SETTINGS = ['Phase predictions', 'Connected apps', 'Privacy & data']
+// Static settings rows beyond Notifications & the wired Cycle settings row — no
+// destination screens yet (flagged: not wired).
+const EXTRA_SETTINGS = ['Connected apps', 'Privacy & data']
 
 // Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
 const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
@@ -42,7 +52,10 @@ export default function Profile() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   const authHeaders = useCallback(
-    () => ({ Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' }),
+    () => ({
+      Authorization: `Bearer ${session?.access_token}`,
+      'Content-Type': 'application/json',
+    }),
     [session]
   )
 
@@ -135,7 +148,10 @@ export default function Profile() {
     if (!session) return
     setClearing(true)
     try {
-      const r = await fetch(`${API_URL}/me/period-events`, { method: 'DELETE', headers: authHeaders() })
+      const r = await fetch(`${API_URL}/me/period-events`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
       if (!r.ok) throw new Error('clear failed')
       setConfirmClear(false)
       loadCycle() // recalibrate this screen's stats back to the onboarding fallback
@@ -161,8 +177,10 @@ export default function Profile() {
 
   // "Where you are" — derived from the real proportional phase windows.
   const ranges = getPhaseRanges(cycleDays, periodDays)
-  const currentRange =
-    ranges.find((r) => r.phase === phase.id) ?? { startDay: 1, endDay: cycleDays }
+  const currentRange = ranges.find((r) => r.phase === phase.id) ?? {
+    startDay: 1,
+    endDay: cycleDays,
+  }
   const dayOfPhase = day - currentRange.startDay + 1
   const phaseLength = currentRange.endDay - currentRange.startDay + 1
   const daysUntilNext = currentRange.endDay - day
@@ -170,21 +188,42 @@ export default function Profile() {
   const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
 
   const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
     : '··'
   const memberSince = user?.createdAt ? new Date(user.createdAt).getFullYear() : null
 
-  const solid12 = `${t.accent}1F`
   const stops = headerStops(t.header)
-  const headerColors = (stops.length >= 2 ? stops : [t.headerLabel, t.headerLabel]) as [string, string, ...string[]]
+  const headerColors = (stops.length >= 2 ? stops : [t.headerLabel, t.headerLabel]) as [
+    string,
+    string,
+    ...string[],
+  ]
 
   return (
     <View style={{ flex: 1, backgroundColor: t.labBg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* ── HEADER BAND (avatar + name, orbit bottom-right) ── */}
-        <LinearGradient colors={headerColors} start={{ x: 0.2, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
+        <LinearGradient
+          colors={headerColors}
+          start={{ x: 0.2, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.header}
+        >
           <Svg width={130} height={130} style={styles.orbit}>
-            <Circle cx={65} cy={65} r={64} stroke={t.headerLabel} strokeOpacity={0.25} strokeWidth={1} fill="none" />
+            <Circle
+              cx={65}
+              cy={65}
+              r={64}
+              stroke={t.headerLabel}
+              strokeOpacity={0.25}
+              strokeWidth={1}
+              fill="none"
+            />
           </Svg>
           <SafeAreaView edges={['top']} style={styles.headerInner}>
             <View style={styles.user}>
@@ -192,9 +231,11 @@ export default function Profile() {
                 <Text style={[styles.avatarText, { color: t.headerLabel }]}>{initials}</Text>
               </View>
               <View>
-                <Text style={[styles.name, { color: t.headerText }]}>{user?.name ?? 'Loading…'}</Text>
+                <Text style={[styles.name, { color: t.headerText }]}>
+                  {user?.name ?? 'Loading…'}
+                </Text>
                 <Text style={[styles.handle, { color: t.headerLabel }]}>
-                  {memberSince ? `member since ${memberSince}` : user?.email ?? ''}
+                  {memberSince ? `member since ${memberSince}` : (user?.email ?? '')}
                 </Text>
               </View>
             </View>
@@ -228,7 +269,13 @@ export default function Profile() {
               {PHASE_ORDER.map((key) => (
                 <View
                   key={key}
-                  style={[styles.railSeg, { backgroundColor: phaseTheme[key].phase, opacity: key === activeKey ? 1 : 0.28 }]}
+                  style={[
+                    styles.railSeg,
+                    {
+                      backgroundColor: phaseTheme[key].phase,
+                      opacity: key === activeKey ? 1 : 0.28,
+                    },
+                  ]}
                 />
               ))}
             </View>
@@ -254,11 +301,28 @@ export default function Profile() {
                 thumbColor="#FFFFFF"
               />
             </View>
+            {/* Wired: edit the RAW onboarding cycle, then recalibrate. */}
+            <CycleSettingsRow
+              ink={N.text}
+              sub={N.section}
+              chev={N.chev}
+              gold={t.accent}
+              cardwash={t.labCard}
+              cardbd={t.labBorder}
+              rowBorder={t.labBorder}
+              onSaved={loadCycle}
+            />
             {/* Static rows — no destination screens yet */}
             {EXTRA_SETTINGS.map((label, i) => (
               <Pressable
                 key={label}
-                style={[styles.settingsRow, { borderBottomColor: t.labBorder, borderBottomWidth: i === EXTRA_SETTINGS.length - 1 ? 0 : 1 }]}
+                style={[
+                  styles.settingsRow,
+                  {
+                    borderBottomColor: t.labBorder,
+                    borderBottomWidth: i === EXTRA_SETTINGS.length - 1 ? 0 : 1,
+                  },
+                ]}
               >
                 <Text style={[styles.settingsText, { color: N.text }]}>{label}</Text>
                 <Text style={[styles.chev, { color: N.chev }]}>›</Text>
@@ -276,7 +340,8 @@ export default function Profile() {
             ) : (
               <>
                 <Text style={[styles.dataWarn, { color: N.text }]}>
-                  This deletes all your logged periods and resets predictions to your onboarding cycle. Continue?
+                  This deletes all your logged periods and resets predictions to your onboarding
+                  cycle. Continue?
                 </Text>
                 <View style={styles.dataActions}>
                   <Pressable
@@ -284,9 +349,14 @@ export default function Profile() {
                     disabled={clearing}
                     style={[styles.destructiveBtn, { opacity: clearing ? 0.6 : 1 }]}
                   >
-                    <Text style={styles.destructiveText}>{clearing ? 'Clearing…' : 'Clear history'}</Text>
+                    <Text style={styles.destructiveText}>
+                      {clearing ? 'Clearing…' : 'Clear history'}
+                    </Text>
                   </Pressable>
-                  <Pressable onPress={() => setConfirmClear(false)} style={[styles.cancelBtn, { borderColor: t.labBorder }]}>
+                  <Pressable
+                    onPress={() => setConfirmClear(false)}
+                    style={[styles.cancelBtn, { borderColor: t.labBorder }]}
+                  >
                     <Text style={[styles.cancelText, { color: N.text }]}>Cancel</Text>
                   </Pressable>
                 </View>
@@ -297,11 +367,15 @@ export default function Profile() {
           {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
           {SHOP_ENABLED && (
             <>
-              <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Referral code</Text>
+              <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>
+                Referral code
+              </Text>
               <View style={[styles.card, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
                 {savedCode ? (
                   <View style={styles.row}>
-                    <Text style={[styles.savedCodeText, { color: N.text }]}>Your code: {savedCode}</Text>
+                    <Text style={[styles.savedCodeText, { color: N.text }]}>
+                      Your code: {savedCode}
+                    </Text>
                     <TouchableOpacity onPress={removeCode}>
                       <Text style={[styles.removeLink, { color: t.accent }]}>Remove</Text>
                     </TouchableOpacity>
@@ -309,7 +383,10 @@ export default function Profile() {
                 ) : (
                   <View style={styles.codeInputRow}>
                     <TextInput
-                      style={[styles.codeInput, { backgroundColor: t.labBg, borderColor: t.labBorder, color: N.text }]}
+                      style={[
+                        styles.codeInput,
+                        { backgroundColor: t.labBg, borderColor: t.labBorder, color: N.text },
+                      ]}
                       placeholder="e.g. GYMGIRL20"
                       placeholderTextColor={N.section}
                       value={codeInput}
@@ -318,18 +395,33 @@ export default function Profile() {
                       autoCorrect={false}
                     />
                     <TouchableOpacity
-                      style={[styles.applyBtn, { backgroundColor: t.accent, opacity: applying ? 0.6 : 1 }]}
+                      style={[
+                        styles.applyBtn,
+                        { backgroundColor: t.accent, opacity: applying ? 0.6 : 1 },
+                      ]}
                       onPress={applyCode}
                       disabled={applying}
                       activeOpacity={0.85}
                     >
-                      <Text style={[styles.applyBtnText, { color: t.headerText }]}>{applying ? '…' : 'Apply'}</Text>
+                      <Text style={[styles.applyBtnText, { color: t.headerText }]}>
+                        {applying ? '…' : 'Apply'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 )}
                 {feedback && (
-                  <View style={[styles.feedbackCard, { backgroundColor: feedback.type === 'success' ? t.labWhy : '#F5E8EA' }]}>
-                    <Text style={[styles.feedbackText, { color: feedback.type === 'success' ? t.accent : '#7A1E2E' }]}>
+                  <View
+                    style={[
+                      styles.feedbackCard,
+                      { backgroundColor: feedback.type === 'success' ? t.labWhy : '#F5E8EA' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.feedbackText,
+                        { color: feedback.type === 'success' ? t.accent : '#7A1E2E' },
+                      ]}
+                    >
                       {feedback.msg}
                     </Text>
                   </View>
@@ -365,11 +457,19 @@ function StatCard({
     <View
       style={[
         styles.stat,
-        { backgroundColor: today ? t.accent : t.labCard, borderColor: today ? 'transparent' : t.labBorder },
+        {
+          backgroundColor: today ? t.accent : t.labCard,
+          borderColor: today ? 'transparent' : t.labBorder,
+        },
       ]}
     >
       <Text style={[styles.statValue, { color: today ? t.headerText : '#2C2825' }]}>{value}</Text>
-      <Text style={[styles.statCaption, { color: today ? t.headerText : '#A99E88', opacity: today ? 0.8 : 1 }]}>
+      <Text
+        style={[
+          styles.statCaption,
+          { color: today ? t.headerText : '#A99E88', opacity: today ? 0.8 : 1 },
+        ]}
+      >
         {caption}
       </Text>
     </View>
@@ -382,14 +482,27 @@ const styles = StyleSheet.create({
   orbit: { position: 'absolute', right: -30, bottom: -44 },
   headerInner: { paddingHorizontal: 24, paddingTop: 14, paddingBottom: 22 },
   user: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 10 },
-  avatar: { width: 54, height: 54, borderRadius: 27, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatarText: { fontFamily: 'Marcellus_400Regular', fontSize: 22 },
   name: { fontFamily: 'Marcellus_400Regular', fontSize: 21 },
   handle: { fontFamily: 'Raleway_300Light', fontSize: 10.5, marginTop: 1 },
 
   // tinted body
   body: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 16 },
-  sectionLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 11 },
+  sectionLabel: {
+    fontFamily: 'Raleway_500Medium',
+    fontSize: 9,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    marginBottom: 11,
+  },
   gap: { marginTop: 20 },
 
   // cycle stats
@@ -410,7 +523,13 @@ const styles = StyleSheet.create({
   summaryMeta: { fontFamily: 'Raleway_400Regular', fontSize: 10.5, marginTop: 10 },
 
   // settings
-  settingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
+  settingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
   settingsText: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5 },
   chev: { fontFamily: 'Raleway_400Regular', fontSize: 18 },
 
@@ -418,7 +537,12 @@ const styles = StyleSheet.create({
   dataAction: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5, color: '#7A1E2E' },
   dataWarn: { fontFamily: 'Raleway_300Light', fontSize: 12, lineHeight: 18 },
   dataActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  destructiveBtn: { backgroundColor: '#7A1E2E', borderRadius: 11, paddingVertical: 9, paddingHorizontal: 16 },
+  destructiveBtn: {
+    backgroundColor: '#7A1E2E',
+    borderRadius: 11,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+  },
   destructiveText: { fontFamily: 'Raleway_600SemiBold', fontSize: 12, color: '#FBF6EC' },
   cancelBtn: { borderWidth: 1, borderRadius: 11, paddingVertical: 9, paddingHorizontal: 14 },
   cancelText: { fontFamily: 'Raleway_500Medium', fontSize: 12 },
@@ -429,7 +553,15 @@ const styles = StyleSheet.create({
   savedCodeText: { fontFamily: 'Raleway_400Regular', fontSize: 14 },
   removeLink: { fontFamily: 'Raleway_600SemiBold', fontSize: 13 },
   codeInputRow: { flexDirection: 'row', gap: 8 },
-  codeInput: { flex: 1, borderRadius: 11, borderWidth: 1, paddingVertical: 11, paddingHorizontal: 14, fontFamily: 'Raleway_400Regular', fontSize: 14 },
+  codeInput: {
+    flex: 1,
+    borderRadius: 11,
+    borderWidth: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    fontFamily: 'Raleway_400Regular',
+    fontSize: 14,
+  },
   applyBtn: { borderRadius: 11, paddingHorizontal: 20, justifyContent: 'center' },
   applyBtnText: { fontFamily: 'Raleway_600SemiBold', fontSize: 14 },
   feedbackCard: { borderRadius: 11, padding: 12 },

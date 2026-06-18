@@ -6,8 +6,12 @@ import type { TodayCycleResponse } from '@lunari/types'
 // layout files may only export a default component + a fixed set of named
 // exports (metadata, etc.). Exporting a hook from layout.tsx breaks Next's
 // generated route types. The provider value is still set by the tracker layout.
-export const CycleContext = createContext<{ cycleData: TodayCycleResponse | null }>({
+export const CycleContext = createContext<{
+  cycleData: TodayCycleResponse | null
+  refresh: () => void
+}>({
   cycleData: null,
+  refresh: () => {},
 })
 
 export const useCycleContext = () => useContext(CycleContext)

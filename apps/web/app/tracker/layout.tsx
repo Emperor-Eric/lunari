@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Moon, Dumbbell, Pencil, User, ShoppingBag } from 'lucide-react'
@@ -19,7 +19,9 @@ const NAV_LINKS: { href: string; label: string; Icon: IconType }[] = [
   { href: '/tracker/nutrition', label: 'Fuel', Icon: FuelIcon },
   { href: '/tracker/log', label: 'Log', Icon: Pencil },
   // Shop is gated behind NEXT_PUBLIC_SHOP_ENABLED (off until the kit ships)
-  ...(SHOP_ENABLED ? [{ href: '/tracker/shop', label: 'Shop', Icon: ShoppingBag as IconType }] : []),
+  ...(SHOP_ENABLED
+    ? [{ href: '/tracker/shop', label: 'Shop', Icon: ShoppingBag as IconType }]
+    : []),
   { href: '/tracker/profile', label: 'Me', Icon: User },
 ]
 
@@ -28,9 +30,10 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
   const router = useRouter()
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
 
-  useEffect(() => {
-    // apiFetch attaches the bearer token from the session cookie, so this works
-    // on a fresh page load without depending on the in-memory auth store.
+  // apiFetch attaches the bearer token from the session cookie, so this works
+  // on a fresh page load without depending on the in-memory auth store.
+  // Exposed via context as `refresh` so editing cycle settings recalibrates live.
+  const refresh = useCallback(() => {
     apiFetch('/me/cycle/today')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -46,15 +49,22 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
       })
   }, [router])
 
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
   return (
-    <CycleContext.Provider value={{ cycleData }}>
+    <CycleContext.Provider value={{ cycleData, refresh }}>
       <div className="min-h-screen bg-brand-cream flex">
         {/* Desktop sidebar — stone rail (token-driven, not the phase flood) */}
         <aside
           className="hidden md:flex w-[220px] flex-col border-r border-brand-stone p-6 gap-8 fixed h-full"
           style={{ backgroundColor: sidebar.surface }}
         >
-          <span className="font-display lowercase text-[26px] tracking-[0.04em]" style={{ color: sidebar.wordmark }}>
+          <span
+            className="font-display lowercase text-[26px] tracking-[0.04em]"
+            style={{ color: sidebar.wordmark }}
+          >
             lunari
           </span>
           <nav className="flex flex-col gap-1">
@@ -70,7 +80,11 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
                     color: active ? sidebar.activeInk : sidebar.ink,
                   }}
                 >
-                  <Icon size={18} strokeWidth={1.5} color={active ? sidebar.activeIcon : sidebar.ink} />
+                  <Icon
+                    size={18}
+                    strokeWidth={1.5}
+                    color={active ? sidebar.activeIcon : sidebar.ink}
+                  />
                   {label}
                 </Link>
               )
@@ -79,12 +93,13 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 md:ml-[220px] pb-20 md:pb-0">
-          {children}
-        </main>
+        <main className="flex-1 md:ml-[220px] pb-20 md:pb-0">{children}</main>
 
         {/* Narrow-viewport bottom tab bar (web) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-brand-stone flex z-10" style={{ backgroundColor: sidebar.surface }}>
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 border-t border-brand-stone flex z-10"
+          style={{ backgroundColor: sidebar.surface }}
+        >
           {NAV_LINKS.map(({ href, label, Icon }) => {
             const active = pathname === href
             return (
@@ -94,7 +109,11 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
                 className="flex-1 flex flex-col items-center py-3 gap-0.5"
                 style={{ color: active ? sidebar.activeInk : sidebar.ink }}
               >
-                <Icon size={22} strokeWidth={1.5} color={active ? sidebar.activeIcon : sidebar.ink} />
+                <Icon
+                  size={22}
+                  strokeWidth={1.5}
+                  color={active ? sidebar.activeIcon : sidebar.ink}
+                />
                 <span className="text-[10px] font-medium">{label}</span>
               </Link>
             )

@@ -74,6 +74,14 @@ export interface CycleSettings {
   projectedPeriodLength: number // learned-average period length — for projecting future cycles
 }
 
+// RAW stored onboarding baseline (GET /me/cycle/settings) — what the user edits on Me.
+// Distinct from CycleSettings, which is the EFFECTIVE (recalibrated) shape.
+export interface RawCycleSettings {
+  startDate: string // ISO date "2026-06-01" — the onboarding anchor as stored
+  cycleLength: number // 21–45
+  periodLength: number // 2–10
+}
+
 // A real bleed-start logged by the user (overrides onboarding at prediction time).
 export interface PeriodEvent {
   id: string

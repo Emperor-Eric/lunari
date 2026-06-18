@@ -14,7 +14,12 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
 
       const cycle = await fastify.prisma.cycle.upsert({
         where: { userId: request.user.id },
-        create: { userId: request.user.id, startDate: new Date(startDate), cycleLength, periodLength },
+        create: {
+          userId: request.user.id,
+          startDate: new Date(startDate),
+          cycleLength,
+          periodLength,
+        },
         update: { startDate: new Date(startDate), cycleLength, periodLength },
       })
 
@@ -24,6 +29,24 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
       return reply.status(201).send(cycle)
+    }
+  )
+
+  // RAW onboarding Cycle settings (NOT recalibrated). GET /me/cycle returns the
+  // EFFECTIVE (learned/pinned) values; the Me editor needs the stored baseline so
+  // the user edits numbers they actually chose. Writes go back through POST /me/cycle.
+  fastify.get(
+    '/me/cycle/settings',
+    { preHandler: [fastify.verifyAuth] },
+    async (request, reply) => {
+      const cycle = await fastify.prisma.cycle.findUnique({ where: { userId: request.user.id } })
+      if (!cycle) return sendError(reply, 404, 'No cycle found. Complete onboarding first.')
+
+      return reply.send({
+        startDate: cycle.startDate.toISOString().slice(0, 10), // @db.Date → YYYY-MM-DD
+        cycleLength: cycle.cycleLength,
+        periodLength: cycle.periodLength,
+      })
     }
   )
 
@@ -61,24 +84,28 @@ const cycleRoutes: FastifyPluginAsync = async (fastify) => {
     })
   })
 
-  fastify.get('/me/cycle/calendar', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
-    const eff = await loadEffectiveCycle(fastify.prisma, request.user.id)
-    if (!eff) return sendError(reply, 404, 'No cycle found')
+  fastify.get(
+    '/me/cycle/calendar',
+    { preHandler: [fastify.verifyAuth] },
+    async (request, reply) => {
+      const eff = await loadEffectiveCycle(fastify.prisma, request.user.id)
+      if (!eff) return sendError(reply, 404, 'No cycle found')
 
-    const logs = await fastify.prisma.symptomLog.findMany({
-      where: { userId: request.user.id },
-      select: { cycleDay: true },
-    })
-    const logDays = new Set(logs.map((l: { cycleDay: number }) => l.cycleDay))
+      const logs = await fastify.prisma.symptomLog.findMany({
+        where: { userId: request.user.id },
+        select: { cycleDay: true },
+      })
+      const logDays = new Set(logs.map((l: { cycleDay: number }) => l.cycleDay))
 
-    const calendar = Array.from({ length: eff.cycleLength }, (_, i) => {
-      const day = i + 1
-      const phase = getPhaseForDay(day, eff.cycleLength, eff.currentPeriodLength)
-      return { day, phase: phase.id, phaseColor: phase.color, hasLog: logDays.has(day) }
-    })
+      const calendar = Array.from({ length: eff.cycleLength }, (_, i) => {
+        const day = i + 1
+        const phase = getPhaseForDay(day, eff.cycleLength, eff.currentPeriodLength)
+        return { day, phase: phase.id, phaseColor: phase.color, hasLog: logDays.has(day) }
+      })
 
-    return reply.send(calendar)
-  })
+      return reply.send(calendar)
+    }
+  )
 }
 
 export default cycleRoutes

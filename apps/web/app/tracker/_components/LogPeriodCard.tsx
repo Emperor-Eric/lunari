@@ -20,7 +20,7 @@ function ymdFromOffset(days: number): string {
 }
 
 /** Compact, on-brand month date picker. Single date; min/max gate selectable days. */
-function DatePicker({
+export function DatePicker({
   value,
   min,
   max,
@@ -43,19 +43,45 @@ function DatePicker({
     ...Array.from({ length: lead }, () => null),
     ...Array.from({ length: getDaysInMonth(view) }, (_, i) => i + 1),
   ]
-  const ymdOf = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  const navBtn: React.CSSProperties = { fontSize: 16, color: gold, width: 24, height: 24, lineHeight: 1, cursor: 'pointer' }
+  const ymdOf = (d: number) =>
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const navBtn: React.CSSProperties = {
+    fontSize: 16,
+    color: gold,
+    width: 24,
+    height: 24,
+    lineHeight: 1,
+    cursor: 'pointer',
+  }
 
   return (
     <div>
       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-        <button type="button" onClick={() => setView((v) => addMonths(v, -1))} aria-label="Previous month" style={navBtn}>‹</button>
-        <span style={{ fontSize: 11.5, color: ink, fontWeight: 600 }}>{format(view, 'MMMM yyyy')}</span>
-        <button type="button" onClick={() => setView((v) => addMonths(v, 1))} aria-label="Next month" style={navBtn}>›</button>
+        <button
+          type="button"
+          onClick={() => setView((v) => addMonths(v, -1))}
+          aria-label="Previous month"
+          style={navBtn}
+        >
+          ‹
+        </button>
+        <span style={{ fontSize: 11.5, color: ink, fontWeight: 600 }}>
+          {format(view, 'MMMM yyyy')}
+        </span>
+        <button
+          type="button"
+          onClick={() => setView((v) => addMonths(v, 1))}
+          aria-label="Next month"
+          style={navBtn}
+        >
+          ›
+        </button>
       </div>
       <div className="grid grid-cols-7" style={{ gap: 2 }}>
         {WEEKDAYS.map((w, i) => (
-          <div key={i} className="text-center" style={{ fontSize: 8, color: sub }}>{w}</div>
+          <div key={i} className="text-center" style={{ fontSize: 8, color: sub }}>
+            {w}
+          </div>
         ))}
         {cells.map((d, i) => {
           if (d === null) return <div key={`b${i}`} />
@@ -89,7 +115,13 @@ function DatePicker({
 }
 
 /** "Log period" control for Today — recalibrates predictions via `onChange`. */
-export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurface; onChange: () => void }) {
+export function LogPeriodCard({
+  surface,
+  onChange,
+}: {
+  surface: PredictionSurface
+  onChange: () => void
+}) {
   const { ink, sub, gold, cardwash, cardbd } = surface
   const [events, setEvents] = useState<PeriodEvent[]>([])
   const [open, setOpen] = useState(false)
@@ -98,8 +130,13 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  const load = () => apiGet<PeriodEvent[]>('/me/period-events').then(setEvents).catch(() => {})
-  useEffect(() => { load() }, [])
+  const load = () =>
+    apiGet<PeriodEvent[]>('/me/period-events')
+      .then(setEvents)
+      .catch(() => {})
+  useEffect(() => {
+    load()
+  }, [])
 
   const mostRecent = events[0] ?? null
   // Open-period detection uses the SHARED rule (same as the calendar).
@@ -110,7 +147,11 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
     setToast({ msg, type })
     setTimeout(() => setToast(null), type === 'error' ? 2800 : 1600)
   }
-  const reset = () => { setOpen(false); setConfirming(false); setSelected(ymdFromOffset(0)) }
+  const reset = () => {
+    setOpen(false)
+    setConfirming(false)
+    setSelected(ymdFromOffset(0))
+  }
 
   const doLogStart = async () => {
     setBusy(true)
@@ -199,8 +240,23 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
     border: `1px solid ${cardbd}`,
     textAlign: 'left',
   }
-  const primaryBtn: React.CSSProperties = { fontSize: 11, fontWeight: 600, padding: '8px 16px', borderRadius: 11, background: gold, color: '#2C2825', opacity: busy ? 0.6 : 1 }
-  const ghostBtn: React.CSSProperties = { fontSize: 11, padding: '8px 14px', borderRadius: 11, background: 'transparent', color: ink, border: `1px solid ${cardbd}` }
+  const primaryBtn: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '8px 16px',
+    borderRadius: 11,
+    background: gold,
+    color: '#2C2825',
+    opacity: busy ? 0.6 : 1,
+  }
+  const ghostBtn: React.CSSProperties = {
+    fontSize: 11,
+    padding: '8px 14px',
+    borderRadius: 11,
+    background: 'transparent',
+    color: ink,
+    border: `1px solid ${cardbd}`,
+  }
 
   const gapDays = mostRecent ? daysBetweenYmd(selected, mostRecent.startDate) : 0
 
@@ -225,7 +281,10 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
                 </button>
               </div>
 
-              <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.18em', color: sub, marginBottom: 8 }}>
+              <div
+                className="uppercase"
+                style={{ fontSize: 9, letterSpacing: '0.18em', color: sub, marginBottom: 8 }}
+              >
                 When did it end?
               </div>
               <DatePicker
@@ -237,8 +296,12 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
               />
 
               <div className="flex" style={{ gap: 8, marginTop: 10 }}>
-                <button onClick={doLogEnd} disabled={busy} style={primaryBtn}>{busy ? 'Saving…' : 'Mark ended'}</button>
-                <button onClick={reset} style={ghostBtn}>Cancel</button>
+                <button onClick={doLogEnd} disabled={busy} style={primaryBtn}>
+                  {busy ? 'Saving…' : 'Mark ended'}
+                </button>
+                <button onClick={reset} style={ghostBtn}>
+                  Cancel
+                </button>
               </div>
             </>
           ) : (
@@ -260,30 +323,45 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
                 </div>
               )}
 
-              <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.18em', color: sub, marginBottom: 8 }}>
+              <div
+                className="uppercase"
+                style={{ fontSize: 9, letterSpacing: '0.18em', color: sub, marginBottom: 8 }}
+              >
                 When did it start?
               </div>
               <DatePicker
                 value={selected}
                 max={ymdFromOffset(0)}
-                onSelect={(v) => { setSelected(v); setConfirming(false) }}
+                onSelect={(v) => {
+                  setSelected(v)
+                  setConfirming(false)
+                }}
                 surface={surface}
               />
 
               {confirming ? (
                 <div style={{ marginTop: 10 }}>
                   <div style={{ fontSize: 11, color: ink, opacity: 0.9 }}>
-                    Only {gapDays} day{gapDays === 1 ? '' : 's'} since your last logged period — log anyway?
+                    Only {gapDays} day{gapDays === 1 ? '' : 's'} since your last logged period — log
+                    anyway?
                   </div>
                   <div className="flex" style={{ gap: 8, marginTop: 8 }}>
-                    <button onClick={doLogStart} disabled={busy} style={primaryBtn}>{busy ? 'Logging…' : 'Log anyway'}</button>
-                    <button onClick={reset} style={ghostBtn}>Cancel</button>
+                    <button onClick={doLogStart} disabled={busy} style={primaryBtn}>
+                      {busy ? 'Logging…' : 'Log anyway'}
+                    </button>
+                    <button onClick={reset} style={ghostBtn}>
+                      Cancel
+                    </button>
                   </div>
                 </div>
               ) : (
                 <div className="flex" style={{ gap: 8, marginTop: 10 }}>
-                  <button onClick={attemptLogStart} disabled={busy} style={primaryBtn}>{busy ? 'Logging…' : 'Log period'}</button>
-                  <button onClick={reset} style={ghostBtn}>Cancel</button>
+                  <button onClick={attemptLogStart} disabled={busy} style={primaryBtn}>
+                    {busy ? 'Logging…' : 'Log period'}
+                  </button>
+                  <button onClick={reset} style={ghostBtn}>
+                    Cancel
+                  </button>
                 </div>
               )}
             </>

@@ -7,12 +7,15 @@ import { Toast } from '@lunari/ui'
 import type { User, UserReferralCode } from '@lunari/types'
 import { apiGet, apiPost, apiDelete } from '@/src/lib/api'
 import { useCycleContext } from '../cycle-context'
+import { CycleSettingsRow } from '../_components/CycleSettingsRow'
 
 // Referral entry turns on with the shop — a code only matters once there's a product.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 
 // Static settings rows — no destination screens exist yet (flagged: not wired).
-const SETTINGS = ['Notifications', 'Phase predictions', 'Connected apps', 'Privacy & data']
+// "Cycle settings" sits between these and is wired (CycleSettingsRow).
+const SETTINGS_TOP = ['Notifications']
+const SETTINGS_BOTTOM = ['Connected apps', 'Privacy & data']
 
 // Cycle order for the mini phase rail (matches phase-data day ranges).
 const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
@@ -22,7 +25,7 @@ const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
 
 export default function ProfilePage() {
   const { signOut } = useAuth()
-  const { cycleData } = useCycleContext()
+  const { cycleData, refresh } = useCycleContext()
 
   const [user, setUser] = useState<User | null>(null)
 
@@ -106,8 +109,10 @@ export default function ProfilePage() {
 
   // "Where you are" — derived from the real proportional phase windows.
   const ranges = getPhaseRanges(cycleDays, periodDays)
-  const currentRange =
-    ranges.find((r) => r.phase === phase.id) ?? { startDay: 1, endDay: cycleDays }
+  const currentRange = ranges.find((r) => r.phase === phase.id) ?? {
+    startDay: 1,
+    endDay: cycleDays,
+  }
   const dayOfPhase = day - currentRange.startDay + 1
   const phaseLength = currentRange.endDay - currentRange.startDay + 1
   const daysUntilNext = currentRange.endDay - day
@@ -115,24 +120,51 @@ export default function ProfilePage() {
   const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
 
   const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
     : '··'
   const memberSince = user?.createdAt ? new Date(user.createdAt).getFullYear() : null
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: t.labBg }}>
       {/* ── HEADER BAND (avatar + name, orbit bottom-right) ── */}
-      <div className="relative overflow-hidden" style={{ background: t.header, color: t.headerText }}>
+      <div
+        className="relative overflow-hidden"
+        style={{ background: t.header, color: t.headerText }}
+      >
         <div
           className="absolute pointer-events-none"
-          style={{ right: -30, bottom: -44, width: 130, height: 130, borderRadius: '50%', border: `1px solid ${t.headerLabel}`, opacity: 0.25 }}
+          style={{
+            right: -30,
+            bottom: -44,
+            width: 130,
+            height: 130,
+            borderRadius: '50%',
+            border: `1px solid ${t.headerLabel}`,
+            opacity: 0.25,
+          }}
           aria-hidden
         />
-        <div className="relative max-w-xl mx-auto px-6 md:px-10" style={{ paddingTop: 18, paddingBottom: 22 }}>
+        <div
+          className="relative max-w-xl mx-auto px-6 md:px-10"
+          style={{ paddingTop: 18, paddingBottom: 22 }}
+        >
           <div className="flex items-center" style={{ gap: 14, marginTop: 6 }}>
             <div
               className="font-display flex items-center justify-center"
-              style={{ width: 54, height: 54, borderRadius: '50%', border: `1px solid ${t.headerLabel}`, color: t.headerLabel, fontSize: 22, flex: '0 0 auto' }}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: '50%',
+                border: `1px solid ${t.headerLabel}`,
+                color: t.headerLabel,
+                fontSize: 22,
+                flex: '0 0 auto',
+              }}
             >
               {initials}
             </div>
@@ -140,8 +172,11 @@ export default function ProfilePage() {
               <div className="font-display" style={{ fontSize: 21, color: t.headerText }}>
                 {user?.name ?? 'Loading…'}
               </div>
-              <div className="font-body" style={{ fontSize: 10.5, fontWeight: 300, color: t.headerLabel, marginTop: 1 }}>
-                {memberSince ? `member since ${memberSince}` : user?.email ?? ''}
+              <div
+                className="font-body"
+                style={{ fontSize: 10.5, fontWeight: 300, color: t.headerLabel, marginTop: 1 }}
+              >
+                {memberSince ? `member since ${memberSince}` : (user?.email ?? '')}
               </div>
             </div>
           </div>
@@ -151,7 +186,10 @@ export default function ProfilePage() {
       {/* ── TINTED BODY ── */}
       <div className="max-w-xl mx-auto px-6 md:px-10 pt-4 pb-10 font-body">
         {/* Cycle stats */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '0 0 11px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '0 0 11px' }}
+        >
           Cycle
         </div>
         <div className="flex" style={{ gap: 9 }}>
@@ -161,10 +199,20 @@ export default function ProfilePage() {
         </div>
 
         {/* Where you are — non-product cycle summary (real data only) */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}
+        >
           Where you are
         </div>
-        <div style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 15, padding: 16 }}>
+        <div
+          style={{
+            background: t.labCard,
+            border: `1px solid ${t.labBorder}`,
+            borderRadius: 15,
+            padding: 16,
+          }}
+        >
           <div className="flex items-baseline justify-between">
             <div className="font-display" style={{ fontSize: 19, color: t.accent }}>
               {t.label}
@@ -186,7 +234,12 @@ export default function ProfilePage() {
               <div
                 key={key}
                 className="flex-1"
-                style={{ height: 6, borderRadius: 3, background: phaseTheme[key].phase, opacity: key === activeKey ? 1 : 0.28 }}
+                style={{
+                  height: 6,
+                  borderRadius: 3,
+                  background: phaseTheme[key].phase,
+                  opacity: key === activeKey ? 1 : 0.28,
+                }}
               />
             ))}
           </div>
@@ -200,27 +253,80 @@ export default function ProfilePage() {
         </div>
 
         {/* Settings (static — no destination screens yet) */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}
+        >
           Settings
         </div>
         <div className="flex flex-col">
-          {SETTINGS.map((label, i) => (
+          {SETTINGS_TOP.map((label) => (
             <div
               key={label}
               className="flex justify-between items-center"
-              style={{ padding: '14px 0', borderBottom: i === SETTINGS.length - 1 ? 'none' : `1px solid ${t.labBorder}`, fontFamily: 'var(--font-display, serif)', fontSize: 15.5, color: N.text }}
+              style={{
+                padding: '14px 0',
+                borderBottom: `1px solid ${t.labBorder}`,
+                fontFamily: 'var(--font-display, serif)',
+                fontSize: 15.5,
+                color: N.text,
+              }}
             >
               <span className="font-display">{label}</span>
-              <span className="font-body" style={{ color: N.chev }}>›</span>
+              <span className="font-body" style={{ color: N.chev }}>
+                ›
+              </span>
+            </div>
+          ))}
+
+          {/* Wired: edit the RAW onboarding cycle, then recalibrate. */}
+          <CycleSettingsRow
+            ink={N.text}
+            sub={N.section}
+            chev={N.chev}
+            gold={t.accent}
+            cardwash={t.labCard}
+            cardbd={t.labBorder}
+            rowBorder={t.labBorder}
+            onSaved={refresh}
+          />
+
+          {SETTINGS_BOTTOM.map((label, i) => (
+            <div
+              key={label}
+              className="flex justify-between items-center"
+              style={{
+                padding: '14px 0',
+                borderBottom:
+                  i === SETTINGS_BOTTOM.length - 1 ? 'none' : `1px solid ${t.labBorder}`,
+                fontFamily: 'var(--font-display, serif)',
+                fontSize: 15.5,
+                color: N.text,
+              }}
+            >
+              <span className="font-display">{label}</span>
+              <span className="font-body" style={{ color: N.chev }}>
+                ›
+              </span>
             </div>
           ))}
         </div>
 
         {/* Data — destructive reset, confirm-gated */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}
+        >
           Data
         </div>
-        <div style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 13, padding: 16 }}>
+        <div
+          style={{
+            background: t.labCard,
+            border: `1px solid ${t.labBorder}`,
+            borderRadius: 13,
+            padding: 16,
+          }}
+        >
           {!confirmClear ? (
             <button
               onClick={() => setConfirmClear(true)}
@@ -231,20 +337,39 @@ export default function ProfilePage() {
             </button>
           ) : (
             <>
-              <div className="font-body" style={{ fontSize: 12, color: N.text, fontWeight: 300, lineHeight: 1.5 }}>
-                This deletes all your logged periods and resets predictions to your onboarding cycle. Continue?
+              <div
+                className="font-body"
+                style={{ fontSize: 12, color: N.text, fontWeight: 300, lineHeight: 1.5 }}
+              >
+                This deletes all your logged periods and resets predictions to your onboarding
+                cycle. Continue?
               </div>
               <div className="flex" style={{ gap: 8, marginTop: 12 }}>
                 <button
                   onClick={clearPeriodHistory}
                   disabled={clearing}
-                  style={{ background: '#7A1E2E', color: '#FBF6EC', borderRadius: 11, padding: '8px 16px', fontSize: 12, fontWeight: 600, opacity: clearing ? 0.6 : 1 }}
+                  style={{
+                    background: '#7A1E2E',
+                    color: '#FBF6EC',
+                    borderRadius: 11,
+                    padding: '8px 16px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    opacity: clearing ? 0.6 : 1,
+                  }}
                 >
                   {clearing ? 'Clearing…' : 'Clear history'}
                 </button>
                 <button
                   onClick={() => setConfirmClear(false)}
-                  style={{ background: 'transparent', color: N.text, border: `1px solid ${t.labBorder}`, borderRadius: 11, padding: '8px 14px', fontSize: 12 }}
+                  style={{
+                    background: 'transparent',
+                    color: N.text,
+                    border: `1px solid ${t.labBorder}`,
+                    borderRadius: 11,
+                    padding: '8px 14px',
+                    fontSize: 12,
+                  }}
                 >
                   Cancel
                 </button>
@@ -256,16 +381,34 @@ export default function ProfilePage() {
         {/* Referral code — gated behind SHOP_ENABLED (off pre-launch) */}
         {SHOP_ENABLED && (
           <>
-            <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}>
+            <div
+              className="uppercase"
+              style={{
+                fontSize: 9,
+                letterSpacing: '0.2em',
+                color: N.section,
+                margin: '20px 0 11px',
+              }}
+            >
               Referral code
             </div>
-            <div style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 13, padding: 16 }}>
+            <div
+              style={{
+                background: t.labCard,
+                border: `1px solid ${t.labBorder}`,
+                borderRadius: 13,
+                padding: 16,
+              }}
+            >
               {savedCode ? (
                 <div className="flex items-center justify-between">
                   <span style={{ fontSize: 13, color: N.text }}>
                     Your code: <strong>{savedCode}</strong>
                   </span>
-                  <button onClick={removeCode} style={{ fontSize: 13, color: t.accent, fontWeight: 600 }}>
+                  <button
+                    onClick={removeCode}
+                    style={{ fontSize: 13, color: t.accent, fontWeight: 600 }}
+                  >
                     Remove
                   </button>
                 </div>
@@ -276,12 +419,28 @@ export default function ProfilePage() {
                     onChange={(e) => setCodeInput(e.target.value)}
                     placeholder="e.g. GYMGIRL20"
                     className="flex-1 uppercase"
-                    style={{ background: t.labBg, border: `1px solid ${t.labBorder}`, borderRadius: 11, padding: '10px 14px', fontSize: 13, color: N.text, outline: 'none' }}
+                    style={{
+                      background: t.labBg,
+                      border: `1px solid ${t.labBorder}`,
+                      borderRadius: 11,
+                      padding: '10px 14px',
+                      fontSize: 13,
+                      color: N.text,
+                      outline: 'none',
+                    }}
                   />
                   <button
                     onClick={applyCode}
                     disabled={applying}
-                    style={{ background: t.accent, color: t.headerText, borderRadius: 11, padding: '0 20px', fontSize: 13, fontWeight: 600, opacity: applying ? 0.6 : 1 }}
+                    style={{
+                      background: t.accent,
+                      color: t.headerText,
+                      borderRadius: 11,
+                      padding: '0 20px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      opacity: applying ? 0.6 : 1,
+                    }}
                   >
                     {applying ? '…' : 'Apply'}
                   </button>
@@ -289,7 +448,15 @@ export default function ProfilePage() {
               )}
               {feedback && (
                 <div
-                  style={{ marginTop: 12, borderRadius: 11, padding: 12, fontSize: 13, fontWeight: 500, background: feedback.type === 'success' ? t.labWhy : '#F5E8EA', color: feedback.type === 'success' ? t.accent : '#7A1E2E' }}
+                  style={{
+                    marginTop: 12,
+                    borderRadius: 11,
+                    padding: 12,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: feedback.type === 'success' ? t.labWhy : '#F5E8EA',
+                    color: feedback.type === 'success' ? t.accent : '#7A1E2E',
+                  }}
                 >
                   {feedback.msg}
                 </div>
@@ -333,10 +500,20 @@ function StatCard({
         padding: 14,
       }}
     >
-      <div className="font-display" style={{ fontSize: 23, color: today ? t.headerText : '#2C2825' }}>
+      <div
+        className="font-display"
+        style={{ fontSize: 23, color: today ? t.headerText : '#2C2825' }}
+      >
         {value}
       </div>
-      <div style={{ fontSize: 8.5, marginTop: 2, color: today ? t.headerText : '#A99E88', opacity: today ? 0.8 : 1 }}>
+      <div
+        style={{
+          fontSize: 8.5,
+          marginTop: 2,
+          color: today ? t.headerText : '#A99E88',
+          opacity: today ? 0.8 : 1,
+        }}
+      >
         {caption}
       </div>
     </div>

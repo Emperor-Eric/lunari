@@ -21,7 +21,7 @@ function ymdFromOffset(days: number): string {
 }
 
 /** Compact, on-brand month date picker. Single date; min/max gate selectable days. */
-function DatePicker({
+export function DatePicker({
   value,
   min,
   max,
@@ -44,7 +44,8 @@ function DatePicker({
     ...Array.from({ length: lead }, () => null),
     ...Array.from({ length: getDaysInMonth(view) }, (_, i) => i + 1),
   ]
-  const ymdOf = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const ymdOf = (d: number) =>
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
   return (
     <View>
@@ -59,7 +60,9 @@ function DatePicker({
       </View>
       <View style={styles.dpWeekRow}>
         {WEEKDAYS.map((w, i) => (
-          <Text key={i} style={[styles.dpWeekday, { color: sub }]}>{w}</Text>
+          <Text key={i} style={[styles.dpWeekday, { color: sub }]}>
+            {w}
+          </Text>
         ))}
       </View>
       <View style={styles.dpGrid}>
@@ -69,9 +72,21 @@ function DatePicker({
           const disabled = (min !== undefined && ymd < min) || ymd > max
           const isSel = ymd === value
           return (
-            <Pressable key={d} disabled={disabled} onPress={() => onSelect(ymd)} style={styles.dpCell}>
+            <Pressable
+              key={d}
+              disabled={disabled}
+              onPress={() => onSelect(ymd)}
+              style={styles.dpCell}
+            >
               <View style={[styles.dpCellInner, { backgroundColor: isSel ? gold : 'transparent' }]}>
-                <Text style={[styles.dpCellNum, { color: isSel ? '#2C2825' : ink, opacity: disabled ? 0.3 : 1 }]}>{d}</Text>
+                <Text
+                  style={[
+                    styles.dpCellNum,
+                    { color: isSel ? '#2C2825' : ink, opacity: disabled ? 0.3 : 1 },
+                  ]}
+                >
+                  {d}
+                </Text>
               </View>
             </Pressable>
           )
@@ -82,7 +97,13 @@ function DatePicker({
 }
 
 /** "Log period" control for Today — recalibrates predictions via `onChange`. */
-export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurface; onChange: () => void }) {
+export function LogPeriodCard({
+  surface,
+  onChange,
+}: {
+  surface: PredictionSurface
+  onChange: () => void
+}) {
   const { session } = useAuth()
   const { ink, sub, gold, cardwash, cardbd } = surface
   const [events, setEvents] = useState<PeriodEvent[]>([])
@@ -93,7 +114,10 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const authHeaders = useCallback(
-    () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` }),
+    () => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token}`,
+    }),
     [session]
   )
 
@@ -107,7 +131,9 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
     }
   }, [session, authHeaders])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   const mostRecent = events[0] ?? null
   // Open-period detection uses the SHARED rule (same as the calendar).
@@ -118,7 +144,11 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
     setToast({ msg, type })
     setTimeout(() => setToast(null), type === 'error' ? 2800 : 1600)
   }
-  const reset = () => { setOpen(false); setConfirming(false); setSelected(ymdFromOffset(0)) }
+  const reset = () => {
+    setOpen(false)
+    setConfirming(false)
+    setSelected(ymdFromOffset(0))
+  }
 
   const doLogStart = async () => {
     if (!session) return
@@ -186,7 +216,10 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
         onChange()
         flash('Reopened', 'success')
       } else {
-        const r = await fetch(`${API_URL}/me/period-events/${mostRecent.id}`, { method: 'DELETE', headers: authHeaders() })
+        const r = await fetch(`${API_URL}/me/period-events/${mostRecent.id}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        })
         if (!r.ok) throw new Error('undo failed')
         await load()
         onChange()
@@ -207,10 +240,15 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
       <View style={styles.triggerRow}>
         <Pressable
           onPress={() => setOpen((o) => !o)}
-          style={[styles.trigger, { borderColor: gold, backgroundColor: open ? cardwash : 'transparent' }]}
+          style={[
+            styles.trigger,
+            { borderColor: gold, backgroundColor: open ? cardwash : 'transparent' },
+          ]}
         >
           <View style={[styles.triggerDot, { backgroundColor: gold }]} />
-          <Text style={[styles.triggerText, { color: gold }]}>{openPeriod ? 'Period ended' : 'Log period'}</Text>
+          <Text style={[styles.triggerText, { color: gold }]}>
+            {openPeriod ? 'Period ended' : 'Log period'}
+          </Text>
         </Pressable>
       </View>
 
@@ -227,7 +265,9 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
                 </Text>
               </Text>
 
-              <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>When did it end?</Text>
+              <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>
+                When did it end?
+              </Text>
               <DatePicker
                 value={selected}
                 min={openStartDate}
@@ -237,7 +277,11 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
               />
 
               <View style={[styles.actions, { marginTop: 10 }]}>
-                <Pressable onPress={doLogEnd} disabled={busy} style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}>
+                <Pressable
+                  onPress={doLogEnd}
+                  disabled={busy}
+                  style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}
+                >
                   <Text style={styles.primaryText}>{busy ? 'Saving…' : 'Mark ended'}</Text>
                 </Pressable>
                 <Pressable onPress={reset} style={[styles.ghostBtn, { borderColor: cardbd }]}>
@@ -259,24 +303,39 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
                   </Text>
                 </Text>
               ) : (
-                <Text style={[styles.hint, { color: sub }]}>Log the day your period starts to keep predictions accurate.</Text>
+                <Text style={[styles.hint, { color: sub }]}>
+                  Log the day your period starts to keep predictions accurate.
+                </Text>
               )}
 
-              <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>When did it start?</Text>
+              <Text style={[styles.fieldLabel, styles.fieldGap, { color: sub }]}>
+                When did it start?
+              </Text>
               <DatePicker
                 value={selected}
                 max={ymdFromOffset(0)}
-                onSelect={(v) => { setSelected(v); setConfirming(false) }}
+                onSelect={(v) => {
+                  setSelected(v)
+                  setConfirming(false)
+                }}
                 surface={surface}
               />
 
               {confirming ? (
                 <View style={{ marginTop: 10 }}>
                   <Text style={[styles.warn, { color: ink }]}>
-                    Only {gapDays} day{gapDays === 1 ? '' : 's'} since your last logged period — log anyway?
+                    Only {gapDays} day{gapDays === 1 ? '' : 's'} since your last logged period — log
+                    anyway?
                   </Text>
                   <View style={styles.actions}>
-                    <Pressable onPress={doLogStart} disabled={busy} style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}>
+                    <Pressable
+                      onPress={doLogStart}
+                      disabled={busy}
+                      style={[
+                        styles.primaryBtn,
+                        { backgroundColor: gold, opacity: busy ? 0.6 : 1 },
+                      ]}
+                    >
                       <Text style={styles.primaryText}>{busy ? 'Logging…' : 'Log anyway'}</Text>
                     </Pressable>
                     <Pressable onPress={reset} style={[styles.ghostBtn, { borderColor: cardbd }]}>
@@ -286,7 +345,11 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
                 </View>
               ) : (
                 <View style={[styles.actions, { marginTop: 10 }]}>
-                  <Pressable onPress={attemptLogStart} disabled={busy} style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}>
+                  <Pressable
+                    onPress={attemptLogStart}
+                    disabled={busy}
+                    style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}
+                  >
                     <Text style={styles.primaryText}>{busy ? 'Logging…' : 'Log period'}</Text>
                   </Pressable>
                   <Pressable onPress={reset} style={[styles.ghostBtn, { borderColor: cardbd }]}>
@@ -306,18 +369,37 @@ export function LogPeriodCard({ surface, onChange }: { surface: PredictionSurfac
 
 const styles = StyleSheet.create({
   triggerRow: { alignItems: 'center' },
-  trigger: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingHorizontal: 17, borderRadius: 999, borderWidth: 1 },
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 8,
+    paddingHorizontal: 17,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   triggerDot: { width: 7, height: 7, borderRadius: 999 },
   triggerText: { fontFamily: 'Raleway_600SemiBold', fontSize: 11.5, letterSpacing: 0.4 },
   panel: { marginTop: 10, padding: 16, borderRadius: 14, borderWidth: 1 },
   link: { fontFamily: 'Raleway_600SemiBold', fontSize: 10.5 },
   subline: { fontFamily: 'Raleway_400Regular', fontSize: 11 },
   hint: { fontFamily: 'Raleway_300Light', fontSize: 11 },
-  fieldLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 8 },
+  fieldLabel: {
+    fontFamily: 'Raleway_500Medium',
+    fontSize: 9,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
   fieldGap: { marginTop: 10 },
 
   // date picker
-  dpHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  dpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   dpNav: { fontFamily: 'Raleway_600SemiBold', fontSize: 18, width: 24, textAlign: 'center' },
   dpMonth: { fontFamily: 'Raleway_600SemiBold', fontSize: 11.5 },
   dpWeekRow: { flexDirection: 'row' },
