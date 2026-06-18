@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity, Pressable, FlatList, TextInput, StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
+  FlatList,
+  TextInput,
+  StyleSheet,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -10,6 +17,14 @@ import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LogCard, EmptyState, Toast, LoadingSpinner } from '@lunari/ui'
 import type { SymptomLog, TodayCycleResponse } from '@lunari/types'
+import { InsightsView } from '../../src/components/InsightsView'
+
+type LogTab = 'today' | 'history' | 'insights'
+const SEG_LABEL: Record<LogTab, string> = {
+  today: 'Today',
+  history: 'History',
+  insights: 'Insights',
+}
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -33,7 +48,7 @@ function headerStops(css: string): string[] {
 
 export default function Log() {
   const { session } = useAuth()
-  const [tab, setTab] = useState<'today' | 'history'>('today')
+  const [tab, setTab] = useState<LogTab>('today')
 
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
 
@@ -73,7 +88,9 @@ export default function Log() {
   // Prefill the form from today's saved entry — edit it instead of starting blank.
   useEffect(() => {
     if (!session) return
-    fetch(`${API_URL}/me/logs/today`, { headers: { Authorization: `Bearer ${session.access_token}` } })
+    fetch(`${API_URL}/me/logs/today`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((log: SymptomLog | null) => {
         if (!log) return
@@ -87,34 +104,37 @@ export default function Log() {
       .catch(() => {})
   }, [session])
 
-  const fetchHistory = useCallback(async (pageNum = 1) => {
-    if (!session) return
-    setHistoryLoading(true)
-    if (pageNum === 1) setHistoryError(false)
-    // Time out a hanging request so it surfaces as an error instead of an
-    // endless spinner.
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
-    try {
-      const res = await fetch(`${API_URL}/me/logs?page=${pageNum}&perPage=20`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        signal: controller.signal,
-      })
-      if (!res.ok) throw new Error(`Request failed (${res.status})`)
-      const data = await res.json()
-      const rows: SymptomLog[] = Array.isArray(data?.data) ? data.data : []
-      setLogs((prev) => (pageNum === 1 ? rows : [...prev, ...rows]))
-      setHasMore(rows.length === 20)
-    } catch {
-      // Any failure (non-OK, network, timeout, bad shape) → recoverable error,
-      // never an infinite spinner.
-      if (pageNum === 1) setHistoryError(true)
-      setHasMore(false)
-    } finally {
-      clearTimeout(timeout)
-      setHistoryLoading(false)
-    }
-  }, [session])
+  const fetchHistory = useCallback(
+    async (pageNum = 1) => {
+      if (!session) return
+      setHistoryLoading(true)
+      if (pageNum === 1) setHistoryError(false)
+      // Time out a hanging request so it surfaces as an error instead of an
+      // endless spinner.
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15000)
+      try {
+        const res = await fetch(`${API_URL}/me/logs?page=${pageNum}&perPage=20`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        const data = await res.json()
+        const rows: SymptomLog[] = Array.isArray(data?.data) ? data.data : []
+        setLogs((prev) => (pageNum === 1 ? rows : [...prev, ...rows]))
+        setHasMore(rows.length === 20)
+      } catch {
+        // Any failure (non-OK, network, timeout, bad shape) → recoverable error,
+        // never an infinite spinner.
+        if (pageNum === 1) setHistoryError(true)
+        setHasMore(false)
+      } finally {
+        clearTimeout(timeout)
+        setHistoryLoading(false)
+      }
+    },
+    [session]
+  )
 
   const loadHistory = useCallback(() => {
     setPage(1)
@@ -135,11 +155,21 @@ export default function Log() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ symptoms, mood, energyLevel: energy, sleepHours: sleep, waterGlasses: water, journalNote: journal }),
+        body: JSON.stringify({
+          symptoms,
+          mood,
+          energyLevel: energy,
+          sleepHours: sleep,
+          waterGlasses: water,
+          journalNote: journal,
+        }),
       })
       if (!res.ok) throw new Error('Save failed')
       setToast({ msg: 'Logged ✓', type: 'success' })
-      setTimeout(() => { setTab('history'); setToast(null) }, 1500)
+      setTimeout(() => {
+        setTab('history')
+        setToast(null)
+      }, 1500)
     } catch {
       setToast({ msg: 'Something went wrong', type: 'error' })
     } finally {
@@ -154,10 +184,18 @@ export default function Log() {
   const toggleSymptom = (s: string) =>
     setSymptoms((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
 
-  const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })
+  const dateLabel = new Date().toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'long',
+    day: 'numeric',
+  })
   const solid12 = `${t.accent}1F`
   const stops = headerStops(t.header)
-  const headerColors = (stops.length >= 2 ? stops : [t.headerLabel, t.headerLabel]) as [string, string, ...string[]]
+  const headerColors = (stops.length >= 2 ? stops : [t.headerLabel, t.headerLabel]) as [
+    string,
+    string,
+    ...string[],
+  ]
 
   return (
     <View style={{ flex: 1, backgroundColor: t.labBg }}>
@@ -170,7 +208,7 @@ export default function Log() {
           </Text>
           {/* segmented control kept for the existing History view */}
           <View style={[styles.segmented, { backgroundColor: solid12 }]}>
-            {(['today', 'history'] as const).map((seg) => {
+            {(['today', 'history', 'insights'] as const).map((seg) => {
               const on = tab === seg
               return (
                 <TouchableOpacity
@@ -180,7 +218,7 @@ export default function Log() {
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.segmentText, { color: on ? t.accent : t.headerText }]}>
-                    {seg === 'today' ? 'Today' : 'History'}
+                    {SEG_LABEL[seg]}
                   </Text>
                 </TouchableOpacity>
               )
@@ -202,10 +240,15 @@ export default function Log() {
                   onPress={() => toggleSymptom(s)}
                   style={[
                     styles.chip,
-                    { backgroundColor: active ? t.accent : t.labCard, borderColor: active ? 'transparent' : t.labBorder },
+                    {
+                      backgroundColor: active ? t.accent : t.labCard,
+                      borderColor: active ? 'transparent' : t.labBorder,
+                    },
                   ]}
                 >
-                  <Text style={[styles.chipText, { color: active ? t.headerText : N.idleText }]}>{s}</Text>
+                  <Text style={[styles.chipText, { color: active ? t.headerText : N.idleText }]}>
+                    {s}
+                  </Text>
                 </Pressable>
               )
             })}
@@ -223,10 +266,15 @@ export default function Log() {
                   onPress={() => setMood(val)}
                   style={[
                     styles.mood,
-                    { backgroundColor: active ? solid12 : t.labCard, borderColor: active ? t.accent : t.labBorder },
+                    {
+                      backgroundColor: active ? solid12 : t.labCard,
+                      borderColor: active ? t.accent : t.labBorder,
+                    },
                   ]}
                 >
-                  <Text style={[styles.moodText, { color: active ? t.accent : N.idleText }]}>{label}</Text>
+                  <Text style={[styles.moodText, { color: active ? t.accent : N.idleText }]}>
+                    {label}
+                  </Text>
                 </Pressable>
               )
             })}
@@ -252,7 +300,9 @@ export default function Log() {
 
           {/* Sleep + Water readouts */}
           <View style={styles.readouts}>
-            <View style={[styles.readout, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
+            <View
+              style={[styles.readout, { backgroundColor: t.labCard, borderColor: t.labBorder }]}
+            >
               <View style={styles.readoutHead}>
                 <Text style={[styles.readoutLabel, { color: N.section }]}>Sleep</Text>
                 <Stepper
@@ -268,7 +318,9 @@ export default function Log() {
               </Text>
             </View>
 
-            <View style={[styles.readout, { backgroundColor: t.labCard, borderColor: t.labBorder }]}>
+            <View
+              style={[styles.readout, { backgroundColor: t.labCard, borderColor: t.labBorder }]}
+            >
               <View style={styles.readoutHead}>
                 <Text style={[styles.readoutLabel, { color: N.section }]}>Water</Text>
                 <Stepper
@@ -293,7 +345,10 @@ export default function Log() {
             placeholder="Anything you want to remember about today…"
             placeholderTextColor={N.unit}
             multiline
-            style={[styles.notes, { backgroundColor: t.labCard, borderColor: t.labBorder, color: N.value }]}
+            style={[
+              styles.notes,
+              { backgroundColor: t.labCard, borderColor: t.labBorder, color: N.value },
+            ]}
           />
 
           {/* Save */}
@@ -303,9 +358,13 @@ export default function Log() {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <Text style={[styles.saveText, { color: t.headerText }]}>{saving ? 'Saving…' : 'Save check-in'}</Text>
+            <Text style={[styles.saveText, { color: t.headerText }]}>
+              {saving ? 'Saving…' : 'Save check-in'}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
+      ) : tab === 'insights' ? (
+        <InsightsView t={t} />
       ) : historyLoading && logs.length === 0 ? (
         <LoadingSpinner phaseColor={t.accent} />
       ) : historyError && logs.length === 0 ? (
@@ -323,7 +382,10 @@ export default function Log() {
           </TouchableOpacity>
         </View>
       ) : logs.length === 0 ? (
-        <EmptyState title="No logs yet" subtitle="Your check-ins will appear here after you start tracking." />
+        <EmptyState
+          title="No logs yet"
+          subtitle="Your check-ins will appear here after you start tracking."
+        />
       ) : (
         <FlatList
           data={logs}
@@ -359,7 +421,10 @@ function Stepper({
 }) {
   return (
     <View style={styles.stepper}>
-      <Pressable onPress={onMinus} style={[styles.stepBtn, { borderWidth: 1, borderColor: N.minusBd }]}>
+      <Pressable
+        onPress={onMinus}
+        style={[styles.stepBtn, { borderWidth: 1, borderColor: N.minusBd }]}
+      >
         <Text style={[styles.stepGlyph, { color: N.minusGlyph }]}>−</Text>
       </Pressable>
       <Pressable onPress={onPlus} style={[styles.stepBtn, { backgroundColor: accent }]}>
@@ -382,7 +447,13 @@ const styles = StyleSheet.create({
 
   // body
   body: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40 },
-  fieldLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 10 },
+  fieldLabel: {
+    fontFamily: 'Raleway_500Medium',
+    fontSize: 9,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+  },
   gap: { marginTop: 20 },
 
   // chips
@@ -403,13 +474,24 @@ const styles = StyleSheet.create({
   readouts: { flexDirection: 'row', gap: 11, marginTop: 20 },
   readout: { flex: 1, borderRadius: 13, borderWidth: 1, padding: 13 },
   readoutHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  readoutLabel: { fontFamily: 'Raleway_500Medium', fontSize: 8.5, letterSpacing: 0.8, textTransform: 'uppercase' },
+  readoutLabel: {
+    fontFamily: 'Raleway_500Medium',
+    fontSize: 8.5,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
   readoutValue: { fontFamily: 'Marcellus_400Regular', fontSize: 21, marginTop: 3 },
   readoutUnit: { fontFamily: 'Raleway_400Regular', fontSize: 10 },
 
   // stepper
   stepper: { flexDirection: 'row', gap: 6 },
-  stepBtn: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  stepBtn: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stepGlyph: { fontSize: 12, lineHeight: 14, fontWeight: '500' },
 
   // notes
@@ -426,11 +508,22 @@ const styles = StyleSheet.create({
 
   // save
   save: { marginTop: 22, borderRadius: 13, paddingVertical: 15, alignItems: 'center' },
-  saveText: { fontFamily: 'Raleway_600SemiBold', fontSize: 12, letterSpacing: 1.2, textTransform: 'uppercase' },
+  saveText: {
+    fontFamily: 'Raleway_600SemiBold',
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
 
   // history
   historyList: { padding: 20, gap: 10 },
   historyState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  retryBtn: { marginTop: 4, borderWidth: 1.5, borderRadius: 9999, paddingVertical: 10, paddingHorizontal: 26 },
+  retryBtn: {
+    marginTop: 4,
+    borderWidth: 1.5,
+    borderRadius: 9999,
+    paddingVertical: 10,
+    paddingHorizontal: 26,
+  },
   retryText: { fontFamily: 'Raleway_600SemiBold', fontSize: 13 },
 })

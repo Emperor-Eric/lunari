@@ -8,6 +8,9 @@ export {
   getPhaseRanges,
   getCyclePrediction,
   getEffectiveCycle,
+  getCycleRhythm,
+  cycleLengthGaps,
+  endedPeriodLengths,
 } from './helpers'
 export type {
   ContainerInfo,
@@ -16,6 +19,7 @@ export type {
   CycleSettingsInput,
   PeriodEventInput,
   EffectiveCycle,
+  CycleRhythm,
 } from './helpers'
 export {
   daysBetweenYmd,

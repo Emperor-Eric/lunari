@@ -104,6 +104,39 @@ export interface TodayCycleResponse {
   periodLength: number
 }
 
+// ─── Insights (GET /me/insights) ──────────────────────────────────────────────
+
+export type RegularityLabel = 'regular' | 'somewhat variable' | 'still settling'
+
+export interface InsightsCycleRhythm {
+  enough: boolean // >=2 logged starts producing >=1 plausible gap
+  avgCycleLength: number | null
+  cycleVariation: number | null // ± days
+  regularity: RegularityLabel | null
+  recentCycleLengths: number[] // up to 6, oldest → newest
+  hasPeriodLength: boolean // >=1 ended period
+  avgPeriodLength: number | null
+}
+
+export interface InsightsPhasePattern {
+  phase: PhaseId
+  enough: boolean // >=1 log in this phase
+  logCount: number
+  topSymptoms: { symptom: string; count: number }[] // most-logged first, up to 3
+  avgMood: number | null // 1–5
+  avgEnergy: number | null // 1–10
+}
+
+export interface InsightsResponse {
+  cycleRhythm: InsightsCycleRhythm
+  phasePatterns: InsightsPhasePattern[] // always 4, in cycle order
+  energyPeak: PhaseId | null // phase with highest avg energy (null if no contrast)
+  energyDip: PhaseId | null // phase with lowest avg energy
+  moodPeak: PhaseId | null
+  moodDip: PhaseId | null
+  consistency: { daysLogged: number; windowDays: number }
+}
+
 // ─── Prediction (proportional phase model) ────────────────────────────────────
 
 export interface PhaseRange {

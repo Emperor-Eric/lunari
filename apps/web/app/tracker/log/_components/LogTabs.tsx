@@ -11,6 +11,7 @@ import { useCycleContext } from '../../cycle-context'
 const TABS = [
   { label: 'Today', href: '/tracker/log' },
   { label: 'History', href: '/tracker/log/history' },
+  { label: 'Insights', href: '/tracker/log/insights' },
 ] as const
 
 export function LogTabs() {
@@ -22,7 +23,14 @@ export function LogTabs() {
   return (
     <div
       className="flex"
-      style={{ marginTop: 14, width: '100%', maxWidth: 280, background: `${t.accent}1F`, borderRadius: 9999, padding: 3 }}
+      style={{
+        marginTop: 14,
+        width: '100%',
+        maxWidth: 340,
+        background: `${t.accent}1F`,
+        borderRadius: 9999,
+        padding: 3,
+      }}
     >
       {TABS.map((tab) => {
         const active = pathname === tab.href

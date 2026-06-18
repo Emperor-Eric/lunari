@@ -12,6 +12,7 @@ import meRoutes from './routes/me'
 import cycleRoutes from './routes/cycle'
 import periodEventRoutes from './routes/period-events'
 import logsRoutes from './routes/logs'
+import insightsRoutes from './routes/insights'
 import referralRoutes from './routes/referral'
 import productsRoutes from './routes/products'
 import checkoutRoutes from './routes/checkout'
@@ -43,6 +44,7 @@ export async function buildApp() {
   await app.register(cycleRoutes, v1Prefix)
   await app.register(periodEventRoutes, v1Prefix)
   await app.register(logsRoutes, v1Prefix)
+  await app.register(insightsRoutes, v1Prefix)
   await app.register(referralRoutes, v1Prefix)
   await app.register(productsRoutes, v1Prefix)
   await app.register(checkoutRoutes, v1Prefix)

@@ -137,11 +137,7 @@ export function getAllPhases(): Phase[] {
  * @param today - optional ISO date string override (defaults to today)
  * @param cycleLength - cycle length in days (default 28)
  */
-export function getDayInCycle(
-  cycleStartDate: string,
-  today?: string,
-  cycleLength = 28
-): number {
+export function getDayInCycle(cycleStartDate: string, today?: string, cycleLength = 28): number {
   const L = Math.max(1, Math.round(cycleLength))
   const start = parseDate(cycleStartDate)
   const current = today ? parseDate(today) : parseDate(new Date())
@@ -164,8 +160,7 @@ export function getCurrentContainer(
   if (d < 1) d = 1
   if (d > L) d = L
   const ranges = getPhaseRanges(L, periodLength)
-  const match =
-    ranges.find((r) => d >= r.startDay && d <= r.endDay) ?? ranges[ranges.length - 1]
+  const match = ranges.find((r) => d >= r.startDay && d <= r.endDay) ?? ranges[ranges.length - 1]
   const phase = getPhaseById(match.phase)
   const daysRemaining = match.endDay - d
   return {
@@ -206,6 +201,34 @@ export interface EffectiveCycle {
 }
 
 /**
+ * Valid start-to-start gaps (whole days) between consecutive logged periods, ordered
+ * oldest → newest and kept to the plausible [21, 45] range. The shared basis for both
+ * the learned cycle length and the Insights "cycle rhythm" stats.
+ */
+export function cycleLengthGaps(periodEvents: PeriodEventInput[]): number[] {
+  const dates = periodEvents
+    .map((e) => parseDate(e.startDate))
+    .sort((a, b) => a.getTime() - b.getTime())
+  const gaps: number[] = []
+  for (let i = 1; i < dates.length; i++) gaps.push(diffDays(dates[i], dates[i - 1]))
+  return gaps.filter((g) => g >= 21 && g <= 45)
+}
+
+/**
+ * Inclusive lengths (whole days) of ENDED logged periods (start + end logged), ordered
+ * oldest → newest and kept to the plausible [2, 10] range. The shared basis for both the
+ * learned period length and the Insights "period runs about N days" stat.
+ */
+export function endedPeriodLengths(periodEvents: PeriodEventInput[]): number[] {
+  return periodEvents
+    .filter((e) => e.endDate != null)
+    .map((e) => ({ start: parseDate(e.startDate), end: parseDate(e.endDate as string | Date) }))
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+    .map((p) => diffDays(p.end, p.start) + 1)
+    .filter((n) => n >= 2 && n <= 10)
+}
+
+/**
  * The SINGLE source of truth for predictions. Real logged period events override
  * the onboarding Cycle (which is never mutated):
  *   • anchorDate  = most recent period-event start; else cycleSettings.startDate.
@@ -239,28 +262,18 @@ export function getEffectiveCycle(
     ? toISODate(dates[dates.length - 1])
     : toISODate(parseDate(settings.startDate))
 
-  // cycleLength — learned from start-to-start gaps.
+  // cycleLength — learned from start-to-start gaps (up to 6 most recent valid).
   let cycleLength = settings.cycleLength
-  if (dates.length >= 2) {
-    const gaps: number[] = []
-    for (let i = 1; i < dates.length; i++) gaps.push(diffDays(dates[i], dates[i - 1]))
-    const recentValid = gaps.filter((g) => g >= 21 && g <= 45).slice(-6)
-    if (recentValid.length >= 1) {
-      const mean = recentValid.reduce((s, g) => s + g, 0) / recentValid.length
-      cycleLength = Math.min(45, Math.max(21, Math.round(mean)))
-    }
+  const recentValid = cycleLengthGaps(periodEvents).slice(-6)
+  if (recentValid.length >= 1) {
+    const mean = recentValid.reduce((s, g) => s + g, 0) / recentValid.length
+    cycleLength = Math.min(45, Math.max(21, Math.round(mean)))
   }
 
   // periodLength — learned-average from ended periods (inclusive day count). Used to
   // PROJECT future cycles.
   let periodLength = settings.periodLength
-  const lengths = periodEvents
-    .filter((e) => e.endDate != null)
-    .map((e) => ({ start: parseDate(e.startDate), end: parseDate(e.endDate as string | Date) }))
-    .sort((a, b) => a.start.getTime() - b.start.getTime())
-    .map((p) => diffDays(p.end, p.start) + 1)
-    .filter((n) => n >= 2 && n <= 10)
-    .slice(-6)
+  const lengths = endedPeriodLengths(periodEvents).slice(-6)
   if (lengths.length >= 1) {
     const mean = lengths.reduce((s, n) => s + n, 0) / lengths.length
     periodLength = Math.min(10, Math.max(2, Math.round(mean)))
@@ -291,6 +304,73 @@ export function getEffectiveCycle(
   }
 
   return { anchorDate, cycleLength, periodLength, currentPeriodLength }
+}
+
+// ─── Cycle rhythm (insights) ─────────────────────────────────────────────────
+
+export interface CycleRhythm {
+  /** True once there are >=2 logged starts producing >=1 plausible gap. */
+  hasCycleData: boolean
+  /** Rounded mean of recent cycle lengths, clamped [21,45]; null when insufficient. */
+  avgCycleLength: number | null
+  /** ± spread (days) of recent cycle lengths = round((max-min)/2); null when insufficient. */
+  cycleVariation: number | null
+  regularity: 'regular' | 'somewhat variable' | 'still settling' | null
+  /** The recent cycle lengths themselves (up to 6, oldest → newest). */
+  recentCycleLengths: number[]
+  /** True once there is >=1 ended period. */
+  hasPeriodData: boolean
+  /** Rounded mean of recent period lengths, clamped [2,10]; null when insufficient. */
+  avgPeriodLength: number | null
+  recentPeriodLengths: number[]
+}
+
+/**
+ * Body-literacy "cycle rhythm" stats from logged period events — reuses the exact
+ * learned-length basis as `getEffectiveCycle` ([21,45] gaps, [2,10] ended lengths, up to
+ * 6 most recent) and adds the spread/regularity the Insights view needs. Pure; no I/O.
+ */
+export function getCycleRhythm(periodEvents: PeriodEventInput[] = []): CycleRhythm {
+  const recentCycleLengths = cycleLengthGaps(periodEvents).slice(-6)
+  const hasCycleData = recentCycleLengths.length >= 1
+  let avgCycleLength: number | null = null
+  let cycleVariation: number | null = null
+  let regularity: CycleRhythm['regularity'] = null
+  if (hasCycleData) {
+    const mean = recentCycleLengths.reduce((s, g) => s + g, 0) / recentCycleLengths.length
+    avgCycleLength = Math.min(45, Math.max(21, Math.round(mean)))
+    const min = Math.min(...recentCycleLengths)
+    const max = Math.max(...recentCycleLengths)
+    cycleVariation = Math.round((max - min) / 2)
+    const spread = max - min
+    regularity =
+      recentCycleLengths.length < 2
+        ? 'still settling' // a single gap can't show variability yet
+        : spread <= 3
+          ? 'regular'
+          : spread <= 7
+            ? 'somewhat variable'
+            : 'still settling'
+  }
+
+  const recentPeriodLengths = endedPeriodLengths(periodEvents).slice(-6)
+  const hasPeriodData = recentPeriodLengths.length >= 1
+  let avgPeriodLength: number | null = null
+  if (hasPeriodData) {
+    const mean = recentPeriodLengths.reduce((s, n) => s + n, 0) / recentPeriodLengths.length
+    avgPeriodLength = Math.min(10, Math.max(2, Math.round(mean)))
+  }
+
+  return {
+    hasCycleData,
+    avgCycleLength,
+    cycleVariation,
+    regularity,
+    recentCycleLengths,
+    hasPeriodData,
+    avgPeriodLength,
+    recentPeriodLengths,
+  }
 }
 
 // ─── Prediction ──────────────────────────────────────────────────────────────
