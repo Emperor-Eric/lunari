@@ -1,23 +1,28 @@
 'use client'
 import { useEffect } from 'react'
-import { getSupabaseClient } from '@lunari/utils'
-import { useAuth } from '@lunari/utils'
+import { getSupabaseClient, useAuth, useUser } from '@lunari/utils'
 
 export default function AuthCallback() {
   const { setSession } = useAuth()
+  const { fetchUser } = useUser()
 
   useEffect(() => {
     const supabase = getSupabaseClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session)
-        // Hard navigation so middleware re-runs with the OAuth session cookie
-        window.location.assign('/tracker')
-      } else {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) {
         window.location.assign('/auth/login')
+        return
       }
+      setSession(session)
+      // Route un-onboarded users to onboarding (mirrors the email/password flow)
+      // rather than always landing on the tracker.
+      await fetchUser()
+      const { user } = useUser.getState()
+      const destination = user?.onboardedAt ? '/tracker' : '/onboarding'
+      // Hard navigation so middleware re-runs with the OAuth session cookie.
+      window.location.assign(destination)
     })
-  }, [setSession])
+  }, [setSession, fetchUser])
 
   return (
     <div className="min-h-screen bg-brand-cream flex items-center justify-center">

@@ -17,7 +17,6 @@ interface AuthState {
   signUpWithEmail: (email: string, password: string, name?: string) => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
-  signInWithApple: () => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
   setSession: (session: Session | null) => void
@@ -31,8 +30,7 @@ export const useAuth = create<AuthState>((set) => ({
 
   clearError: () => set({ error: null }),
 
-  setSession: (session) =>
-    set({ session, supabaseUser: session?.user ?? null }),
+  setSession: (session) => set({ session, supabaseUser: session?.user ?? null }),
 
   signUpWithEmail: async (email, password, name) => {
     set({ isLoading: true, error: null })
@@ -104,11 +102,6 @@ export const useAuth = create<AuthState>((set) => ({
     } finally {
       set({ isLoading: false })
     }
-  },
-
-  signInWithApple: async () => {
-    // Stub — implemented in Phase 5 with expo-apple-authentication
-    set({ error: 'Apple sign in coming soon' })
   },
 
   signOut: async () => {

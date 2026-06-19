@@ -1,15 +1,12 @@
 import React, { useState } from 'react'
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
-} from 'react-native'
+import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useAuth } from '@lunari/utils'
-import { useUser } from '@lunari/utils'
+import { useAuth, useUser } from '@lunari/utils'
 import { Toast } from '@lunari/ui'
+import { AuthFormShell, authColors, styles as a } from '../../src/components/AuthChrome'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -23,9 +20,11 @@ export default function Login() {
   const { fetchUser } = useUser()
   const [showPw, setShowPw] = useState(false)
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  })
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({ resolver: zodResolver(schema) })
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -37,122 +36,83 @@ export default function Login() {
       } else {
         router.replace('/(tabs)')
       }
-    } catch { /* error set in store */ }
+    } catch {
+      /* error set in store */
+    }
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
+    <AuthFormShell
+      subtitle="Sign in to return to your sanctuary."
+      onBack={() => router.back()}
+      overlay={error ? <Toast message={error} type="error" /> : null}
+    >
+      <TouchableOpacity style={a.googleBtn} onPress={signInWithGoogle} activeOpacity={0.85}>
+        <Text style={a.googleBtnText}>Continue with Google</Text>
+      </TouchableOpacity>
 
-          <Text style={styles.heading}>Welcome back</Text>
+      <View style={a.divider}>
+        <View style={a.dividerLine} />
+        <Text style={a.dividerText}>or sign in with email</Text>
+        <View style={a.dividerLine} />
+      </View>
 
-          <TouchableOpacity style={styles.googleBtn} onPress={signInWithGoogle} activeOpacity={0.85}>
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or sign in with email</Text>
-            <View style={styles.dividerLine} />
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { value, onChange, onBlur } }) => (
+          <View style={a.fieldWrap}>
+            <TextInput
+              style={[a.input, errors.email && a.inputError]}
+              placeholder="Email address"
+              placeholderTextColor={authColors.inkSoft}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {errors.email && <Text style={a.errorText}>{errors.email.message}</Text>}
           </View>
+        )}
+      />
 
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <View style={styles.fieldWrap}>
-                <TextInput
-                  style={[styles.input, errors.email && styles.inputError]}
-                  placeholder="Email address"
-                  placeholderTextColor="#6B6460"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
-              </View>
-            )}
-          />
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { value, onChange, onBlur } }) => (
+          <View style={a.fieldWrap}>
+            <View style={a.pwRow}>
+              <TextInput
+                style={[a.input, a.inputFlex, errors.password && a.inputError]}
+                placeholder="Password"
+                placeholderTextColor={authColors.inkSoft}
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                secureTextEntry={!showPw}
+              />
+              <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={a.eyeBtn}>
+                <Text style={a.eyeText}>{showPw ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+            {errors.password && <Text style={a.errorText}>{errors.password.message}</Text>}
+          </View>
+        )}
+      />
 
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <View style={styles.fieldWrap}>
-                <View style={styles.pwRow}>
-                  <TextInput
-                    style={[styles.input, styles.inputFlex, errors.password && styles.inputError]}
-                    placeholder="Password"
-                    placeholderTextColor="#6B6460"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    secureTextEntry={!showPw}
-                  />
-                  <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={styles.eyeBtn}>
-                    <Text style={styles.eyeText}>{showPw ? 'Hide' : 'Show'}</Text>
-                  </TouchableOpacity>
-                </View>
-                {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
-              </View>
-            )}
-          />
+      <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
+        <Text style={a.forgotText}>Forgot password?</Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
-            <Text style={styles.forgotText}>Forgot password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.submitBtn, isLoading && styles.btnDisabled]}
-            onPress={handleSubmit(onSubmit)}
-            disabled={isLoading}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.submitBtnText}>{isLoading ? 'Signing in…' : 'Sign in'}</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {error && <Toast message={error} type="error" />}
-    </SafeAreaView>
+      <TouchableOpacity
+        style={[a.submitBtn, isLoading && a.btnDisabled]}
+        onPress={handleSubmit(onSubmit)}
+        disabled={isLoading}
+        activeOpacity={0.85}
+      >
+        <Text style={a.submitBtnText}>{isLoading ? 'Signing in…' : 'Sign in'}</Text>
+      </TouchableOpacity>
+    </AuthFormShell>
   )
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F0E8' },
-  container: { padding: 24, gap: 16, paddingBottom: 48 },
-  back: { marginBottom: 8 },
-  backText: { fontFamily: 'Inter', fontSize: 14, color: '#6B6460' },
-  heading: { fontFamily: 'PlayfairDisplay', fontSize: 28, color: '#2C2825', marginBottom: 8 },
-  googleBtn: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1.5, borderColor: '#E8E2D6',
-    paddingVertical: 14, alignItems: 'center',
-  },
-  googleBtnText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '600', color: '#2C2825' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E8E2D6' },
-  dividerText: { fontFamily: 'Inter', fontSize: 12, color: '#6B6460' },
-  fieldWrap: { gap: 4 },
-  input: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1.5, borderColor: '#E8E2D6',
-    paddingVertical: 14, paddingHorizontal: 16, fontFamily: 'Inter', fontSize: 15, color: '#2C2825',
-  },
-  inputFlex: { flex: 1 },
-  inputError: { borderColor: '#7A1E2E' },
-  errorText: { fontFamily: 'Inter', fontSize: 12, color: '#7A1E2E', marginLeft: 4 },
-  pwRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  eyeBtn: { padding: 8 },
-  eyeText: { fontFamily: 'Inter', fontSize: 13, color: '#6B6460' },
-  forgotText: { fontFamily: 'Inter', fontSize: 13, color: '#C9A84C', textAlign: 'right' },
-  submitBtn: {
-    backgroundColor: '#2C2825', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8,
-  },
-  btnDisabled: { opacity: 0.6 },
-  submitBtnText: { fontFamily: 'Inter', fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-})
