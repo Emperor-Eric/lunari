@@ -1,94 +1,55 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import Svg, { Path } from 'react-native-svg'
-import { authColors, authFonts } from '../../src/components/AuthChrome'
-
-const { width } = Dimensions.get('window')
+import { useAuth } from '@lunari/utils'
+import {
+  AuthBackdrop,
+  AuthEmblem,
+  GoldButton,
+  OutlineButton,
+  authColors,
+  authFonts,
+} from '../../src/components/AuthChrome'
 
 export default function Welcome() {
+  const { signInWithGoogle } = useAuth()
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Restrained celestial motif — a large, faint crescent arc. */}
-      <Svg
-        width={width}
-        height={width}
-        style={StyleSheet.absoluteFill}
-        viewBox={`0 0 ${width} ${width}`}
-      >
-        <Path
-          d={`M ${width * 0.5} ${width * 0.1} A ${width * 0.4} ${width * 0.4} 0 0 1 ${width * 0.5} ${width * 0.9} A ${width * 0.3} ${width * 0.3} 0 0 0 ${width * 0.5} ${width * 0.1}`}
-          fill={authColors.gold}
-          opacity={0.12}
-        />
-      </Svg>
+    <View style={{ flex: 1 }}>
+      <AuthBackdrop />
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <AuthEmblem />
+        </View>
 
-      <View style={styles.center}>
-        <Text style={styles.wordmark}>lunari</Text>
-        <Text style={styles.tagline}>fuelled for every phase</Text>
-        <Text style={styles.subtext}>The first cycle-synced nutrition system</Text>
-      </View>
-
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => router.push('/(auth)/signup')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>Get started</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
-          <Text style={styles.linkText}>I already have an account</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+        <View style={styles.actions}>
+          <GoldButton label="Continue with Google" onPress={signInWithGoogle} />
+          <OutlineButton
+            label="Continue with email"
+            onPress={() => router.push('/(auth)/signup')}
+          />
+          <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
+            <Text style={styles.footer}>
+              Already a member? <Text style={styles.footerLink}>Sign in</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: authColors.bg,
-    justifyContent: 'space-between',
-    paddingVertical: 48,
-    paddingHorizontal: 32,
-  },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  wordmark: {
-    fontFamily: authFonts.display,
-    fontSize: 52,
-    color: authColors.ink,
-    letterSpacing: 1,
-  },
-  tagline: {
+  safe: { flex: 1, justifyContent: 'space-between', paddingVertical: 48, paddingHorizontal: 32 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  actions: { gap: 14, alignItems: 'stretch' },
+  footer: {
     fontFamily: authFonts.body,
-    fontSize: 16,
-    color: authColors.inkSoft,
-    letterSpacing: 0.5,
-  },
-  subtext: {
-    fontFamily: authFonts.light,
-    fontSize: 14,
-    color: authColors.inkSoft,
+    fontSize: 13,
+    color: authColors.muted,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 6,
   },
-  actions: { gap: 16, alignItems: 'center' },
-  primaryBtn: {
-    backgroundColor: authColors.ink,
-    borderRadius: 9999,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    width: '100%',
-    alignItems: 'center',
-  },
-  primaryBtnText: { fontFamily: authFonts.semibold, fontSize: 16, color: authColors.surface },
-  linkText: {
-    fontFamily: authFonts.medium,
-    fontSize: 14,
-    color: authColors.goldDeep,
-    textDecorationLine: 'underline',
-  },
+  footerLink: { fontFamily: authFonts.semibold, color: authColors.gold },
 })

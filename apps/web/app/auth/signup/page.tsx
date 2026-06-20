@@ -1,11 +1,19 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth, useUser } from '@lunari/utils'
-import { AuthShell, Divider, Field, inputClass } from '../_components/AuthShell'
+import {
+  AuthShell,
+  GoldButton,
+  OutlineButton,
+  Field,
+  darkInputClass,
+  GOLD,
+  MUTED,
+} from '../_components/AuthShell'
 
 const schema = z
   .object({
@@ -22,6 +30,7 @@ type FormData = z.infer<typeof schema>
 export default function SignupPage() {
   const { signUpWithEmail, signInWithGoogle, isLoading, error } = useAuth()
   const { fetchUser } = useUser()
+  const [emailMode, setEmailMode] = useState(false)
 
   const {
     register,
@@ -53,42 +62,39 @@ export default function SignupPage() {
   ]
 
   return (
-    <AuthShell subtitle="Create your account to begin.">
-      <button
-        onClick={signInWithGoogle}
-        className="w-full py-3 rounded-xl border border-brand-stone font-body text-sm font-semibold text-brand-ink hover:bg-brand-cream transition-colors"
-      >
-        Continue with Google
-      </button>
+    <AuthShell>
+      <GoldButton onClick={signInWithGoogle}>Continue with Google</GoldButton>
 
-      <Divider label="or sign up with email" />
+      {!emailMode ? (
+        <OutlineButton onClick={() => setEmailMode(true)}>Continue with email</OutlineButton>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+          {fields.map((field) => (
+            <Field key={field.name} error={errors[field.name]?.message}>
+              <input
+                {...register(field.name)}
+                type={field.type}
+                placeholder={field.placeholder}
+                className={darkInputClass}
+              />
+            </Field>
+          ))}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        {fields.map((field) => (
-          <Field key={field.name} error={errors[field.name]?.message}>
-            <input
-              {...register(field.name)}
-              type={field.type}
-              placeholder={field.placeholder}
-              className={inputClass}
-            />
-          </Field>
-        ))}
+          {error && (
+            <p className="font-body text-xs" style={{ color: '#E5A3A3' }}>
+              {error}
+            </p>
+          )}
 
-        {error && <p className="font-body text-xs text-phase-menstrual">{error}</p>}
+          <GoldButton type="submit" disabled={isLoading}>
+            {isLoading ? 'Creating account…' : 'Create account'}
+          </GoldButton>
+        </form>
+      )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-3.5 rounded-xl bg-brand-ink font-body text-sm font-semibold text-brand-cream disabled:opacity-60 transition-opacity"
-        >
-          {isLoading ? 'Creating account…' : 'Create account'}
-        </button>
-      </form>
-
-      <p className="text-center font-body text-xs text-brand-ink-soft">
+      <p className="text-center font-body text-xs" style={{ color: MUTED }}>
         Already have an account?{' '}
-        <Link href="/auth/login" className="text-brand-gold font-medium">
+        <Link href="/auth/login" className="font-medium" style={{ color: GOLD }}>
           Sign in
         </Link>
       </p>

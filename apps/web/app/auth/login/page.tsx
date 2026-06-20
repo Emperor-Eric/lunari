@@ -1,11 +1,19 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth, useUser } from '@lunari/utils'
-import { AuthShell, Divider, Field, inputClass } from '../_components/AuthShell'
+import {
+  AuthShell,
+  GoldButton,
+  OutlineButton,
+  Field,
+  darkInputClass,
+  GOLD,
+  MUTED,
+} from '../_components/AuthShell'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -16,6 +24,7 @@ type FormData = z.infer<typeof schema>
 export default function LoginPage() {
   const { signInWithEmail, signInWithGoogle, isLoading, error } = useAuth()
   const { fetchUser } = useUser()
+  const [emailMode, setEmailMode] = useState(false)
 
   const {
     register,
@@ -39,55 +48,53 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell subtitle="Sign in to return to your sanctuary.">
-      <button
-        onClick={signInWithGoogle}
-        className="w-full py-3 rounded-xl border border-brand-stone font-body text-sm font-semibold text-brand-ink hover:bg-brand-cream transition-colors"
-      >
-        Continue with Google
-      </button>
+    <AuthShell>
+      <GoldButton onClick={signInWithGoogle}>Continue with Google</GoldButton>
 
-      <Divider label="or" />
+      {!emailMode ? (
+        <OutlineButton onClick={() => setEmailMode(true)}>Continue with email</OutlineButton>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+          <Field error={errors.email?.message}>
+            <input
+              {...register('email')}
+              type="email"
+              placeholder="Email address"
+              className={darkInputClass}
+            />
+          </Field>
+          <Field error={errors.password?.message}>
+            <input
+              {...register('password')}
+              type="password"
+              placeholder="Password"
+              className={darkInputClass}
+            />
+          </Field>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Field error={errors.email?.message}>
-          <input
-            {...register('email')}
-            type="email"
-            placeholder="Email address"
-            className={inputClass}
-          />
-        </Field>
-        <Field error={errors.password?.message}>
-          <input
-            {...register('password')}
-            type="password"
-            placeholder="Password"
-            className={inputClass}
-          />
-        </Field>
+          <Link
+            href="/auth/forgot-password"
+            className="font-body text-xs text-right -mt-1"
+            style={{ color: GOLD }}
+          >
+            Forgot password?
+          </Link>
 
-        <Link
-          href="/auth/forgot-password"
-          className="font-body text-xs text-brand-gold text-right -mt-1"
-        >
-          Forgot password?
-        </Link>
+          {error && (
+            <p className="font-body text-xs" style={{ color: '#E5A3A3' }}>
+              {error}
+            </p>
+          )}
 
-        {error && <p className="font-body text-xs text-phase-menstrual">{error}</p>}
+          <GoldButton type="submit" disabled={isLoading}>
+            {isLoading ? 'Signing in…' : 'Sign in'}
+          </GoldButton>
+        </form>
+      )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-3.5 rounded-xl bg-brand-ink font-body text-sm font-semibold text-brand-cream disabled:opacity-60 transition-opacity"
-        >
-          {isLoading ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-
-      <p className="text-center font-body text-xs text-brand-ink-soft">
+      <p className="text-center font-body text-xs" style={{ color: MUTED }}>
         Don&apos;t have an account?{' '}
-        <Link href="/auth/signup" className="text-brand-gold font-medium">
+        <Link href="/auth/signup" className="font-medium" style={{ color: GOLD }}>
           Sign up
         </Link>
       </p>

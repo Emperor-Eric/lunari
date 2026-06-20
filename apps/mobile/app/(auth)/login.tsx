@@ -1,12 +1,19 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { router } from 'expo-router'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth, useUser } from '@lunari/utils'
 import { Toast } from '@lunari/ui'
-import { AuthFormShell, authColors, styles as a } from '../../src/components/AuthChrome'
+import {
+  AuthFormShell,
+  GoldButton,
+  OutlineButton,
+  DarkInput,
+  authColors,
+  styles as a,
+} from '../../src/components/AuthChrome'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -19,6 +26,7 @@ export default function Login() {
   const { signInWithEmail, signInWithGoogle, isLoading, error } = useAuth()
   const { fetchUser } = useUser()
   const [showPw, setShowPw] = useState(false)
+  const [emailMode, setEmailMode] = useState(false)
 
   const {
     control,
@@ -43,75 +51,73 @@ export default function Login() {
 
   return (
     <AuthFormShell
-      subtitle="Sign in to return to your sanctuary."
       onBack={() => router.back()}
       overlay={error ? <Toast message={error} type="error" /> : null}
     >
-      <TouchableOpacity style={a.googleBtn} onPress={signInWithGoogle} activeOpacity={0.85}>
-        <Text style={a.googleBtnText}>Continue with Google</Text>
-      </TouchableOpacity>
+      <GoldButton label="Continue with Google" onPress={signInWithGoogle} />
 
-      <View style={a.divider}>
-        <View style={a.dividerLine} />
-        <Text style={a.dividerText}>or sign in with email</Text>
-        <View style={a.dividerLine} />
-      </View>
+      {!emailMode ? (
+        <OutlineButton label="Continue with email" onPress={() => setEmailMode(true)} />
+      ) : (
+        <>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <View>
+                <DarkInput
+                  error={!!errors.email}
+                  placeholder="Email address"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                {errors.email && <Text style={a.errorText}>{errors.email.message}</Text>}
+              </View>
+            )}
+          />
 
-      <Controller
-        control={control}
-        name="email"
-        render={({ field: { value, onChange, onBlur } }) => (
-          <View style={a.fieldWrap}>
-            <TextInput
-              style={[a.input, errors.email && a.inputError]}
-              placeholder="Email address"
-              placeholderTextColor={authColors.inkSoft}
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            {errors.email && <Text style={a.errorText}>{errors.email.message}</Text>}
-          </View>
-        )}
-      />
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <View>
+                <DarkInput
+                  error={!!errors.password}
+                  placeholder="Password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  secureTextEntry={!showPw}
+                  right={
+                    <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={a.eyeBtn}>
+                      <Text style={a.eyeText}>{showPw ? 'Hide' : 'Show'}</Text>
+                    </TouchableOpacity>
+                  }
+                />
+                {errors.password && <Text style={a.errorText}>{errors.password.message}</Text>}
+              </View>
+            )}
+          />
 
-      <Controller
-        control={control}
-        name="password"
-        render={({ field: { value, onChange, onBlur } }) => (
-          <View style={a.fieldWrap}>
-            <View style={a.pwRow}>
-              <TextInput
-                style={[a.input, a.inputFlex, errors.password && a.inputError]}
-                placeholder="Password"
-                placeholderTextColor={authColors.inkSoft}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                secureTextEntry={!showPw}
-              />
-              <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={a.eyeBtn}>
-                <Text style={a.eyeText}>{showPw ? 'Hide' : 'Show'}</Text>
-              </TouchableOpacity>
-            </View>
-            {errors.password && <Text style={a.errorText}>{errors.password.message}</Text>}
-          </View>
-        )}
-      />
+          <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
+            <Text style={a.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
-        <Text style={a.forgotText}>Forgot password?</Text>
-      </TouchableOpacity>
+          <GoldButton
+            label={isLoading ? 'Signing in…' : 'Sign in'}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isLoading}
+          />
+        </>
+      )}
 
-      <TouchableOpacity
-        style={[a.submitBtn, isLoading && a.btnDisabled]}
-        onPress={handleSubmit(onSubmit)}
-        disabled={isLoading}
-        activeOpacity={0.85}
-      >
-        <Text style={a.submitBtnText}>{isLoading ? 'Signing in…' : 'Sign in'}</Text>
+      <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+        <Text style={a.footer}>
+          Don&apos;t have an account? <Text style={{ color: authColors.gold }}>Sign up</Text>
+        </Text>
       </TouchableOpacity>
     </AuthFormShell>
   )

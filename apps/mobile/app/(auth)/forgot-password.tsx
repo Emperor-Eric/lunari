@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity } from 'react-native'
+import { View, Text } from 'react-native'
 import { router } from 'expo-router'
 import { getSupabaseClient } from '@lunari/utils'
-import { AuthFormShell, authColors, styles as a } from '../../src/components/AuthChrome'
+import { AuthFormShell, GoldButton, DarkInput, styles as a } from '../../src/components/AuthChrome'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -34,28 +34,19 @@ export default function ForgotPassword() {
         <Text style={[a.subtitle, { lineHeight: 22, marginTop: 4 }]}>
           We sent a reset link to {email}. Follow the link in that email to choose a new password.
         </Text>
-        <TouchableOpacity
-          style={a.submitBtn}
-          onPress={() => router.replace('/(auth)/login')}
-          activeOpacity={0.85}
-        >
-          <Text style={a.submitBtnText}>Back to sign in</Text>
-        </TouchableOpacity>
+        <GoldButton label="Back to sign in" onPress={() => router.replace('/(auth)/login')} />
       </AuthFormShell>
     )
   }
 
   return (
     <AuthFormShell subtitle="Reset your password." onBack={() => router.back()}>
-      <Text style={[a.subtitle, { marginTop: -2 }]}>
-        Enter your email and we&apos;ll send you a reset link.
-      </Text>
+      <Text style={a.subtitle}>Enter your email and we&apos;ll send you a reset link.</Text>
 
-      <View style={a.fieldWrap}>
-        <TextInput
-          style={a.input}
+      <View>
+        <DarkInput
+          error={!!error}
           placeholder="Email address"
-          placeholderTextColor={authColors.inkSoft}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -64,14 +55,11 @@ export default function ForgotPassword() {
         {error ? <Text style={a.errorText}>{error}</Text> : null}
       </View>
 
-      <TouchableOpacity
-        style={[a.submitBtn, loading && a.btnDisabled]}
+      <GoldButton
+        label={loading ? 'Sending…' : 'Send reset link'}
         onPress={handleReset}
         disabled={loading}
-        activeOpacity={0.85}
-      >
-        <Text style={a.submitBtnText}>{loading ? 'Sending…' : 'Send reset link'}</Text>
-      </TouchableOpacity>
+      />
     </AuthFormShell>
   )
 }
