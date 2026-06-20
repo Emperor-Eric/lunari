@@ -1,7 +1,13 @@
 'use client'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges, getCyclePrediction } from '@lunari/phase-data'
+import {
+  getPhaseForDay,
+  getAllPhases,
+  getPhaseById,
+  getPhaseRanges,
+  getCyclePrediction,
+} from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
 import { Toast } from '@lunari/ui'
@@ -39,7 +45,9 @@ export default function TrackerToday() {
       .then(setSettings)
       .catch(() => setSettings(null))
   }, [])
-  useEffect(() => { loadSettings() }, [loadSettings])
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   // The user's REAL position — derived from the effective cycle via the shared helper.
   const prediction = settings ? getCyclePrediction(settings) : null
@@ -132,16 +140,26 @@ export default function TrackerToday() {
         {/* ── Top bar: date / Today / seal ── */}
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="uppercase" style={{ fontSize: 9.5, letterSpacing: '0.24em', color: sub }}>
+            <div
+              className="uppercase"
+              style={{ fontSize: 9.5, letterSpacing: '0.24em', color: sub }}
+            >
               {dateLabel}
             </div>
-            <div className="font-display" style={{ fontSize: 24, lineHeight: 1, marginTop: 3, color: ink }}>
+            <div
+              className="font-display"
+              style={{ fontSize: 24, lineHeight: 1, marginTop: 3, color: ink }}
+            >
               Today
             </div>
           </div>
           {/* TODO: use seal-ink.png on LIGHT phases once we have a transparent ink seal. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/seal-gold.png" alt="" className="object-contain" style={{ width: 34, height: 34 }} />
+          <img
+            src="/brand/seal-gold.png"
+            alt=""
+            className="object-contain"
+            style={{ width: 34, height: 34 }}
+          />
         </div>
 
         {/* ── HERO (themed to the viewed phase) ── */}
@@ -149,14 +167,27 @@ export default function TrackerToday() {
           {/* gold orbit rings */}
           <div
             className="absolute left-1/2 rounded-full"
-            style={{ top: -6, width: 230, height: 230, transform: 'translateX(-50%)', border: `1px solid ${gold}`, opacity: 0.18 }}
+            style={{
+              top: -6,
+              width: 230,
+              height: 230,
+              transform: 'translateX(-50%)',
+              border: `1px solid ${gold}`,
+              opacity: 0.18,
+            }}
           />
           <div
             className="absolute left-1/2 rounded-full"
-            style={{ top: 24, width: 160, height: 160, transform: 'translateX(-50%)', border: `1px solid ${gold}`, opacity: 0.14 }}
+            style={{
+              top: 24,
+              width: 160,
+              height: 160,
+              transform: 'translateX(-50%)',
+              border: `1px solid ${gold}`,
+              opacity: 0.14,
+            }}
           />
           {/* Goddess seal. TODO: seal-ink on light phases. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/brand/seal-gold.png"
             alt="lunari seal"
@@ -192,16 +223,26 @@ export default function TrackerToday() {
           {/* progress segments — reflect the REAL current day */}
           <div className="relative flex" style={{ gap: 6, marginTop: 20 }}>
             {allPhases.map((p) => (
-              <div key={p.id} className="flex-1 overflow-hidden" style={{ height: 4, borderRadius: 4, background: cardbd }}>
+              <div
+                key={p.id}
+                className="flex-1 overflow-hidden"
+                style={{ height: 4, borderRadius: 4, background: cardbd }}
+              >
                 <div style={{ height: '100%', width: `${segFill(p)}%`, background: gold }} />
               </div>
             ))}
           </div>
-          <div className="relative flex justify-between" style={{ marginTop: 9, fontSize: 8, letterSpacing: '0.12em' }}>
+          <div
+            className="relative flex justify-between"
+            style={{ marginTop: 9, fontSize: 8, letterSpacing: '0.12em' }}
+          >
             {allPhases.map((p) => {
               const isNow = p.id === currentPhase.id
               return (
-                <span key={p.id} style={{ color: isNow ? gold : sub, fontWeight: isNow ? 700 : 400 }}>
+                <span
+                  key={p.id}
+                  style={{ color: isNow ? gold : sub, fontWeight: isNow ? 700 : 400 }}
+                >
                   {SHORT[p.id]}
                 </span>
               )
@@ -213,7 +254,13 @@ export default function TrackerToday() {
         {previewing && (
           <div
             className="flex items-center justify-between gap-3 mx-auto max-w-lg"
-            style={{ marginTop: 16, padding: '9px 16px', borderRadius: 999, background: cardwash, border: `1px solid ${cardbd}` }}
+            style={{
+              marginTop: 16,
+              padding: '9px 16px',
+              borderRadius: 999,
+              background: cardwash,
+              border: `1px solid ${cardbd}`,
+            }}
           >
             <span style={{ fontSize: 11, color: ink }}>
               Previewing <strong>{t.label}</strong> · You&rsquo;re in{' '}
@@ -234,7 +281,10 @@ export default function TrackerToday() {
         </div>
 
         {/* ── Phase rail (tap to preview) ── */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '22px 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '22px 0 10px' }}
+        >
           Your four phases · tap to explore
         </div>
         <div className="grid grid-cols-4" style={{ gap: 8 }}>
@@ -257,16 +307,27 @@ export default function TrackerToday() {
               >
                 <div
                   className="mx-auto rounded-full"
-                  style={{ width: 13, height: 13, background: pt.phase, boxShadow: active ? `0 0 0 3px ${halo}` : 'none' }}
+                  style={{
+                    width: 13,
+                    height: 13,
+                    background: pt.phase,
+                    boxShadow: active ? `0 0 0 3px ${halo}` : 'none',
+                  }}
                 />
                 <div className="font-display" style={{ fontSize: 12, marginTop: 8, color: ink }}>
                   {pt.label}
                 </div>
-                <div style={{ fontSize: 8, color: sub, marginTop: 1 }}>
-                  {railLabel(p)}
-                </div>
+                <div style={{ fontSize: 8, color: sub, marginTop: 1 }}>{railLabel(p)}</div>
                 {isNow && (
-                  <div style={{ fontSize: 7.5, letterSpacing: '0.16em', color: gold, marginTop: 3, fontWeight: 700 }}>
+                  <div
+                    style={{
+                      fontSize: 7.5,
+                      letterSpacing: '0.16em',
+                      color: gold,
+                      marginTop: 3,
+                      fontWeight: 700,
+                    }}
+                  >
                     NOW
                   </div>
                 )}
@@ -276,7 +337,10 @@ export default function TrackerToday() {
         </div>
 
         {/* ── Feeling chips (viewed phase's symptoms) ── */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '20px 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '20px 0 10px' }}
+        >
           How are you feeling?
         </div>
         <div className="flex flex-wrap" style={{ gap: 7 }}>
@@ -302,7 +366,10 @@ export default function TrackerToday() {
         </div>
 
         {/* ── Predictions: Next up summary (taps through to the calendar) ── */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '22px 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '22px 0 10px' }}
+        >
           Looking ahead
         </div>
         <NextUpCard
@@ -316,7 +383,9 @@ export default function TrackerToday() {
           <span className="uppercase" style={{ fontSize: 9, letterSpacing: '0.22em', color: sub }}>
             Today&rsquo;s supplement focus
           </span>
-          <span style={{ fontSize: 9, color: gold, letterSpacing: '0.08em' }}>{supps.length} actives</span>
+          <span style={{ fontSize: 9, color: gold, letterSpacing: '0.08em' }}>
+            {supps.length} actives
+          </span>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: 9 }}>
           {supps.map((s) => {
@@ -325,12 +394,23 @@ export default function TrackerToday() {
               <div
                 key={s.name}
                 className="flex justify-between items-center"
-                style={{ padding: '13px 15px', borderRadius: 14, background: cardwash, border: `1px solid ${cardbd}` }}
+                style={{
+                  padding: '13px 15px',
+                  borderRadius: 14,
+                  background: cardwash,
+                  border: `1px solid ${cardbd}`,
+                }}
               >
                 <div className="flex items-center" style={{ gap: 12 }}>
                   <span
                     className="flex items-center justify-center rounded-full"
-                    style={{ width: 21, height: 21, background: gold, color: t.phase, fontSize: 11 }}
+                    style={{
+                      width: 21,
+                      height: 21,
+                      background: gold,
+                      color: t.phase,
+                      fontSize: 11,
+                    }}
                   >
                     ✓
                   </span>
@@ -338,7 +418,9 @@ export default function TrackerToday() {
                     <div className="font-display" style={{ fontSize: 14.5, color: ink }}>
                       {s.name}
                     </div>
-                    <div style={{ fontSize: 9.5, color: sub, marginTop: 2, fontWeight: 300 }}>{note}</div>
+                    <div style={{ fontSize: 9.5, color: sub, marginTop: 2, fontWeight: 300 }}>
+                      {note}
+                    </div>
                   </div>
                 </div>
                 <div className="font-display" style={{ fontSize: 15, color: gold }}>
@@ -348,7 +430,6 @@ export default function TrackerToday() {
             )
           })}
         </div>
-
       </div>
       {toast && <Toast message={toast.msg} type={toast.type} />}
     </div>
