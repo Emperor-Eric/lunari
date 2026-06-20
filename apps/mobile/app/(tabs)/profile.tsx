@@ -28,9 +28,12 @@ const SHOP_ENABLED = process.env.EXPO_PUBLIC_SHOP_ENABLED === 'true'
 // Cycle order for the mini phase rail (matches phase-data day ranges).
 const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
 
-// Static settings rows beyond Notifications & the wired Cycle settings row — no
-// destination screens yet (flagged: not wired).
-const EXTRA_SETTINGS = ['Connected apps', 'Privacy & data']
+// Settings rows beyond Notifications & the wired Cycle settings row — each pushes a
+// dedicated screen.
+const EXTRA_SETTINGS: { label: string; href: '/connected-apps' | '/privacy' }[] = [
+  { label: 'Connected apps', href: '/connected-apps' },
+  { label: 'Privacy & data', href: '/privacy' },
+]
 
 // Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
 const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
@@ -312,10 +315,11 @@ export default function Profile() {
               rowBorder={t.labBorder}
               onSaved={loadCycle}
             />
-            {/* Static rows — no destination screens yet */}
-            {EXTRA_SETTINGS.map((label, i) => (
+            {/* Wired rows → dedicated pushed screens */}
+            {EXTRA_SETTINGS.map((row, i) => (
               <Pressable
-                key={label}
+                key={row.label}
+                onPress={() => router.push(row.href)}
                 style={[
                   styles.settingsRow,
                   {
@@ -324,7 +328,7 @@ export default function Profile() {
                   },
                 ]}
               >
-                <Text style={[styles.settingsText, { color: N.text }]}>{label}</Text>
+                <Text style={[styles.settingsText, { color: N.text }]}>{row.label}</Text>
                 <Text style={[styles.chev, { color: N.chev }]}>›</Text>
               </Pressable>
             ))}

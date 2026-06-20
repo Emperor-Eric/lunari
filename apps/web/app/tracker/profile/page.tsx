@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
@@ -12,10 +13,14 @@ import { CycleSettingsRow } from '../_components/CycleSettingsRow'
 // Referral entry turns on with the shop — a code only matters once there's a product.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 
-// Static settings rows — no destination screens exist yet (flagged: not wired).
-// "Cycle settings" sits between these and is wired (CycleSettingsRow).
+// Static settings rows. "Cycle settings" (wired) sits between SETTINGS_TOP and the
+// linked rows below.
 const SETTINGS_TOP = ['Notifications']
-const SETTINGS_BOTTOM = ['Connected apps', 'Privacy & data']
+// Wired rows → dedicated screens.
+const SETTINGS_BOTTOM: { label: string; href: string }[] = [
+  { label: 'Connected apps', href: '/tracker/connected-apps' },
+  { label: 'Privacy & data', href: '/tracker/privacy' },
+]
 
 // Cycle order for the mini phase rail (matches phase-data day ranges).
 const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
@@ -291,9 +296,10 @@ export default function ProfilePage() {
             onSaved={refresh}
           />
 
-          {SETTINGS_BOTTOM.map((label, i) => (
-            <div
-              key={label}
+          {SETTINGS_BOTTOM.map((row, i) => (
+            <Link
+              key={row.label}
+              href={row.href}
               className="flex justify-between items-center"
               style={{
                 padding: '14px 0',
@@ -304,11 +310,11 @@ export default function ProfilePage() {
                 color: N.text,
               }}
             >
-              <span className="font-display">{label}</span>
+              <span className="font-display">{row.label}</span>
               <span className="font-body" style={{ color: N.chev }}>
                 ›
               </span>
-            </div>
+            </Link>
           ))}
         </div>
 
