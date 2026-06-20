@@ -7,20 +7,13 @@ interface Props {
   phaseColor?: string
 }
 
-export const OnboardingProgress: React.FC<Props> = ({
-  total,
-  current,
-  phaseColor = '#C9A84C',
-}) => {
+export const OnboardingProgress: React.FC<Props> = ({ total, current, phaseColor = '#C9A84C' }) => {
   return (
     <View style={styles.row}>
       {Array.from({ length: total }, (_, i) => (
         <View
           key={i}
-          style={[
-            styles.dot,
-            i < current ? { backgroundColor: phaseColor } : styles.inactive,
-          ]}
+          style={[styles.dot, i < current ? { backgroundColor: phaseColor } : styles.inactive]}
         />
       ))}
     </View>
@@ -40,6 +33,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   inactive: {
-    backgroundColor: '#E8E2D6',
+    backgroundColor: 'rgba(245,235,214,0.25)', // navy-friendly — was light stone #E8E2D6
   },
 })

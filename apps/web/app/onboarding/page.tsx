@@ -6,6 +6,14 @@ import { getDayInCycle, getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
 import type { PhaseId } from '@lunari/types'
 import { apiPost } from '@/src/lib/api'
+import {
+  GoldButton,
+  NAVY_GRADIENT,
+  INK,
+  MUTED,
+  GOLD,
+  BTN_TEXT,
+} from '../auth/_components/AuthShell'
 
 type Method = 'manual' | 'smart'
 
@@ -26,6 +34,17 @@ const Q3_OPTIONS = [
   { label: '5–6 days', len: 6 },
   { label: '7+ days', len: 7 },
 ]
+
+// Dark pill — gold fill when active, translucent gold-bordered when not.
+function pillStyle(active: boolean): React.CSSProperties {
+  return active
+    ? { background: GOLD, border: `1px solid ${GOLD}`, color: BTN_TEXT }
+    : {
+        background: 'rgba(245,235,214,0.06)',
+        border: '1px solid rgba(201,168,76,0.35)',
+        color: INK,
+      }
+}
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -66,65 +85,80 @@ export default function OnboardingPage() {
   }
 
   const PERIOD_OPTIONS = [3, 4, 5, 6, 7, 8]
-
   const DAY_OPTIONS = [1, 7, 14, 21, 28]
 
+  const questionCardClass =
+    'w-full text-left rounded-xl p-4 text-sm bg-[rgba(245,235,214,0.06)] border border-[rgba(201,168,76,0.35)] hover:border-[#C9A84C] transition-colors'
+
   return (
-    <div className="min-h-screen bg-brand-cream flex flex-col items-center px-6 py-10">
+    <div
+      className="min-h-screen flex flex-col items-center px-6 py-10"
+      style={{ background: NAVY_GRADIENT }}
+    >
       <div className="w-full max-w-md flex flex-col gap-8">
-        {/* Header */}
-        <div className="text-center">
-          <span className="font-display text-3xl text-brand-ink">lunari</span>
-          <h1 className="font-display text-2xl text-brand-ink mt-6">Let&apos;s set up your cycle</h1>
+        {/* Header — small gold wordmark for continuity with login */}
+        <div className="text-center flex flex-col items-center gap-4">
+          <img
+            src="/brand/wordmark-gold.png"
+            alt="lunari"
+            width={132}
+            height={36}
+            style={{ width: 132, height: 'auto' }}
+          />
+          <h1 className="font-display text-2xl" style={{ color: INK }}>
+            Let&apos;s set up your cycle
+          </h1>
         </div>
 
         {/* Method toggle */}
-        <div className="flex bg-brand-stone rounded-full p-1">
-          {(['manual', 'smart'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMethod(m)}
-              className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                backgroundColor: method === m ? '#FFFFFF' : 'transparent',
-                color: method === m ? '#2C2825' : '#6B6460',
-              }}
-            >
-              {m === 'manual' ? 'I know my dates' : 'Help me figure it out'}
-            </button>
-          ))}
+        <div
+          className="flex rounded-full p-1"
+          style={{
+            background: 'rgba(245,235,214,0.06)',
+            border: '1px solid rgba(201,168,76,0.25)',
+          }}
+        >
+          {(['manual', 'smart'] as const).map((m) => {
+            const active = method === m
+            return (
+              <button
+                key={m}
+                onClick={() => setMethod(m)}
+                className="flex-1 py-2.5 rounded-full font-body text-sm font-medium transition-all"
+                style={{
+                  background: active ? GOLD : 'transparent',
+                  color: active ? BTN_TEXT : MUTED,
+                }}
+              >
+                {m === 'manual' ? 'I know my dates' : 'Help me figure it out'}
+              </button>
+            )
+          })}
         </div>
 
         {/* Manual path */}
         {method === 'manual' && (
           <div className="flex flex-col gap-6">
             <div>
-              <label className="text-sm font-semibold text-brand-ink">
+              <label className="font-body text-sm font-semibold" style={{ color: INK }}>
                 When did your last period start?
               </label>
               <div className="flex flex-wrap gap-2 mt-3">
-                {DAY_OPTIONS.map((d) => {
-                  const active = d === daysAgo
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => setDaysAgo(d)}
-                      className="px-3.5 py-2 rounded-full border-2 text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: active ? '#2C2825' : '#FFFFFF',
-                        borderColor: active ? '#2C2825' : '#E8E2D6',
-                        color: active ? '#FFFFFF' : '#2C2825',
-                      }}
-                    >
-                      {d === 1 ? 'Yesterday' : `${d}d ago`}
-                    </button>
-                  )
-                })}
+                {DAY_OPTIONS.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDaysAgo(d)}
+                    className="px-3.5 py-2 rounded-full font-body text-sm font-medium transition-all"
+                    style={pillStyle(d === daysAgo)}
+                  >
+                    {d === 1 ? 'Yesterday' : `${d}d ago`}
+                  </button>
+                ))}
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-brand-ink">
+              <label className="font-body text-sm font-semibold" style={{ color: INK }}>
                 How long is your cycle? — {cycleLength} days
               </label>
               <input
@@ -134,53 +168,55 @@ export default function OnboardingPage() {
                 step={1}
                 value={cycleLength}
                 onChange={(e) => setCycleLength(Number(e.target.value))}
-                className="w-full mt-3 accent-brand-gold cursor-pointer"
+                className="w-full mt-3 cursor-pointer accent-[#C9A84C]"
               />
               <div className="flex justify-between">
-                <span className="text-xs text-brand-ink-soft">21</span>
-                <span className="text-xs text-brand-ink-soft">35</span>
+                <span className="font-body text-xs" style={{ color: MUTED }}>
+                  21
+                </span>
+                <span className="font-body text-xs" style={{ color: MUTED }}>
+                  35
+                </span>
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-brand-ink">
+              <label className="font-body text-sm font-semibold" style={{ color: INK }}>
                 How long does your period last? — {periodLength} days
               </label>
               <div className="flex flex-wrap gap-2 mt-3">
-                {PERIOD_OPTIONS.map((d) => {
-                  const active = d === periodLength
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => setPeriodLength(d)}
-                      className="px-3.5 py-2 rounded-full border-2 text-sm font-medium transition-all"
-                      style={{
-                        backgroundColor: active ? '#2C2825' : '#FFFFFF',
-                        borderColor: active ? '#2C2825' : '#E8E2D6',
-                        color: active ? '#FFFFFF' : '#2C2825',
-                      }}
-                    >
-                      {d}d
-                    </button>
-                  )
-                })}
+                {PERIOD_OPTIONS.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setPeriodLength(d)}
+                    className="px-3.5 py-2 rounded-full font-body text-sm font-medium transition-all"
+                    style={pillStyle(d === periodLength)}
+                  >
+                    {d}d
+                  </button>
+                ))}
               </div>
             </div>
 
             <div>
-              <p className="text-sm text-brand-ink-soft mb-3">Your estimated phase</p>
+              <p className="font-body text-sm mb-3" style={{ color: MUTED }}>
+                Your estimated phase
+              </p>
               <PhaseHero phase={manualPhase} cycleDay={manualDay} />
             </div>
 
-            {error && <p className="text-xs text-phase-menstrual">{error}</p>}
+            {error && (
+              <p className="font-body text-xs" style={{ color: '#E5A3A3' }}>
+                {error}
+              </p>
+            )}
 
-            <button
+            <GoldButton
               onClick={() => submit(manualStart, cycleLength, periodLength)}
               disabled={saving}
-              className="w-full py-4 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
             >
               {saving ? 'Setting up…' : 'This looks right →'}
-            </button>
+            </GoldButton>
           </div>
         )}
 
@@ -189,12 +225,18 @@ export default function OnboardingPage() {
           <div className="flex flex-col gap-4">
             {q === 0 && (
               <>
-                <h2 className="text-sm font-semibold text-brand-ink">How are you feeling right now?</h2>
+                <h2 className="font-body text-sm font-semibold" style={{ color: INK }}>
+                  How are you feeling right now?
+                </h2>
                 {Q1_OPTIONS.map((o) => (
                   <button
                     key={o.phase}
-                    onClick={() => { setSmartPhase(o.phase); setQ(1) }}
-                    className="w-full text-left bg-white rounded-xl border-2 border-brand-stone p-4 text-sm text-brand-ink hover:border-brand-gold transition-colors"
+                    onClick={() => {
+                      setSmartPhase(o.phase)
+                      setQ(1)
+                    }}
+                    className={questionCardClass}
+                    style={{ color: INK }}
                   >
                     {o.label}
                   </button>
@@ -203,12 +245,18 @@ export default function OnboardingPage() {
             )}
             {q === 1 && (
               <>
-                <h2 className="text-sm font-semibold text-brand-ink">How long ago did your last period start?</h2>
+                <h2 className="font-body text-sm font-semibold" style={{ color: INK }}>
+                  How long ago did your last period start?
+                </h2>
                 {Q2_OPTIONS.map((o) => (
                   <button
                     key={o.days}
-                    onClick={() => { setSmartDaysAgo(o.days); setQ(2) }}
-                    className="w-full text-left bg-white rounded-xl border-2 border-brand-stone p-4 text-sm text-brand-ink hover:border-brand-gold transition-colors"
+                    onClick={() => {
+                      setSmartDaysAgo(o.days)
+                      setQ(2)
+                    }}
+                    className={questionCardClass}
+                    style={{ color: INK }}
                   >
                     {o.label}
                   </button>
@@ -217,12 +265,18 @@ export default function OnboardingPage() {
             )}
             {q === 2 && (
               <>
-                <h2 className="text-sm font-semibold text-brand-ink">How long does your period usually last?</h2>
+                <h2 className="font-body text-sm font-semibold" style={{ color: INK }}>
+                  How long does your period usually last?
+                </h2>
                 {Q3_OPTIONS.map((o) => (
                   <button
                     key={o.len}
-                    onClick={() => { setSmartPeriodLength(o.len); setSmartConfirmed(true) }}
-                    className="w-full text-left bg-white rounded-xl border-2 border-brand-stone p-4 text-sm text-brand-ink hover:border-brand-gold transition-colors"
+                    onClick={() => {
+                      setSmartPeriodLength(o.len)
+                      setSmartConfirmed(true)
+                    }}
+                    className={questionCardClass}
+                    style={{ color: INK }}
                   >
                     {o.label}
                   </button>
@@ -237,22 +291,38 @@ export default function OnboardingPage() {
           <div className="flex flex-col gap-5">
             <PhaseHero
               phase={getPhaseById(smartPhase)}
-              cycleDay={getDayInCycle(format(subDays(new Date(), smartDaysAgo ?? 14), 'yyyy-MM-dd'))}
+              cycleDay={getDayInCycle(
+                format(subDays(new Date(), smartDaysAgo ?? 14), 'yyyy-MM-dd')
+              )}
             />
-            <h2 className="font-display text-xl text-brand-ink text-center">
+            <h2 className="font-display text-xl text-center" style={{ color: INK }}>
               Looks like you&apos;re in your {getPhaseById(smartPhase).name} phase
             </h2>
-            {error && <p className="text-xs text-phase-menstrual">{error}</p>}
-            <button
-              onClick={() => submit(format(subDays(new Date(), smartDaysAgo ?? 14), 'yyyy-MM-dd'), 28, smartPeriodLength)}
+            {error && (
+              <p className="font-body text-xs" style={{ color: '#E5A3A3' }}>
+                {error}
+              </p>
+            )}
+            <GoldButton
+              onClick={() =>
+                submit(
+                  format(subDays(new Date(), smartDaysAgo ?? 14), 'yyyy-MM-dd'),
+                  28,
+                  smartPeriodLength
+                )
+              }
               disabled={saving}
-              className="w-full py-4 rounded-xl bg-brand-ink text-white text-sm font-semibold disabled:opacity-60"
             >
               {saving ? 'Setting up…' : 'That sounds right →'}
-            </button>
+            </GoldButton>
             <button
-              onClick={() => { setMethod('manual'); setSmartConfirmed(false); setQ(0) }}
-              className="text-sm text-brand-ink-soft underline text-center"
+              onClick={() => {
+                setMethod('manual')
+                setSmartConfirmed(false)
+                setQ(0)
+              }}
+              className="font-body text-sm underline text-center"
+              style={{ color: GOLD }}
             >
               Let me enter manually
             </button>

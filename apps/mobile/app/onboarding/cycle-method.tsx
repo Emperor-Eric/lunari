@@ -2,16 +2,19 @@ import React, { useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { authColors, authFonts } from '../../src/components/AuthChrome'
 import { useOnboardingStore } from '../../src/stores/onboarding'
 
 export default function CycleMethod() {
   const { setStep } = useOnboardingStore()
-  useEffect(() => { setStep(3) }, [setStep])
+  useEffect(() => {
+    setStep(3)
+  }, [setStep])
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['bottom']} style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.heading}>First, let's find your phase</Text>
+        <Text style={styles.heading}>First, let&apos;s find your phase</Text>
 
         <View style={styles.cards}>
           <TouchableOpacity
@@ -40,15 +43,19 @@ export default function CycleMethod() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F0E8' },
+  safe: { flex: 1 },
   container: { flex: 1, padding: 24, gap: 32 },
-  heading: { fontFamily: 'PlayfairDisplay', fontSize: 26, color: '#2C2825', marginTop: 8 },
+  heading: { fontFamily: authFonts.display, fontSize: 26, color: authColors.ink, marginTop: 8 },
   cards: { gap: 16 },
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, gap: 8,
-    borderWidth: 1.5, borderColor: '#E8E2D6',
+    backgroundColor: authColors.fieldBg,
+    borderRadius: 16,
+    padding: 24,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: authColors.fieldBorder,
   },
   cardIcon: { fontSize: 32, marginBottom: 4 },
-  cardTitle: { fontFamily: 'Inter', fontSize: 17, fontWeight: '600', color: '#2C2825' },
-  cardBody: { fontFamily: 'Inter', fontSize: 14, color: '#6B6460', lineHeight: 20 },
+  cardTitle: { fontFamily: authFonts.semibold, fontSize: 17, color: authColors.ink },
+  cardBody: { fontFamily: authFonts.body, fontSize: 14, color: authColors.muted, lineHeight: 20 },
 })

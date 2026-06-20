@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { format, subDays } from 'date-fns'
 import { getPhaseById } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
+import { GoldButton, authColors, authFonts } from '../../src/components/AuthChrome'
 import { useOnboardingStore } from '../../src/stores/onboarding'
 import type { PhaseId } from '@lunari/types'
 
@@ -36,7 +37,9 @@ export default function CycleSmart() {
   const [periodLength, setPeriodLength] = useState(5)
   const [confirmed, setConfirmed] = useState(false)
 
-  useEffect(() => { setStep(4) }, [setStep])
+  useEffect(() => {
+    setStep(4)
+  }, [setStep])
 
   const estimatedPhase = phase ? getPhaseById(phase) : null
 
@@ -48,15 +51,13 @@ export default function CycleSmart() {
 
   if (confirmed && estimatedPhase) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView edges={['bottom']} style={styles.safe}>
         <View style={styles.container}>
           <PhaseHero phase={estimatedPhase} cycleDay={daysAgo ?? 14} />
           <Text style={styles.heading}>
-            Looks like you're in your {estimatedPhase.name} phase
+            Looks like you&apos;re in your {estimatedPhase.name} phase
           </Text>
-          <TouchableOpacity style={styles.cta} onPress={handleConfirm} activeOpacity={0.85}>
-            <Text style={styles.ctaText}>That sounds right →</Text>
-          </TouchableOpacity>
+          <GoldButton label="That sounds right →" onPress={handleConfirm} />
           <TouchableOpacity onPress={() => router.push('/onboarding/cycle-manual')}>
             <Text style={styles.linkText}>Let me enter manually</Text>
           </TouchableOpacity>
@@ -66,7 +67,7 @@ export default function CycleSmart() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['bottom']} style={styles.safe}>
       <View style={styles.container}>
         {q === 0 && (
           <>
@@ -76,7 +77,10 @@ export default function CycleSmart() {
                 <TouchableOpacity
                   key={o.phase}
                   style={styles.option}
-                  onPress={() => { setPhase(o.phase); setQ(1) }}
+                  onPress={() => {
+                    setPhase(o.phase)
+                    setQ(1)
+                  }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.optionText}>{o.label}</Text>
@@ -94,7 +98,10 @@ export default function CycleSmart() {
                 <TouchableOpacity
                   key={o.days}
                   style={styles.option}
-                  onPress={() => { setDaysAgo(o.days); setQ(2) }}
+                  onPress={() => {
+                    setDaysAgo(o.days)
+                    setQ(2)
+                  }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.optionText}>{o.label}</Text>
@@ -112,7 +119,10 @@ export default function CycleSmart() {
                 <TouchableOpacity
                   key={o.len}
                   style={styles.option}
-                  onPress={() => { setPeriodLength(o.len); setConfirmed(true) }}
+                  onPress={() => {
+                    setPeriodLength(o.len)
+                    setConfirmed(true)
+                  }}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.optionText}>{o.label}</Text>
@@ -127,21 +137,23 @@ export default function CycleSmart() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F0E8' },
+  safe: { flex: 1 },
   container: { flex: 1, padding: 24, gap: 24 },
-  heading: { fontFamily: 'PlayfairDisplay', fontSize: 26, color: '#2C2825', marginTop: 8 },
+  heading: { fontFamily: authFonts.display, fontSize: 26, color: authColors.ink, marginTop: 8 },
   options: { gap: 12 },
   option: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 18,
-    borderWidth: 1.5, borderColor: '#E8E2D6',
+    backgroundColor: authColors.fieldBg,
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: authColors.fieldBorder,
   },
-  optionText: { fontFamily: 'Inter', fontSize: 15, color: '#2C2825' },
-  cta: {
-    backgroundColor: '#2C2825', borderRadius: 12, paddingVertical: 16, alignItems: 'center',
-  },
-  ctaText: { fontFamily: 'Inter', fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  optionText: { fontFamily: authFonts.body, fontSize: 15, color: authColors.ink },
   linkText: {
-    fontFamily: 'Inter', fontSize: 14, color: '#6B6460',
-    textAlign: 'center', textDecorationLine: 'underline',
+    fontFamily: authFonts.medium,
+    fontSize: 14,
+    color: authColors.gold,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 })

@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { View, Text, StyleSheet, Alert } from 'react-native'
 import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { getDayInCycle, getPhaseForDay } from '@lunari/phase-data'
 import { PhaseHero } from '@lunari/ui'
 import { useAuth, useUser } from '@lunari/utils'
+import { GoldButton, authColors, authFonts } from '../../src/components/AuthChrome'
 import { useOnboardingStore } from '../../src/stores/onboarding'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
 export default function Ready() {
-  const { setStep, cycleStartDate, cycleLength, periodLength, dailyReminder, reminderTime } = useOnboardingStore()
+  const { setStep, cycleStartDate, cycleLength, periodLength, dailyReminder, reminderTime } =
+    useOnboardingStore()
   const { session } = useAuth()
   const { fetchUser } = useUser()
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { setStep(6) }, [setStep])
+  useEffect(() => {
+    setStep(6)
+  }, [setStep])
 
   const startDate = cycleStartDate ?? new Date().toISOString().split('T')[0]
   const day = getDayInCycle(startDate, undefined, cycleLength)
@@ -55,39 +59,31 @@ export default function Ready() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView edges={['bottom']} style={styles.safe}>
       <View style={styles.container}>
         <PhaseHero phase={phase} cycleDay={day} />
 
         <View style={styles.copy}>
-          <Text style={styles.heading}>You're all set</Text>
+          <Text style={styles.heading}>You&apos;re all set</Text>
           <Text style={styles.sub}>
             Day {day} of your {phase.name} phase
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[styles.cta, loading && styles.ctaDisabled]}
+        <GoldButton
+          label={loading ? 'Setting up…' : 'Start tracking →'}
           onPress={handleStart}
           disabled={loading}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.ctaText}>{loading ? 'Setting up…' : 'Start tracking →'}</Text>
-        </TouchableOpacity>
+        />
       </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F0E8' },
+  safe: { flex: 1 },
   container: { flex: 1, padding: 24, gap: 24, justifyContent: 'space-between' },
   copy: { gap: 8 },
-  heading: { fontFamily: 'PlayfairDisplay', fontSize: 32, color: '#2C2825' },
-  sub: { fontFamily: 'Inter', fontSize: 16, color: '#6B6460' },
-  cta: {
-    backgroundColor: '#2C2825', borderRadius: 12, paddingVertical: 16, alignItems: 'center',
-  },
-  ctaDisabled: { opacity: 0.6 },
-  ctaText: { fontFamily: 'Inter', fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  heading: { fontFamily: authFonts.display, fontSize: 32, color: authColors.ink },
+  sub: { fontFamily: authFonts.body, fontSize: 16, color: authColors.muted },
 })
