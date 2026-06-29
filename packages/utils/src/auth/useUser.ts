@@ -32,10 +32,12 @@ export const useUser = create<UserState>((set) => ({
       const res = await fetch(`${API_URL}/me`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
-      if (!res.ok) throw new Error('Failed to fetch user')
+      if (!res.ok) throw new Error(`Failed to fetch user (${res.status})`)
       const user: User = await res.json()
       set({ user })
     } catch (err) {
+      // Don't swallow — a silent failure here is what hid the missing-user-row bug.
+      console.error('useUser.fetchUser failed', err)
       set({ error: err instanceof Error ? err.message : 'Failed to fetch user' })
     } finally {
       set({ isLoading: false })

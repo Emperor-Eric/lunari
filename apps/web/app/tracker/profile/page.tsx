@@ -51,7 +51,7 @@ export default function ProfilePage() {
   useEffect(() => {
     apiGet<User>('/me')
       .then(setUser)
-      .catch(() => {})
+      .catch((err) => console.error('profile: failed to load /me', err))
       .finally(() => setUserLoaded(true))
     if (!SHOP_ENABLED) return
     apiGet<UserReferralCode>('/me/referral-code')
