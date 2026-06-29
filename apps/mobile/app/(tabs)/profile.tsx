@@ -38,13 +38,20 @@ const EXTRA_SETTINGS: { label: string; href: '/connected-apps' | '/privacy' }[] 
 // Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
 const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
 
+// The part of an email before the @ — a friendly fallback when no name is set.
+function emailHandle(email?: string | null): string {
+  if (!email) return ''
+  const at = email.indexOf('@')
+  return at > 0 ? email.slice(0, at) : email
+}
+
 function headerStops(css: string): string[] {
   return css.match(/#[0-9a-fA-F]{6}/g) ?? []
 }
 
 export default function Profile() {
   const { signOut, session } = useAuth()
-  const { user, updateUser } = useUser()
+  const { user, updateUser, fetchUser, isLoading: userLoading } = useUser()
 
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
 
@@ -73,6 +80,13 @@ export default function Profile() {
   useEffect(() => {
     loadCycle()
   }, [loadCycle])
+
+  // The user store is only populated during login/onboarding; on a cold start it's
+  // empty, which is why the header name was stuck on "Loading…". Fetch it here too.
+  // (fetchUser no-ops without a session, so it's safe to call whenever session changes.)
+  useEffect(() => {
+    fetchUser()
+  }, [session, fetchUser])
 
   useEffect(() => {
     if (!SHOP_ENABLED || !session) return
@@ -190,9 +204,20 @@ export default function Profile() {
   const currentIndex = PHASE_ORDER.indexOf(activeKey as (typeof PHASE_ORDER)[number])
   const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
 
-  const initials = user?.name
-    ? user.name
-        .split(' ')
+  // Three distinct states for the header name (don't conflate "still loading" with
+  // "loaded but the account has no name"): name → email handle → "Welcome" (loaded)
+  // / "Loading…" (only while genuinely fetching).
+  const email = user?.email ?? session?.user?.email ?? null
+  const handle = emailHandle(email)
+  const trimmedName = user?.name?.trim() ?? ''
+  const displayName = trimmedName || handle || (userLoading ? 'Loading…' : 'Welcome')
+
+  // Monogram derives from the real name/handle only — never from a placeholder.
+  const monogramSource = trimmedName || handle
+  const initials = monogramSource
+    ? monogramSource
+        .split(/\s+/)
+        .filter(Boolean)
         .map((n) => n[0])
         .join('')
         .toUpperCase()
@@ -234,11 +259,9 @@ export default function Profile() {
                 <Text style={[styles.avatarText, { color: t.headerLabel }]}>{initials}</Text>
               </View>
               <View>
-                <Text style={[styles.name, { color: t.headerText }]}>
-                  {user?.name ?? 'Loading…'}
-                </Text>
+                <Text style={[styles.name, { color: t.headerText }]}>{displayName}</Text>
                 <Text style={[styles.handle, { color: t.headerLabel }]}>
-                  {memberSince ? `member since ${memberSince}` : (user?.email ?? '')}
+                  {memberSince ? `member since ${memberSince}` : (email ?? '')}
                 </Text>
               </View>
             </View>

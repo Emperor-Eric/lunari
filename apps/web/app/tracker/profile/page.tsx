@@ -28,11 +28,19 @@ const PHASE_ORDER = ['menstrual', 'follicular', 'ovulation', 'luteal'] as const
 // Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
 const N = { section: '#A99E88', text: '#2C2825', chev: '#CDC2AD' }
 
+// The part of an email before the @ — a friendly fallback when no name is set.
+function emailHandle(email?: string | null): string {
+  if (!email) return ''
+  const at = email.indexOf('@')
+  return at > 0 ? email.slice(0, at) : email
+}
+
 export default function ProfilePage() {
-  const { signOut } = useAuth()
+  const { signOut, session } = useAuth()
   const { cycleData, refresh } = useCycleContext()
 
   const [user, setUser] = useState<User | null>(null)
+  const [userLoaded, setUserLoaded] = useState(false)
 
   // Referral code state (gated behind SHOP_ENABLED)
   const [savedCode, setSavedCode] = useState<string | null>(null)
@@ -44,6 +52,7 @@ export default function ProfilePage() {
     apiGet<User>('/me')
       .then(setUser)
       .catch(() => {})
+      .finally(() => setUserLoaded(true))
     if (!SHOP_ENABLED) return
     apiGet<UserReferralCode>('/me/referral-code')
       .then((data) => setSavedCode(data.code ?? null))
@@ -124,9 +133,23 @@ export default function ProfilePage() {
   const currentIndex = PHASE_ORDER.indexOf(activeKey as (typeof PHASE_ORDER)[number])
   const nextLabel = phaseTheme[PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]].label
 
-  const initials = user?.name
-    ? user.name
-        .split(' ')
+  // Three distinct states for the header name (don't conflate "still loading" with
+  // "loaded but the account has no name"):
+  //   name set        → show it
+  //   no name yet     → fall back to the email handle (available from the session
+  //                     immediately, even before /me resolves)
+  //   genuinely empty → "Welcome" once loaded, "Loading…" only while in flight
+  const email = user?.email ?? session?.user?.email ?? null
+  const handle = emailHandle(email)
+  const trimmedName = user?.name?.trim() ?? ''
+  const displayName = trimmedName || handle || (userLoaded ? 'Welcome' : 'Loading…')
+
+  // Monogram derives from the real name/handle only — never from a placeholder.
+  const monogramSource = trimmedName || handle
+  const initials = monogramSource
+    ? monogramSource
+        .split(/\s+/)
+        .filter(Boolean)
         .map((n) => n[0])
         .join('')
         .toUpperCase()
@@ -175,13 +198,13 @@ export default function ProfilePage() {
             </div>
             <div>
               <div className="font-display" style={{ fontSize: 21, color: t.headerText }}>
-                {user?.name ?? 'Loading…'}
+                {displayName}
               </div>
               <div
                 className="font-body"
                 style={{ fontSize: 10.5, fontWeight: 300, color: t.headerLabel, marginTop: 1 }}
               >
-                {memberSince ? `member since ${memberSince}` : (user?.email ?? '')}
+                {memberSince ? `member since ${memberSince}` : (email ?? '')}
               </div>
             </div>
           </div>
