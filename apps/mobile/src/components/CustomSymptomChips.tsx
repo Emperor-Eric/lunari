@@ -106,27 +106,21 @@ export function CustomSymptomChips({
       })}
 
       {adding ? (
-        <TextInput
-          autoFocus
-          value={draft}
-          onChangeText={setDraft}
-          onSubmitEditing={submit}
-          onBlur={submit}
-          editable={!busy}
-          placeholder="New symptom"
-          placeholderTextColor={colors.idleText}
-          maxLength={30}
-          style={[
-            chipStyle,
-            textStyle,
-            {
-              minWidth: 110,
-              backgroundColor: colors.idleBg,
-              borderColor: colors.accent,
-              color: colors.inputText,
-            },
-          ]}
-        />
+        // The pill (container) carries the ViewStyle; the TextInput only gets TextStyle.
+        <View style={[chipStyle, { backgroundColor: colors.idleBg, borderColor: colors.accent }]}>
+          <TextInput
+            autoFocus
+            value={draft}
+            onChangeText={setDraft}
+            onSubmitEditing={submit}
+            onBlur={submit}
+            editable={!busy}
+            placeholder="New symptom"
+            placeholderTextColor={colors.idleText}
+            maxLength={30}
+            style={[textStyle, { color: colors.inputText, minWidth: 90, padding: 0 }]}
+          />
+        </View>
       ) : (
         <Pressable
           onPress={() => setAdding(true)}
