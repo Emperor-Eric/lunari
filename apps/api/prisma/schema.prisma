@@ -67,6 +67,7 @@ model SymptomLog {
   energyLevel  Int?     @map("energy_level")
   sleepHours   Decimal? @map("sleep_hours") @db.Decimal(4, 1)
   waterGlasses Int?     @map("water_glasses")
+  flow         String?  // daily bleed intensity: none | spotting | light | medium | heavy (app-validated)
   loggedAt     DateTime @default(now()) @map("logged_at") @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

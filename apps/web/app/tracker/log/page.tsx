@@ -1,9 +1,9 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
-import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById, FLOW_OPTIONS, flowIntensity } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
-import type { SymptomLog } from '@lunari/types'
+import type { SymptomLog, FlowValue } from '@lunari/types'
 import { useCycleContext } from '../cycle-context'
 import { apiGet, apiPost } from '@/src/lib/api'
 import { LogTabs } from './_components/LogTabs'
@@ -29,6 +29,7 @@ export default function LogPage() {
   const t = phaseTheme[phaseKeyFor(phase.id)]
 
   const [symptoms, setSymptoms] = useState<string[]>([])
+  const [flow, setFlow] = useState<FlowValue | null>(null)
   const [mood, setMood] = useState<number | null>(null)
   const [energy, setEnergy] = useState(5) // 1–10
   const [sleep, setSleep] = useState(7.5)
@@ -45,6 +46,7 @@ export default function LogPage() {
       .then((log) => {
         if (!log) return
         setSymptoms(log.symptoms ?? [])
+        if (log.flow != null) setFlow(log.flow)
         if (log.mood != null) setMood(log.mood)
         if (log.energyLevel != null) setEnergy(log.energyLevel)
         if (log.sleepHours != null) setSleep(Number(log.sleepHours))
@@ -77,6 +79,7 @@ export default function LogPage() {
     try {
       await apiPost('/me/logs', {
         symptoms,
+        ...(flow != null && { flow }),
         mood,
         energyLevel: energy,
         sleepHours: sleep,
@@ -94,15 +97,69 @@ export default function LogPage() {
 
   const energyPct = energy * 10
 
+  // Flow is emphasized (shown at the very top) during the menstrual phase; otherwise it
+  // still lives in the form, just below symptoms. Each chip carries a dot that scales with
+  // intensity (none → faint, heavy → solid) — a subtle cue, not a chart.
+  const menstrual = phase.id === 'menstrual'
+  const flowSection = (
+    <div style={{ marginBottom: 20 }}>
+      <div
+        className="uppercase"
+        style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '0 0 10px' }}
+      >
+        Flow{menstrual ? ' · today' : ''}
+      </div>
+      <div className="flex" style={{ gap: 6 }}>
+        {FLOW_OPTIONS.map((o) => {
+          const active = flow === o.value
+          const intensity = flowIntensity(o.value)
+          const dot = 5 + intensity * 2
+          return (
+            <button
+              key={o.value}
+              onClick={() => setFlow(o.value)}
+              className="flex-1 flex flex-col items-center"
+              style={{
+                padding: '9px 0',
+                gap: 5,
+                borderRadius: 10,
+                background: active ? solid12 : t.labCard,
+                color: active ? t.accent : N.idleText,
+                border: `1px solid ${active ? t.accent : t.labBorder}`,
+              }}
+            >
+              <span
+                style={{
+                  width: dot,
+                  height: dot,
+                  borderRadius: 999,
+                  background: t.accent,
+                  opacity: 0.25 + intensity * 0.185,
+                }}
+              />
+              <span style={{ fontSize: 9.5 }}>{o.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: t.labBg }}>
       {/* ── HEADER BAND (phase gradient — no orbit on Log) ── */}
       <div style={{ background: t.header, color: t.headerText }}>
-        <div className="max-w-xl mx-auto px-6 md:px-10" style={{ paddingTop: 18, paddingBottom: 20 }}>
+        <div
+          className="max-w-xl mx-auto px-6 md:px-10"
+          style={{ paddingTop: 18, paddingBottom: 20 }}
+        >
           <h1 className="font-display" style={{ fontSize: 27, color: t.headerText }}>
             Daily check-in
           </h1>
-          <div className="font-body" style={{ fontSize: 10.5, marginTop: 4, fontWeight: 300, color: t.headerLabel }}>
+          <div
+            className="font-body"
+            style={{ fontSize: 10.5, marginTop: 4, fontWeight: 300, color: t.headerLabel }}
+          >
             {dateLabel} · {t.label} · Day {day}
           </div>
           <LogTabs />
@@ -111,8 +168,14 @@ export default function LogPage() {
 
       {/* ── TINTED BODY ── */}
       <div className="max-w-xl mx-auto px-6 md:px-10 pt-4 pb-10 font-body">
+        {/* Flow — emphasized at the top during the menstrual phase */}
+        {menstrual && flowSection}
+
         {/* Symptoms (multi-select chips) */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '0 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '0 0 10px' }}
+        >
           Symptoms
         </div>
         <div className="flex flex-wrap" style={{ gap: 7 }}>
@@ -137,8 +200,14 @@ export default function LogPage() {
           })}
         </div>
 
+        {/* Flow — non-emphasized position (outside the menstrual phase) */}
+        {!menstrual && <div style={{ marginTop: 20 }}>{flowSection}</div>}
+
         {/* Mood (single-select) */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 10px' }}
+        >
           Mood
         </div>
         <div className="flex" style={{ gap: 8 }}>
@@ -167,7 +236,10 @@ export default function LogPage() {
         </div>
 
         {/* Energy (slider) */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 10px' }}
+        >
           Energy
         </div>
         <div
@@ -182,7 +254,10 @@ export default function LogPage() {
           className="relative cursor-pointer"
           style={{ height: 6, background: t.labTrack, borderRadius: 4 }}
         >
-          <div className="absolute left-0 top-0 bottom-0" style={{ width: `${energyPct}%`, background: t.accent, borderRadius: 4 }} />
+          <div
+            className="absolute left-0 top-0 bottom-0"
+            style={{ width: `${energyPct}%`, background: t.accent, borderRadius: 4 }}
+          />
           <div
             className="absolute"
             style={{
@@ -197,7 +272,10 @@ export default function LogPage() {
             }}
           />
         </div>
-        <div className="flex justify-between" style={{ fontSize: 9, color: N.section, marginTop: 7 }}>
+        <div
+          className="flex justify-between"
+          style={{ fontSize: 9, color: N.section, marginTop: 7 }}
+        >
           <span>Drained</span>
           <span>Energised</span>
         </div>
@@ -205,9 +283,20 @@ export default function LogPage() {
         {/* Sleep + Water readouts */}
         <div className="flex" style={{ gap: 11, marginTop: 20 }}>
           {/* Sleep — kept editable via stepper (reference shows readout only) */}
-          <div className="flex-1" style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 13, padding: 13 }}>
+          <div
+            className="flex-1"
+            style={{
+              background: t.labCard,
+              border: `1px solid ${t.labBorder}`,
+              borderRadius: 13,
+              padding: 13,
+            }}
+          >
             <div className="flex justify-between items-center">
-              <div className="uppercase" style={{ fontSize: 8.5, letterSpacing: '0.1em', color: N.section }}>
+              <div
+                className="uppercase"
+                style={{ fontSize: 8.5, letterSpacing: '0.1em', color: N.section }}
+              >
                 Sleep
               </div>
               <Stepper
@@ -219,14 +308,27 @@ export default function LogPage() {
             </div>
             <div className="font-display" style={{ fontSize: 21, marginTop: 3, color: N.value }}>
               {sleep}
-              <span className="font-body" style={{ fontSize: 10, color: N.unit }}>h</span>
+              <span className="font-body" style={{ fontSize: 10, color: N.unit }}>
+                h
+              </span>
             </div>
           </div>
 
           {/* Water — stepper */}
-          <div className="flex-1" style={{ background: t.labCard, border: `1px solid ${t.labBorder}`, borderRadius: 13, padding: 13 }}>
+          <div
+            className="flex-1"
+            style={{
+              background: t.labCard,
+              border: `1px solid ${t.labBorder}`,
+              borderRadius: 13,
+              padding: 13,
+            }}
+          >
             <div className="flex justify-between items-center">
-              <div className="uppercase" style={{ fontSize: 8.5, letterSpacing: '0.1em', color: N.section }}>
+              <div
+                className="uppercase"
+                style={{ fontSize: 8.5, letterSpacing: '0.1em', color: N.section }}
+              >
                 Water
               </div>
               <Stepper
@@ -238,13 +340,19 @@ export default function LogPage() {
             </div>
             <div className="font-display" style={{ fontSize: 21, marginTop: 3, color: N.value }}>
               {water}
-              <span className="font-body" style={{ fontSize: 10, color: N.unit }}> / 8 glasses</span>
+              <span className="font-body" style={{ fontSize: 10, color: N.unit }}>
+                {' '}
+                / 8 glasses
+              </span>
             </div>
           </div>
         </div>
 
         {/* Notes (journal) — preserved from existing screen; beyond the reference */}
-        <div className="uppercase" style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 10px' }}>
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 10px' }}
+        >
           Notes
         </div>
         <textarea

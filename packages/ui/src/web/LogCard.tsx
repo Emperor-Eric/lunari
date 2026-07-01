@@ -1,7 +1,7 @@
 import React from 'react'
 import { format } from 'date-fns'
 import type { SymptomLog } from '@lunari/types'
-import { getPhaseById } from '@lunari/phase-data'
+import { getPhaseById, FLOW_OPTIONS, flowIntensity } from '@lunari/phase-data'
 
 interface Props {
   log: SymptomLog
@@ -10,6 +10,9 @@ interface Props {
 
 export const LogCard: React.FC<Props> = ({ log, onPress }) => {
   const phase = getPhaseById(log.phase)
+  const flowLabel = log.flow ? FLOW_OPTIONS.find((o) => o.value === log.flow)?.label : null
+  const flowShown = log.flow && log.flow !== 'none'
+  const flowDot = 5 + flowIntensity(log.flow) * 2
 
   return (
     <div
@@ -40,6 +43,22 @@ export const LogCard: React.FC<Props> = ({ log, onPress }) => {
             </span>
           )}
         </div>
+        {flowShown && (
+          <div className="flex items-center gap-1.5">
+            <span
+              style={{
+                width: flowDot,
+                height: flowDot,
+                borderRadius: 9999,
+                background: phase.color,
+                opacity: 0.35 + flowIntensity(log.flow) * 0.16,
+              }}
+            />
+            <span className="text-xs" style={{ color: phase.color }}>
+              {flowLabel} flow
+            </span>
+          </div>
+        )}
         {log.journalNote && (
           <p className="text-xs text-brand-ink-soft italic truncate">{log.journalNote}</p>
         )}

@@ -7,9 +7,10 @@ import {
   getPhaseById,
   getPhaseRanges,
   getCyclePrediction,
+  FLOW_OPTIONS,
 } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
-import type { PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
+import type { PhaseId, CycleSettings, SymptomLog, FlowValue } from '@lunari/types'
 import { Toast } from '@lunari/ui'
 import { apiGet, apiPost } from '@/src/lib/api'
 import { NextUpCard } from './_components/NextUpCard'
@@ -68,6 +69,7 @@ export default function TrackerToday() {
 
   // "How are you feeling?" chips — persisted to today's single log entry.
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
+  const [quickFlow, setQuickFlow] = useState<FlowValue | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   // Prefill chips from today's saved entry so they survive refresh.
@@ -75,9 +77,26 @@ export default function TrackerToday() {
     apiGet<SymptomLog | null>('/me/logs/today')
       .then((log) => {
         if (log?.symptoms) setQuickSymptoms(log.symptoms)
+        if (log?.flow) setQuickFlow(log.flow)
       })
       .catch(() => {})
   }, [])
+
+  // Quick flow pick (menstrual days only) — a merge save, like the feeling chips.
+  const saveFlow = (value: FlowValue) => {
+    const prev = quickFlow
+    setQuickFlow(value)
+    apiPost('/me/logs', { flow: value })
+      .then(() => {
+        setToast({ msg: 'Saved ✓', type: 'success' })
+        setTimeout(() => setToast(null), 1200)
+      })
+      .catch(() => {
+        setQuickFlow(prev)
+        setToast({ msg: "Couldn't save — try again", type: 'error' })
+        setTimeout(() => setToast(null), 2500)
+      })
+  }
 
   // Tapping a chip IS the save: optimistic toggle, then persist (merge keeps other fields).
   const toggleSymptom = (s: string) => {
@@ -364,6 +383,39 @@ export default function TrackerToday() {
             )
           })}
         </div>
+
+        {/* ── Quick flow (menstrual days only) ── */}
+        {currentPhase.id === 'menstrual' && (
+          <>
+            <div
+              className="uppercase"
+              style={{ fontSize: 9, letterSpacing: '0.22em', color: sub, margin: '18px 0 10px' }}
+            >
+              Today&apos;s flow
+            </div>
+            <div className="flex flex-wrap" style={{ gap: 7 }}>
+              {FLOW_OPTIONS.map((o) => {
+                const on = quickFlow === o.value
+                return (
+                  <button
+                    key={o.value}
+                    onClick={() => saveFlow(o.value)}
+                    style={{
+                      fontSize: 11,
+                      padding: '7px 13px',
+                      borderRadius: 20,
+                      background: on ? ink : 'transparent',
+                      color: on ? chipOnText : ink,
+                      border: `1px solid ${on ? 'transparent' : chipIdleBd}`,
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
 
         {/* ── Predictions: Next up summary (taps through to the calendar) ── */}
         <div

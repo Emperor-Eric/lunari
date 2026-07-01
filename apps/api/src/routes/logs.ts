@@ -1,4 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { isFlowValue } from '@lunari/phase-data'
+import type { FlowValue } from '@lunari/types'
 import { sendError } from '../lib/errors'
 import { cycleDayAndPhase, loadEffectiveCycle, todayRange } from '../lib/cycleDay'
 
@@ -9,6 +11,7 @@ interface LogBody {
   energyLevel?: number
   sleepHours?: number
   waterGlasses?: number
+  flow?: FlowValue
 }
 
 const logsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -30,7 +33,8 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
         orderBy: { loggedAt: 'desc' },
       })
 
-      // Fields explicitly provided in the request (merge semantics).
+      // Fields explicitly provided in the request (merge semantics). `flow` is just
+      // another mergeable daily field — only written when a valid value is sent.
       const provided = {
         ...(body.symptoms !== undefined && { symptoms: body.symptoms }),
         ...(body.journalNote !== undefined && { journalNote: body.journalNote }),
@@ -38,6 +42,7 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
         ...(body.energyLevel !== undefined && { energyLevel: body.energyLevel }),
         ...(body.sleepHours !== undefined && { sleepHours: body.sleepHours }),
         ...(body.waterGlasses !== undefined && { waterGlasses: body.waterGlasses }),
+        ...(isFlowValue(body.flow) && { flow: body.flow }),
       }
 
       const log = existing
@@ -57,6 +62,7 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
               ...(body.energyLevel !== undefined && { energyLevel: body.energyLevel }),
               ...(body.sleepHours !== undefined && { sleepHours: body.sleepHours }),
               ...(body.waterGlasses !== undefined && { waterGlasses: body.waterGlasses }),
+              ...(isFlowValue(body.flow) && { flow: body.flow }),
             },
           })
 
@@ -81,39 +87,35 @@ const logsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{
     Querystring: { page?: string; perPage?: string; from?: string; to?: string }
-  }>(
-    '/me/logs',
-    { preHandler: [fastify.verifyAuth] },
-    async (request, reply) => {
-      const page = parseInt(request.query.page ?? '1', 10)
-      const perPage = parseInt(request.query.perPage ?? '20', 10)
-      const { from, to } = request.query
+  }>('/me/logs', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
+    const page = parseInt(request.query.page ?? '1', 10)
+    const perPage = parseInt(request.query.perPage ?? '20', 10)
+    const { from, to } = request.query
 
-      const where = {
-        userId: request.user.id,
-        ...(from || to
-          ? {
-              loggedAt: {
-                ...(from && { gte: new Date(from) }),
-                ...(to && { lte: new Date(to) }),
-              },
-            }
-          : {}),
-      }
-
-      const [data, total] = await Promise.all([
-        fastify.prisma.symptomLog.findMany({
-          where,
-          orderBy: { loggedAt: 'desc' },
-          skip: (page - 1) * perPage,
-          take: perPage,
-        }),
-        fastify.prisma.symptomLog.count({ where }),
-      ])
-
-      return reply.send({ data, total, page, perPage })
+    const where = {
+      userId: request.user.id,
+      ...(from || to
+        ? {
+            loggedAt: {
+              ...(from && { gte: new Date(from) }),
+              ...(to && { lte: new Date(to) }),
+            },
+          }
+        : {}),
     }
-  )
+
+    const [data, total] = await Promise.all([
+      fastify.prisma.symptomLog.findMany({
+        where,
+        orderBy: { loggedAt: 'desc' },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      }),
+      fastify.prisma.symptomLog.count({ where }),
+    ])
+
+    return reply.send({ data, total, page, perPage })
+  })
 
   fastify.get<{ Params: { id: string } }>(
     '/me/logs/:id',

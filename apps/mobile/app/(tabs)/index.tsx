@@ -1,14 +1,34 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { View, Text, Image, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native'
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { router, useFocusEffect } from 'expo-router'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay, getAllPhases, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
+import {
+  getPhaseForDay,
+  getAllPhases,
+  getPhaseById,
+  getPhaseRanges,
+  FLOW_OPTIONS,
+} from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import { LoadingSpinner, Toast } from '@lunari/ui'
-import type { TodayCycleResponse, PhaseId, CycleSettings, SymptomLog } from '@lunari/types'
+import type {
+  TodayCycleResponse,
+  PhaseId,
+  CycleSettings,
+  SymptomLog,
+  FlowValue,
+} from '@lunari/types'
 import { NextUpCard } from '../../src/components/NextUpCard'
 import { LogPeriodCard } from '../../src/components/LogPeriodCard'
 
@@ -39,6 +59,7 @@ export default function Today() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
+  const [quickFlow, setQuickFlow] = useState<FlowValue | null>(null)
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
   const [settings, setSettings] = useState<CycleSettings | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
@@ -93,10 +114,13 @@ export default function Today() {
   // Prefill "How are you feeling?" chips from today's saved entry (survives refresh).
   useEffect(() => {
     if (!session) return
-    fetch(`${API_URL}/me/logs/today`, { headers: { Authorization: `Bearer ${session.access_token}` } })
+    fetch(`${API_URL}/me/logs/today`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((log: SymptomLog | null) => {
         if (log?.symptoms) setQuickSymptoms(log.symptoms)
+        if (log?.flow) setQuickFlow(log.flow)
       })
       .catch(() => {})
   }, [session])
@@ -114,7 +138,10 @@ export default function Today() {
     setQuickSymptoms(next)
     fetch(`${API_URL}/me/logs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ symptoms: next }),
     })
       .then((r) => {
@@ -124,6 +151,31 @@ export default function Today() {
       })
       .catch(() => {
         setQuickSymptoms(prev) // revert on failure
+        setToast({ msg: "Couldn't save — try again", type: 'error' })
+        setTimeout(() => setToast(null), 2500)
+      })
+  }
+
+  // Quick flow pick (menstrual days only) — a merge save, like the feeling chips.
+  const saveFlow = (value: FlowValue) => {
+    if (!session) return
+    const prev = quickFlow
+    setQuickFlow(value)
+    fetch(`${API_URL}/me/logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ flow: value }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('save failed')
+        setToast({ msg: 'Saved ✓', type: 'success' })
+        setTimeout(() => setToast(null), 1200)
+      })
+      .catch(() => {
+        setQuickFlow(prev)
         setToast({ msg: "Couldn't save — try again", type: 'error' })
         setTimeout(() => setToast(null), 2500)
       })
@@ -190,7 +242,9 @@ export default function Today() {
     <View style={{ flex: 1, backgroundColor: baseColor }}>
       <ScrollView
         contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ink} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ink} />
+        }
       >
         <LinearGradient
           colors={t.floodColors as [string, string, ...string[]]}
@@ -206,17 +260,41 @@ export default function Today() {
                 <Text style={[styles.todayHeading, { color: ink }]}>Today</Text>
               </View>
               {/* TODO: seal-ink on light phases once we have a transparent ink seal. */}
-              <Image source={require('../../assets/brand/seal-gold.png')} style={styles.avatar} resizeMode="contain" />
+              <Image
+                source={require('../../assets/brand/seal-gold.png')}
+                style={styles.avatar}
+                resizeMode="contain"
+              />
             </View>
 
             {/* ── HERO (themed to the viewed phase) ── */}
             <View style={styles.hero}>
               <View style={styles.sealCluster}>
                 <Svg width={150} height={150} style={StyleSheet.absoluteFill}>
-                  <Circle cx={75} cy={75} r={72} stroke={gold} strokeOpacity={0.18} strokeWidth={1} fill="none" />
-                  <Circle cx={75} cy={75} r={56} stroke={gold} strokeOpacity={0.14} strokeWidth={1} fill="none" />
+                  <Circle
+                    cx={75}
+                    cy={75}
+                    r={72}
+                    stroke={gold}
+                    strokeOpacity={0.18}
+                    strokeWidth={1}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={75}
+                    cy={75}
+                    r={56}
+                    stroke={gold}
+                    strokeOpacity={0.14}
+                    strokeWidth={1}
+                    fill="none"
+                  />
                 </Svg>
-                <Image source={require('../../assets/brand/seal-gold.png')} style={styles.seal} resizeMode="contain" />
+                <Image
+                  source={require('../../assets/brand/seal-gold.png')}
+                  style={styles.seal}
+                  resizeMode="contain"
+                />
               </View>
 
               <Text style={[styles.eyebrow, { color: gold }]}>
@@ -230,7 +308,9 @@ export default function Today() {
               <View style={styles.progress}>
                 {allPhases.map((p) => (
                   <View key={p.id} style={[styles.seg, { backgroundColor: cardbd }]}>
-                    <View style={{ height: '100%', width: `${segFill(p)}%`, backgroundColor: gold }} />
+                    <View
+                      style={{ height: '100%', width: `${segFill(p)}%`, backgroundColor: gold }}
+                    />
                   </View>
                 ))}
               </View>
@@ -242,7 +322,10 @@ export default function Today() {
                       key={p.id}
                       style={[
                         styles.segLabel,
-                        { color: isNow ? gold : sub, fontFamily: isNow ? 'Raleway_600SemiBold' : 'Raleway_400Regular' },
+                        {
+                          color: isNow ? gold : sub,
+                          fontFamily: isNow ? 'Raleway_600SemiBold' : 'Raleway_400Regular',
+                        },
                       ]}
                     >
                       {SHORT[p.id]}
@@ -256,7 +339,8 @@ export default function Today() {
             {previewing && (
               <View style={[styles.banner, { backgroundColor: cardwash, borderColor: cardbd }]}>
                 <Text style={[styles.bannerText, { color: ink }]}>
-                  Previewing {t.label} · You&apos;re in {phaseTheme[phaseKeyFor(currentPhase.id)].label} today
+                  Previewing {t.label} · You&apos;re in{' '}
+                  {phaseTheme[phaseKeyFor(currentPhase.id)].label} today
                 </Text>
                 <TouchableOpacity onPress={() => setViewedPhaseId(null)}>
                   <Text style={[styles.bannerBack, { color: gold }]}>Back to today</Text>
@@ -266,11 +350,17 @@ export default function Today() {
 
             {/* ── Log period — prominent top entry point (button + inline confirm) ── */}
             <View style={{ marginTop: 18 }}>
-              <LogPeriodCard key={focusKey} surface={{ ink, sub, gold, cardwash, cardbd }} onChange={recalibrate} />
+              <LogPeriodCard
+                key={focusKey}
+                surface={{ ink, sub, gold, cardwash, cardbd }}
+                onChange={recalibrate}
+              />
             </View>
 
             {/* ── Phase rail (tap to preview) ── */}
-            <Text style={[styles.sectionLabel, { color: sub }]}>Your four phases · tap to explore</Text>
+            <Text style={[styles.sectionLabel, { color: sub }]}>
+              Your four phases · tap to explore
+            </Text>
             <View style={styles.rail}>
               {allPhases.map((p) => {
                 const active = p.id === viewedPhase.id
@@ -281,7 +371,13 @@ export default function Today() {
                     key={p.id}
                     activeOpacity={0.8}
                     onPress={() => setViewedPhaseId(p.id)}
-                    style={[styles.railCard, { borderColor: active ? gold : cardbd, backgroundColor: active ? cardwash : 'transparent' }]}
+                    style={[
+                      styles.railCard,
+                      {
+                        borderColor: active ? gold : cardbd,
+                        backgroundColor: active ? cardwash : 'transparent',
+                      },
+                    ]}
                   >
                     {active ? (
                       <View style={[styles.dotHalo, { backgroundColor: halo }]}>
@@ -307,13 +403,48 @@ export default function Today() {
                   <TouchableOpacity
                     key={s}
                     onPress={() => toggleSymptom(s)}
-                    style={[styles.chip, { backgroundColor: on ? ink : 'transparent', borderColor: on ? 'transparent' : chipIdleBd }]}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: on ? ink : 'transparent',
+                        borderColor: on ? 'transparent' : chipIdleBd,
+                      },
+                    ]}
                   >
                     <Text style={[styles.chipText, { color: on ? chipOnText : ink }]}>{s}</Text>
                   </TouchableOpacity>
                 )
               })}
             </View>
+
+            {/* ── Quick flow (menstrual days only) ── */}
+            {currentPhase.id === 'menstrual' && (
+              <>
+                <Text style={[styles.sectionLabel, { color: sub }]}>Today&apos;s flow</Text>
+                <View style={styles.chips}>
+                  {FLOW_OPTIONS.map((o) => {
+                    const on = quickFlow === o.value
+                    return (
+                      <TouchableOpacity
+                        key={o.value}
+                        onPress={() => saveFlow(o.value)}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: on ? ink : 'transparent',
+                            borderColor: on ? 'transparent' : chipIdleBd,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.chipText, { color: on ? chipOnText : ink }]}>
+                          {o.label}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+              </>
+            )}
 
             {/* ── Predictions: Next up (taps through to the Calendar screen) ── */}
             <Text style={[styles.sectionLabel, { color: sub }]}>Looking ahead</Text>
@@ -325,14 +456,19 @@ export default function Today() {
 
             {/* ── Supplement focus (viewed phase's actives) ── */}
             <View style={styles.suppHead}>
-              <Text style={[styles.sectionLabel, { color: sub, marginBottom: 0 }]}>Today&apos;s supplement focus</Text>
+              <Text style={[styles.sectionLabel, { color: sub, marginBottom: 0 }]}>
+                Today&apos;s supplement focus
+              </Text>
               <Text style={[styles.suppCount, { color: gold }]}>{supps.length} actives</Text>
             </View>
             <View style={styles.suppList}>
               {supps.map((s) => {
                 const note = s.purpose.split('—')[0].trim()
                 return (
-                  <View key={s.name} style={[styles.supp, { backgroundColor: cardwash, borderColor: cardbd }]}>
+                  <View
+                    key={s.name}
+                    style={[styles.supp, { backgroundColor: cardwash, borderColor: cardbd }]}
+                  >
                     <View style={styles.suppLeft}>
                       <View style={[styles.suppCheck, { backgroundColor: gold }]}>
                         <Text style={[styles.suppCheckMark, { color: t.phase }]}>✓</Text>
@@ -363,24 +499,63 @@ const styles = StyleSheet.create({
   safe: { paddingHorizontal: 22 },
 
   // top bar
-  topbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 6, marginBottom: 6 },
-  date: { fontFamily: 'Raleway_400Regular', fontSize: 9.5, letterSpacing: 2, textTransform: 'uppercase' },
+  topbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  date: {
+    fontFamily: 'Raleway_400Regular',
+    fontSize: 9.5,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
   todayHeading: { fontFamily: 'Marcellus_400Regular', fontSize: 24, marginTop: 3 },
   avatar: { width: 34, height: 34 },
 
   // hero
   hero: { alignItems: 'center', paddingTop: 4 },
-  sealCluster: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  sealCluster: {
+    width: 150,
+    height: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   seal: { width: 84, height: 84 },
-  eyebrow: { fontFamily: 'Raleway_600SemiBold', fontSize: 9.5, letterSpacing: 3, textTransform: 'uppercase' },
+  eyebrow: {
+    fontFamily: 'Raleway_600SemiBold',
+    fontSize: 9.5,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
   phaseName: { fontFamily: 'Marcellus_400Regular', fontSize: 52, marginTop: 12, lineHeight: 54 },
-  tagline: { fontFamily: 'Raleway_400Regular', fontSize: 13, letterSpacing: 3.5, textTransform: 'uppercase', marginTop: 12 },
-  line: { fontFamily: 'Raleway_300Light', fontSize: 12, opacity: 0.82, marginTop: 12, textAlign: 'center' },
+  tagline: {
+    fontFamily: 'Raleway_400Regular',
+    fontSize: 13,
+    letterSpacing: 3.5,
+    textTransform: 'uppercase',
+    marginTop: 12,
+  },
+  line: {
+    fontFamily: 'Raleway_300Light',
+    fontSize: 12,
+    opacity: 0.82,
+    marginTop: 12,
+    textAlign: 'center',
+  },
 
   // progress
   progress: { flexDirection: 'row', gap: 6, marginTop: 20, alignSelf: 'stretch' },
   seg: { flex: 1, height: 4, borderRadius: 4, overflow: 'hidden' },
-  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 9, alignSelf: 'stretch' },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 9,
+    alignSelf: 'stretch',
+  },
   segLabel: { fontSize: 8, letterSpacing: 1 },
 
   // preview banner
@@ -399,12 +574,32 @@ const styles = StyleSheet.create({
   bannerBack: { fontFamily: 'Raleway_600SemiBold', fontSize: 11 },
 
   // section label
-  sectionLabel: { fontFamily: 'Raleway_500Medium', fontSize: 9, letterSpacing: 2, textTransform: 'uppercase', marginTop: 22, marginBottom: 10 },
+  sectionLabel: {
+    fontFamily: 'Raleway_500Medium',
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 22,
+    marginBottom: 10,
+  },
 
   // phase rail
   rail: { flexDirection: 'row', gap: 8 },
-  railCard: { flex: 1, borderRadius: 13, borderWidth: 1, paddingVertical: 11, paddingHorizontal: 6, alignItems: 'center' },
-  dotHalo: { width: 19, height: 19, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  railCard: {
+    flex: 1,
+    borderRadius: 13,
+    borderWidth: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  dotHalo: {
+    width: 19,
+    height: 19,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dot: { width: 13, height: 13, borderRadius: 999 },
   railName: { fontFamily: 'Marcellus_400Regular', fontSize: 12, marginTop: 8 },
   railDays: { fontFamily: 'Raleway_400Regular', fontSize: 8, marginTop: 1 },
@@ -416,12 +611,32 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: 'Raleway_500Medium', fontSize: 11 },
 
   // supplement focus
-  suppHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 22, marginBottom: 10 },
+  suppHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: 22,
+    marginBottom: 10,
+  },
   suppCount: { fontFamily: 'Raleway_600SemiBold', fontSize: 9, letterSpacing: 0.5 },
   suppList: { gap: 9 },
-  supp: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 15, borderRadius: 14, borderWidth: 1 },
+  supp: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
   suppLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  suppCheck: { width: 21, height: 21, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  suppCheck: {
+    width: 21,
+    height: 21,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   suppCheckMark: { fontSize: 11, fontWeight: '700' },
   suppInfo: { flex: 1 },
   suppName: { fontFamily: 'Marcellus_400Regular', fontSize: 14.5 },

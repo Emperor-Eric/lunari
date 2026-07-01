@@ -31,3 +31,4 @@ export {
   MAX_LOGGED_RUN_DAYS,
 } from './period-log'
 export type { CalendarTap } from './period-log'
+export { FLOW_OPTIONS, flowIntensity, isFlowValue } from './flow'

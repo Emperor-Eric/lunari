@@ -13,10 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import Slider from '@react-native-community/slider'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
+import { getPhaseForDay, getPhaseById, FLOW_OPTIONS, flowIntensity } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LogCard, EmptyState, Toast, LoadingSpinner } from '@lunari/ui'
-import type { SymptomLog, TodayCycleResponse } from '@lunari/types'
+import type { SymptomLog, TodayCycleResponse, FlowValue } from '@lunari/types'
 import { InsightsView } from '../../src/components/InsightsView'
 
 type LogTab = 'today' | 'history' | 'insights'
@@ -54,6 +54,7 @@ export default function Log() {
 
   // Today state
   const [symptoms, setSymptoms] = useState<string[]>([])
+  const [flow, setFlow] = useState<FlowValue | null>(null)
   const [mood, setMood] = useState<number | null>(null)
   const [energy, setEnergy] = useState(5) // 1–10
   const [sleep, setSleep] = useState(7.5)
@@ -95,6 +96,7 @@ export default function Log() {
       .then((log: SymptomLog | null) => {
         if (!log) return
         setSymptoms(log.symptoms ?? [])
+        if (log.flow != null) setFlow(log.flow)
         if (log.mood != null) setMood(log.mood)
         if (log.energyLevel != null) setEnergy(log.energyLevel)
         if (log.sleepHours != null) setSleep(Number(log.sleepHours))
@@ -157,6 +159,7 @@ export default function Log() {
         },
         body: JSON.stringify({
           symptoms,
+          ...(flow != null && { flow }),
           mood,
           energyLevel: energy,
           sleepHours: sleep,
@@ -197,6 +200,50 @@ export default function Log() {
     ...string[],
   ]
 
+  // Flow — emphasized at the top during the menstrual phase, otherwise just below
+  // symptoms. Each chip's dot scales with intensity (none → faint, heavy → solid).
+  const menstrual = phase.id === 'menstrual'
+  const flowSection = (
+    <View style={styles.flowWrap}>
+      <Text style={[styles.fieldLabel, { color: N.section }]}>
+        Flow{menstrual ? ' · today' : ''}
+      </Text>
+      <View style={styles.flowRow}>
+        {FLOW_OPTIONS.map((o) => {
+          const active = flow === o.value
+          const intensity = flowIntensity(o.value)
+          const dot = 5 + intensity * 2
+          return (
+            <Pressable
+              key={o.value}
+              onPress={() => setFlow(o.value)}
+              style={[
+                styles.flowChip,
+                {
+                  backgroundColor: active ? solid12 : t.labCard,
+                  borderColor: active ? t.accent : t.labBorder,
+                },
+              ]}
+            >
+              <View
+                style={{
+                  width: dot,
+                  height: dot,
+                  borderRadius: 999,
+                  backgroundColor: t.accent,
+                  opacity: 0.25 + intensity * 0.185,
+                }}
+              />
+              <Text style={[styles.flowChipText, { color: active ? t.accent : N.idleText }]}>
+                {o.label}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+    </View>
+  )
+
   return (
     <View style={{ flex: 1, backgroundColor: t.labBg }}>
       {/* ── HEADER BAND (phase gradient — no orbit on Log) ── */}
@@ -229,6 +276,9 @@ export default function Log() {
 
       {tab === 'today' ? (
         <ScrollView contentContainerStyle={styles.body}>
+          {/* Flow — emphasized at the top during the menstrual phase */}
+          {menstrual && flowSection}
+
           {/* Symptoms */}
           <Text style={[styles.fieldLabel, { color: N.section }]}>Symptoms</Text>
           <View style={styles.chips}>
@@ -253,6 +303,9 @@ export default function Log() {
               )
             })}
           </View>
+
+          {/* Flow — non-emphasized position (outside the menstrual phase) */}
+          {!menstrual && <View style={styles.gap}>{flowSection}</View>}
 
           {/* Mood */}
           <Text style={[styles.fieldLabel, styles.gap, { color: N.section }]}>Mood</Text>
@@ -460,6 +513,19 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1 },
   chipText: { fontFamily: 'Raleway_500Medium', fontSize: 10.5 },
+
+  // flow
+  flowWrap: { marginBottom: 0 },
+  flowRow: { flexDirection: 'row', gap: 6 },
+  flowChip: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  flowChipText: { fontFamily: 'Raleway_500Medium', fontSize: 9.5 },
 
   // moods
   moods: { flexDirection: 'row', gap: 8 },

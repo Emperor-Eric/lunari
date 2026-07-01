@@ -179,6 +179,9 @@ export interface UserReferralCode {
 
 // ─── Symptom log ─────────────────────────────────────────────────────────────
 
+// Daily bleed intensity, logged on the SymptomLog (independent of PeriodEvents).
+export type FlowValue = 'none' | 'spotting' | 'light' | 'medium' | 'heavy'
+
 export interface SymptomLog {
   id: string
   userId: string
@@ -190,6 +193,7 @@ export interface SymptomLog {
   energyLevel?: number | null
   sleepHours?: number | string | null // Prisma Decimal serializes to string
   waterGlasses?: number | null
+  flow?: FlowValue | null
   loggedAt: string
 }
 
