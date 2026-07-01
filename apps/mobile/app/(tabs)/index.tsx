@@ -18,6 +18,8 @@ import {
   getAllPhases,
   getPhaseById,
   getPhaseRanges,
+  getEducationCard,
+  PHASE_EDUCATION,
   FLOW_OPTIONS,
 } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
@@ -33,6 +35,7 @@ import { NextUpCard } from '../../src/components/NextUpCard'
 import { LogPeriodCard } from '../../src/components/LogPeriodCard'
 import { useCustomSymptoms } from '../../src/hooks/useCustomSymptoms'
 import { CustomSymptomChips } from '../../src/components/CustomSymptomChips'
+import { EducationCard } from '../../src/components/EducationCard'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -241,6 +244,22 @@ export default function Today() {
     return start === end ? `D${start}` : `D${start}–${end}`
   }
 
+  // Daily micro-education for the user's REAL phase + day-within-phase, using the same
+  // phase-range math as the rail (from the server-derived cycle). Hidden until loaded.
+  const eduRanges = cycleData ? getPhaseRanges(cycleData.cycleLength, cycleData.periodLength) : null
+  const eduRange =
+    cycleData && eduRanges ? eduRanges.find((r) => r.phase === cycleData.phase) : null
+  const eduCard =
+    cycleData && eduRange
+      ? getEducationCard(
+          cycleData.phase,
+          cycleData.day - eduRange.startDay + 1,
+          eduRange.endDay - eduRange.startDay + 1
+        )
+      : null
+  const eduVariant =
+    eduCard && cycleData && eduCard === PHASE_EDUCATION[cycleData.phase].early ? 'early' : 'late'
+
   return (
     // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
     <View style={{ flex: 1, backgroundColor: baseColor }}>
@@ -360,6 +379,29 @@ export default function Today() {
                 onChange={recalibrate}
               />
             </View>
+
+            {/* ── Daily micro-education teaser (opens the full /education card) ── */}
+            {eduCard && cycleData && (
+              <View style={{ marginTop: 12 }}>
+                <EducationCard
+                  card={eduCard}
+                  surface={{
+                    ink,
+                    sub,
+                    gold,
+                    cardwash,
+                    cardbd,
+                    phaseLabel: phaseTheme[phaseKeyFor(currentPhase.id)].label,
+                  }}
+                  onOpen={() =>
+                    router.push({
+                      pathname: '/education',
+                      params: { phase: cycleData.phase, variant: eduVariant },
+                    })
+                  }
+                />
+              </View>
+            )}
 
             {/* ── Phase rail (tap to preview) ── */}
             <Text style={[styles.sectionLabel, { color: sub }]}>

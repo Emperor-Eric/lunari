@@ -7,6 +7,7 @@ import {
   getPhaseById,
   getPhaseRanges,
   getCyclePrediction,
+  getEducationCard,
   FLOW_OPTIONS,
 } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
@@ -17,6 +18,7 @@ import { NextUpCard } from './_components/NextUpCard'
 import { LogPeriodCard } from './_components/LogPeriodCard'
 import { useCustomSymptoms } from './_hooks/useCustomSymptoms'
 import { CustomSymptomChips } from './_components/CustomSymptomChips'
+import { EducationCard } from './_components/EducationCard'
 
 // Short progress labels per phase.
 const SHORT: Record<PhaseId, string> = {
@@ -155,6 +157,18 @@ export default function TrackerToday() {
     const end = r ? r.endDay : p.cycleDays.end
     return start === end ? `D${start}` : `D${start}–${end}`
   }
+
+  // Daily micro-education for the user's REAL phase + day-within-phase, using the same
+  // phase-range math as the rail. Hidden until the cycle is set up.
+  const eduRange = prediction?.phaseRanges.find((r) => r.phase === prediction.currentPhase)
+  const eduCard =
+    prediction && eduRange
+      ? getEducationCard(
+          prediction.currentPhase,
+          prediction.currentDay - eduRange.startDay + 1,
+          eduRange.endDay - eduRange.startDay + 1
+        )
+      : null
 
   return (
     // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
@@ -302,6 +316,24 @@ export default function TrackerToday() {
         <div className="text-center" style={{ marginTop: 18 }}>
           <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={loadSettings} />
         </div>
+
+        {/* ── Daily micro-education teaser (opens the full card) ── */}
+        {eduCard && (
+          <div style={{ marginTop: 12 }}>
+            <EducationCard
+              card={eduCard}
+              surface={{
+                ink,
+                sub,
+                gold,
+                cardwash,
+                cardbd,
+                flood: t.flood,
+                phaseLabel: phaseTheme[phaseKeyFor(currentPhase.id)].label,
+              }}
+            />
+          </div>
+        )}
 
         {/* ── Phase rail (tap to preview) ── */}
         <div

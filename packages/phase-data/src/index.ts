@@ -32,3 +32,5 @@ export {
 } from './period-log'
 export type { CalendarTap } from './period-log'
 export { FLOW_OPTIONS, flowIntensity, isFlowValue } from './flow'
+export { PHASE_EDUCATION, EDUCATION_DISCLAIMER, getEducationCard } from './education'
+export type { EducationCard, PhaseEducation } from './education'
