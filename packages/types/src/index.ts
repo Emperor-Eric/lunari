@@ -179,6 +179,17 @@ export interface UserReferralCode {
 
 // ─── Symptom log ─────────────────────────────────────────────────────────────
 
+// A user-defined symptom chip. Daily logs still store the plain `label` string in
+// SymptomLog.symptoms (same as built-ins) — this is just the user's personal palette.
+export interface CustomSymptom {
+  id: string
+  userId: string
+  label: string
+  archived: boolean
+  sortOrder: number
+  createdAt: string
+}
+
 // Daily bleed intensity, logged on the SymptomLog (independent of PeriodEvents).
 export type FlowValue = 'none' | 'spotting' | 'light' | 'medium' | 'heavy'
 

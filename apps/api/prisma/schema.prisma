@@ -18,13 +18,32 @@ model User {
   referralCodeAppliedAt DateTime? @map("referral_code_applied_at") @db.Timestamptz
   lastActiveAt          DateTime? @default(now()) @map("last_active_at") @db.Timestamptz
 
-  cycles       Cycle[]
-  symptomLogs  SymptomLog[]
-  periodEvents PeriodEvent[]
-  orders       Order[]
-  subscriptions Subscription[]
+  cycles         Cycle[]
+  symptomLogs    SymptomLog[]
+  periodEvents   PeriodEvent[]
+  customSymptoms CustomSymptom[]
+  orders         Order[]
+  subscriptions  Subscription[]
 
   @@map("users")
+}
+
+// A user-defined symptom chip. Only the user's personal palette of extra chips —
+// daily logs still store the plain label string in SymptomLog.symptoms (same as
+// built-ins), so deleting a definition never invalidates past logs.
+model CustomSymptom {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  label     String
+  archived  Boolean  @default(false)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, label])
+  @@index([userId])
+  @@map("custom_symptoms")
 }
 
 model Cycle {

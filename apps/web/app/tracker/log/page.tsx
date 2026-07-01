@@ -7,6 +7,9 @@ import type { SymptomLog, FlowValue } from '@lunari/types'
 import { useCycleContext } from '../cycle-context'
 import { apiGet, apiPost } from '@/src/lib/api'
 import { LogTabs } from './_components/LogTabs'
+import { useCustomSymptoms } from '../_hooks/useCustomSymptoms'
+import { CustomSymptomChips } from '../_components/CustomSymptomChips'
+import { CustomSymptomManager } from '../_components/CustomSymptomManager'
 
 // Mood scale stays numeric (1–5) so the saved `mood` field is unchanged — only the
 // labels are restyled to the Goddess reference.
@@ -27,6 +30,9 @@ export default function LogPage() {
   const day = cycleData?.day ?? 1
   const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
+
+  const { items: customItems, active: customActive, add, update, remove } = useCustomSymptoms()
+  const [manageOpen, setManageOpen] = useState(false)
 
   const [symptoms, setSymptoms] = useState<string[]>([])
   const [flow, setFlow] = useState<FlowValue | null>(null)
@@ -198,6 +204,35 @@ export default function LogPage() {
               </button>
             )
           })}
+          <CustomSymptomChips
+            custom={customActive}
+            builtins={phase.symptoms}
+            selected={symptoms}
+            onToggle={toggleSymptom}
+            onAdd={add}
+            theme={{
+              active: {
+                fontSize: 10.5,
+                padding: '6px 12px',
+                borderRadius: 18,
+                background: t.accent,
+                color: t.headerText,
+                border: '1px solid transparent',
+              },
+              idle: {
+                fontSize: 10.5,
+                padding: '6px 12px',
+                borderRadius: 18,
+                background: t.labCard,
+                color: N.idleText,
+                border: `1px solid ${t.labBorder}`,
+              },
+              dot: t.accent,
+              accent: t.accent,
+              inputBg: t.labCard,
+              inputText: N.value,
+            }}
+          />
         </div>
 
         {/* Flow — non-emphasized position (outside the menstrual phase) */}
@@ -371,6 +406,30 @@ export default function LogPage() {
             outline: 'none',
           }}
         />
+
+        {/* Manage custom symptoms (collapsible) */}
+        <button
+          onClick={() => setManageOpen((o) => !o)}
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '22px 0 10px' }}
+        >
+          Custom symptoms {manageOpen ? '▲' : '▼'}
+        </button>
+        {manageOpen && (
+          <CustomSymptomManager
+            items={customItems}
+            onUpdate={update}
+            onRemove={remove}
+            theme={{
+              ink: N.value,
+              sub: N.section,
+              card: t.labCard,
+              border: t.labBorder,
+              accent: t.accent,
+              maroon: '#7A1E2E',
+            }}
+          />
+        )}
 
         {/* Save */}
         <button

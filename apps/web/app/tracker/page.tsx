@@ -15,6 +15,8 @@ import { Toast } from '@lunari/ui'
 import { apiGet, apiPost } from '@/src/lib/api'
 import { NextUpCard } from './_components/NextUpCard'
 import { LogPeriodCard } from './_components/LogPeriodCard'
+import { useCustomSymptoms } from './_hooks/useCustomSymptoms'
+import { CustomSymptomChips } from './_components/CustomSymptomChips'
 
 // Short progress labels per phase.
 const SHORT: Record<PhaseId, string> = {
@@ -66,6 +68,8 @@ export default function TrackerToday() {
   const previewing = viewedPhaseId !== null && viewedPhaseId !== currentPhase.id
 
   const t = phaseTheme[phaseKeyFor(viewedPhase.id)]
+
+  const { active: customActive, add: addCustom } = useCustomSymptoms()
 
   // "How are you feeling?" chips — persisted to today's single log entry.
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
@@ -382,6 +386,35 @@ export default function TrackerToday() {
               </button>
             )
           })}
+          <CustomSymptomChips
+            custom={customActive}
+            builtins={viewedPhase.symptoms.slice(0, 5)}
+            selected={quickSymptoms}
+            onToggle={toggleSymptom}
+            onAdd={addCustom}
+            theme={{
+              active: {
+                fontSize: 11,
+                padding: '7px 13px',
+                borderRadius: 20,
+                background: ink,
+                color: chipOnText,
+                border: '1px solid transparent',
+              },
+              idle: {
+                fontSize: 11,
+                padding: '7px 13px',
+                borderRadius: 20,
+                background: 'transparent',
+                color: ink,
+                border: `1px solid ${chipIdleBd}`,
+              },
+              dot: gold,
+              accent: gold,
+              inputBg: 'transparent',
+              inputText: ink,
+            }}
+          />
         </div>
 
         {/* ── Quick flow (menstrual days only) ── */}

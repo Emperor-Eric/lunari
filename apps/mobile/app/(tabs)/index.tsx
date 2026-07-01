@@ -31,6 +31,8 @@ import type {
 } from '@lunari/types'
 import { NextUpCard } from '../../src/components/NextUpCard'
 import { LogPeriodCard } from '../../src/components/LogPeriodCard'
+import { useCustomSymptoms } from '../../src/hooks/useCustomSymptoms'
+import { CustomSymptomChips } from '../../src/components/CustomSymptomChips'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -58,6 +60,7 @@ export default function Today() {
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const { active: customActive, add: addCustom } = useCustomSymptoms()
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
   const [quickFlow, setQuickFlow] = useState<FlowValue | null>(null)
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
@@ -415,6 +418,25 @@ export default function Today() {
                   </TouchableOpacity>
                 )
               })}
+              <CustomSymptomChips
+                custom={customActive}
+                builtins={viewedPhase.symptoms.slice(0, 5)}
+                selected={quickSymptoms}
+                onToggle={toggleSymptom}
+                onAdd={addCustom}
+                chipStyle={styles.chip}
+                textStyle={styles.chipText}
+                colors={{
+                  activeBg: ink,
+                  activeText: chipOnText,
+                  idleBg: 'transparent',
+                  idleText: ink,
+                  idleBorder: chipIdleBd,
+                  dot: gold,
+                  accent: gold,
+                  inputText: ink,
+                }}
+              />
             </View>
 
             {/* ── Quick flow (menstrual days only) ── */}

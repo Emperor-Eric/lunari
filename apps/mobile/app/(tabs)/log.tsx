@@ -18,6 +18,9 @@ import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LogCard, EmptyState, Toast, LoadingSpinner } from '@lunari/ui'
 import type { SymptomLog, TodayCycleResponse, FlowValue } from '@lunari/types'
 import { InsightsView } from '../../src/components/InsightsView'
+import { useCustomSymptoms } from '../../src/hooks/useCustomSymptoms'
+import { CustomSymptomChips } from '../../src/components/CustomSymptomChips'
+import { CustomSymptomManager } from '../../src/components/CustomSymptomManager'
 
 type LogTab = 'today' | 'history' | 'insights'
 const SEG_LABEL: Record<LogTab, string> = {
@@ -48,6 +51,8 @@ function headerStops(css: string): string[] {
 
 export default function Log() {
   const { session } = useAuth()
+  const { items: customItems, active: customActive, add, update, remove } = useCustomSymptoms()
+  const [manageOpen, setManageOpen] = useState(false)
   const [tab, setTab] = useState<LogTab>('today')
 
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
@@ -302,6 +307,25 @@ export default function Log() {
                 </Pressable>
               )
             })}
+            <CustomSymptomChips
+              custom={customActive}
+              builtins={phase.symptoms}
+              selected={symptoms}
+              onToggle={toggleSymptom}
+              onAdd={add}
+              chipStyle={styles.chip}
+              textStyle={styles.chipText}
+              colors={{
+                activeBg: t.accent,
+                activeText: t.headerText,
+                idleBg: t.labCard,
+                idleText: N.idleText,
+                idleBorder: t.labBorder,
+                dot: t.accent,
+                accent: t.accent,
+                inputText: N.value,
+              }}
+            />
           </View>
 
           {/* Flow — non-emphasized position (outside the menstrual phase) */}
@@ -403,6 +427,28 @@ export default function Log() {
               { backgroundColor: t.labCard, borderColor: t.labBorder, color: N.value },
             ]}
           />
+
+          {/* Manage custom symptoms (collapsible) */}
+          <TouchableOpacity onPress={() => setManageOpen((o) => !o)}>
+            <Text style={[styles.fieldLabel, styles.gap, { color: N.section }]}>
+              Custom symptoms {manageOpen ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+          {manageOpen && (
+            <CustomSymptomManager
+              items={customItems}
+              onUpdate={update}
+              onRemove={remove}
+              colors={{
+                ink: N.value,
+                sub: N.section,
+                card: t.labCard,
+                border: t.labBorder,
+                accent: t.accent,
+                maroon: '#7A1E2E',
+              }}
+            />
+          )}
 
           {/* Save */}
           <TouchableOpacity
