@@ -127,6 +127,34 @@ export interface InsightsPhasePattern {
   avgEnergy: number | null // 1–10
 }
 
+// ─── Pattern intelligence (additive; older clients ignore these) ──────────────
+
+export type PhaseHalf = 'early' | 'late'
+
+// A recurring symptom-in-phase-half pattern, surfaced only past its threshold.
+export interface SymptomTimingPattern {
+  symptom: string
+  phase: PhaseId
+  half: PhaseHalf
+  cycles: number // eligible cycles the symptom recurred in
+  ofCycles: number // eligible cycles in the denominator
+}
+
+// A gentle, non-causal correlation between two logged fields.
+export interface InsightsCorrelation {
+  pair: 'energy_sleep' | 'mood_sleep'
+  enough: boolean
+  direction: 'up' | 'down' | null // null unless |rho| >= 0.3 and consistent
+  strength: number | null // Spearman rho, rounded; null when not enough
+  n: number // paired data points
+}
+
+export interface InsightsCycleTrend {
+  enough: boolean // >=3 recent cycle lengths
+  direction: 'lengthening' | 'shortening' | 'steady' | null
+  lengths: number[] // recent cycle lengths, oldest -> newest
+}
+
 export interface InsightsResponse {
   cycleRhythm: InsightsCycleRhythm
   phasePatterns: InsightsPhasePattern[] // always 4, in cycle order
@@ -135,6 +163,10 @@ export interface InsightsResponse {
   moodPeak: PhaseId | null
   moodDip: PhaseId | null
   consistency: { daysLogged: number; windowDays: number }
+  // Pattern intelligence — optional so existing consumers keep working.
+  symptomTiming?: SymptomTimingPattern[] // only patterns past threshold
+  correlations?: InsightsCorrelation[] // the two fixed pairs
+  cycleTrend?: InsightsCycleTrend
 }
 
 // ─── Prediction (proportional phase model) ────────────────────────────────────

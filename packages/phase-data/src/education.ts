@@ -1,4 +1,5 @@
 import type { PhaseId } from '@lunari/types'
+import { phaseHalf } from './helpers'
 
 // ─── Daily micro-education content ───────────────────────────────────────────
 // Static, approved copy — no DB, no API. Each phase carries an `early` and a
@@ -82,17 +83,14 @@ export const EDUCATION_DISCLAIMER =
 /**
  * Picks the education card for where the user sits within their current phase.
  * `dayWithinPhase` is 1-indexed; the first half of the phase returns `early`,
- * the second half returns `late`. A 1-day phase returns `early`.
- * Inputs are clamped so out-of-range values never throw.
+ * the second half returns `late` — the early/late split comes from the shared
+ * `phaseHalf` rule so education and Insights stay in lockstep.
  */
 export function getEducationCard(
   phaseId: PhaseId,
   dayWithinPhase: number,
   phaseLength: number
 ): EducationCard {
-  const len = Math.max(1, Math.round(phaseLength))
-  const day = Math.min(Math.max(1, Math.round(dayWithinPhase)), len)
-  const half = Math.ceil(len / 2)
   const { early, late } = PHASE_EDUCATION[phaseId]
-  return day <= half ? early : late
+  return phaseHalf(dayWithinPhase, phaseLength) === 'early' ? early : late
 }

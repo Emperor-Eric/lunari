@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
-import type { InsightsResponse, PhaseId } from '@lunari/types'
+import type { InsightsResponse, InsightsCorrelation, PhaseId } from '@lunari/types'
 import { apiGet } from '@/src/lib/api'
 import { useCycleContext } from '../../cycle-context'
 import { LogTabs } from '../_components/LogTabs'
@@ -17,6 +17,27 @@ const colorOf = (p: PhaseId) => phaseTheme[phaseKeyFor(p)].phase
 // "dips while you bleed" reads better than "dips in menstrual".
 const inPhase = (p: PhaseId) =>
   p === 'menstrual' ? 'while you bleed' : `in ${labelOf(p).toLowerCase()}`
+
+// Gentle, non-causal correlation copy.
+function corrSentence(c: InsightsCorrelation): string {
+  const metric = c.pair === 'energy_sleep' ? 'energy' : 'mood'
+  const word =
+    c.pair === 'energy_sleep'
+      ? c.direction === 'up'
+        ? 'higher'
+        : 'lower'
+      : c.direction === 'up'
+        ? 'brighter'
+        : 'lower'
+  return `on nights you sleep more, your ${metric} tends to be ${word}`
+}
+
+const trendSentence = (d: 'lengthening' | 'shortening' | 'steady' | null): string =>
+  d === 'lengthening'
+    ? 'your recent cycles have been getting a little longer'
+    : d === 'shortening'
+      ? 'your recent cycles have been getting a little shorter'
+      : 'your recent cycles have been holding steady'
 
 export default function InsightsPage() {
   const { cycleData } = useCycleContext()
@@ -201,6 +222,60 @@ export default function InsightsPage() {
                 </>
               ) : (
                 <Unlock>Log how you feel across a full cycle to see patterns by phase.</Unlock>
+              )}
+            </div>
+
+            {/* ── Symptom timing ── */}
+            <div className="uppercase" style={sectionLabel}>
+              Symptom timing
+            </div>
+            <div style={card}>
+              {(data.symptomTiming ?? []).length > 0 ? (
+                (data.symptomTiming ?? []).map((p, i) => (
+                  <Statement key={`${p.phase}-${p.half}-${p.symptom}-${i}`} accent={t.accent}>
+                    you've often logged <b>{p.symptom}</b> in your {p.half}{' '}
+                    {labelOf(p.phase).toLowerCase()} phase — {p.cycles} of your last {p.ofCycles}{' '}
+                    cycles
+                  </Statement>
+                ))
+              ) : (
+                <Unlock>Keep logging through a few cycles to spot your symptom patterns.</Unlock>
+              )}
+            </div>
+
+            {/* ── What moves together (correlations) ── */}
+            <div className="uppercase" style={sectionLabel}>
+              What moves together
+            </div>
+            <div style={card}>
+              {(() => {
+                const shown = (data.correlations ?? []).filter((c) => c.enough && c.direction)
+                return shown.length > 0 ? (
+                  <>
+                    {shown.map((c) => (
+                      <Statement key={c.pair} accent={t.accent}>
+                        {corrSentence(c)}
+                      </Statement>
+                    ))}
+                    <Muted>A gentle observation from your logs — not medical advice.</Muted>
+                  </>
+                ) : (
+                  <Unlock>
+                    Log your sleep alongside mood and energy to see what tends to move together.
+                  </Unlock>
+                )
+              })()}
+            </div>
+
+            {/* ── Cycle trends ── */}
+            <div className="uppercase" style={sectionLabel}>
+              Cycle trends
+            </div>
+            <div style={card}>
+              {data.cycleTrend?.enough ? (
+                <Statement accent={t.accent}>{trendSentence(data.cycleTrend.direction)}</Statement>
+              ) : (
+                <Unlock>Log a few more cycles to see how your cycle length is trending.</Unlock>
               )}
             </div>
 

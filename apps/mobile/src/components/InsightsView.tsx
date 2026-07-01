@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import { useAuth } from '@lunari/utils'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
-import type { InsightsResponse, PhaseId } from '@lunari/types'
+import type { InsightsResponse, InsightsCorrelation, PhaseId } from '@lunari/types'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -14,6 +14,27 @@ const labelOf = (p: PhaseId) => phaseTheme[phaseKeyFor(p)].label
 const colorOf = (p: PhaseId) => phaseTheme[phaseKeyFor(p)].phase
 const inPhase = (p: PhaseId) =>
   p === 'menstrual' ? 'while you bleed' : `in ${labelOf(p).toLowerCase()}`
+
+// Gentle, non-causal correlation copy.
+function corrSentence(c: InsightsCorrelation): string {
+  const metric = c.pair === 'energy_sleep' ? 'energy' : 'mood'
+  const word =
+    c.pair === 'energy_sleep'
+      ? c.direction === 'up'
+        ? 'higher'
+        : 'lower'
+      : c.direction === 'up'
+        ? 'brighter'
+        : 'lower'
+  return `on nights you sleep more, your ${metric} tends to be ${word}`
+}
+
+const trendSentence = (d: 'lengthening' | 'shortening' | 'steady' | null): string =>
+  d === 'lengthening'
+    ? 'your recent cycles have been getting a little longer'
+    : d === 'shortening'
+      ? 'your recent cycles have been getting a little shorter'
+      : 'your recent cycles have been holding steady'
 
 type Theme = (typeof phaseTheme)[keyof typeof phaseTheme]
 
@@ -150,6 +171,57 @@ export function InsightsView({ t }: { t: Theme }) {
           </>
         ) : (
           <Unlock>Log how you feel across a full cycle to see patterns by phase.</Unlock>
+        )}
+      </View>
+
+      {/* ── Symptom timing ── */}
+      <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Symptom timing</Text>
+      <View style={cardStyle}>
+        {(data.symptomTiming ?? []).length > 0 ? (
+          (data.symptomTiming ?? []).map((p, i) => (
+            <Statement key={`${p.phase}-${p.half}-${p.symptom}-${i}`} accent={t.accent}>
+              you've often logged <Text style={styles.bold}>{p.symptom}</Text> in your {p.half}{' '}
+              {labelOf(p.phase).toLowerCase()} phase — {p.cycles} of your last {p.ofCycles} cycles
+            </Statement>
+          ))
+        ) : (
+          <Unlock>Keep logging through a few cycles to spot your symptom patterns.</Unlock>
+        )}
+      </View>
+
+      {/* ── What moves together (correlations) ── */}
+      <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>
+        What moves together
+      </Text>
+      <View style={cardStyle}>
+        {(() => {
+          const shown = (data.correlations ?? []).filter((c) => c.enough && c.direction)
+          return shown.length > 0 ? (
+            <>
+              {shown.map((c) => (
+                <Statement key={c.pair} accent={t.accent}>
+                  {corrSentence(c)}
+                </Statement>
+              ))}
+              <Text style={[styles.muted, { color: N.sub }]}>
+                A gentle observation from your logs — not medical advice.
+              </Text>
+            </>
+          ) : (
+            <Unlock>
+              Log your sleep alongside mood and energy to see what tends to move together.
+            </Unlock>
+          )
+        })()}
+      </View>
+
+      {/* ── Cycle trends ── */}
+      <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Cycle trends</Text>
+      <View style={cardStyle}>
+        {data.cycleTrend?.enough ? (
+          <Statement accent={t.accent}>{trendSentence(data.cycleTrend.direction)}</Statement>
+        ) : (
+          <Unlock>Log a few more cycles to see how your cycle length is trending.</Unlock>
         )}
       </View>
 

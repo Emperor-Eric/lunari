@@ -11,6 +11,8 @@ export {
   getCycleRhythm,
   cycleLengthGaps,
   endedPeriodLengths,
+  phaseHalf,
+  phasePositionForCycleDay,
 } from './helpers'
 export type {
   ContainerInfo,
@@ -20,6 +22,8 @@ export type {
   PeriodEventInput,
   EffectiveCycle,
   CycleRhythm,
+  PhaseHalf,
+  PhasePosition,
 } from './helpers'
 export {
   daysBetweenYmd,

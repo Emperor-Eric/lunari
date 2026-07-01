@@ -96,6 +96,52 @@ export function getPhaseRanges(cycleLength = 28, periodLength = 5): PhaseDayRang
   return ranges
 }
 
+export type PhaseHalf = 'early' | 'late'
+
+/** Where a log sits within a phase. */
+export interface PhasePosition {
+  phase: PhaseId
+  dayWithinPhase: number // 1-indexed, clamped to [1, phaseLength]
+  phaseLength: number
+  half: PhaseHalf
+}
+
+/**
+ * The SINGLE source of the early/late rule: the first half of a phase (1-indexed
+ * day <= ceil(phaseLength / 2)) is "early", the rest is "late". A 1-day phase is
+ * "early". Inputs are clamped so out-of-range values never throw. Used by both the
+ * micro-education selector and the Insights symptom-timing patterns.
+ */
+export function phaseHalf(dayWithinPhase: number, phaseLength: number): PhaseHalf {
+  const len = Math.max(1, Math.round(phaseLength))
+  const day = Math.min(Math.max(1, Math.round(dayWithinPhase)), len)
+  return day <= Math.ceil(len / 2) ? 'early' : 'late'
+}
+
+/**
+ * Maps a 1-based cycle day to its phase, position within that phase, and early/late
+ * half — using the same proportional phase model (`getPhaseRanges`) as everything
+ * else. Pure. Reused server-side to bucket historical logs by phase-half.
+ */
+export function phasePositionForCycleDay(
+  cycleDay: number,
+  cycleLength = 28,
+  periodLength = 5
+): PhasePosition {
+  const L = Math.max(1, Math.round(cycleLength))
+  const d = Math.min(Math.max(1, Math.round(cycleDay)), L)
+  const ranges = getPhaseRanges(L, periodLength)
+  const r = ranges.find((x) => d >= x.startDay && d <= x.endDay) ?? ranges[ranges.length - 1]
+  const phaseLength = r.endDay - r.startDay + 1
+  const dayWithinPhase = Math.min(Math.max(1, d - r.startDay + 1), phaseLength)
+  return {
+    phase: r.phase,
+    dayWithinPhase,
+    phaseLength,
+    half: phaseHalf(dayWithinPhase, phaseLength),
+  }
+}
+
 /**
  * Returns the Phase object for a given cycle day, using the proportional model.
  * Day is clamped into [1, cycleLength]. Defaults (28, 5) reproduce a standard cycle.
