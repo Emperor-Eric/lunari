@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import Slider from '@react-native-community/slider'
 import { useAuth } from '@lunari/utils'
@@ -51,9 +52,24 @@ function headerStops(css: string): string[] {
 
 export default function Log() {
   const { session } = useAuth()
-  const { items: customItems, active: customActive, add, update, remove } = useCustomSymptoms()
+  const {
+    items: customItems,
+    active: customActive,
+    refresh: refreshCustom,
+    add,
+    update,
+    remove,
+  } = useCustomSymptoms()
   const [manageOpen, setManageOpen] = useState(false)
   const [tab, setTab] = useState<LogTab>('today')
+
+  // Tabs stay mounted, so re-pull custom symptoms on focus — otherwise ones added on
+  // another tab (or the Today surface) wouldn't appear here until an app restart.
+  useFocusEffect(
+    useCallback(() => {
+      refreshCustom()
+    }, [refreshCustom])
+  )
 
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
 

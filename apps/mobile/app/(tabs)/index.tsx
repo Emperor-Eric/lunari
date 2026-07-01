@@ -60,7 +60,7 @@ export default function Today() {
   const [cycleData, setCycleData] = useState<TodayCycleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const { active: customActive, add: addCustom } = useCustomSymptoms()
+  const { active: customActive, refresh: refreshCustom, add: addCustom } = useCustomSymptoms()
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
   const [quickFlow, setQuickFlow] = useState<FlowValue | null>(null)
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
@@ -110,8 +110,9 @@ export default function Today() {
   useFocusEffect(
     useCallback(() => {
       recalibrate()
+      refreshCustom() // keep custom symptom chips in sync across tabs
       setFocusKey((k) => k + 1)
-    }, [recalibrate])
+    }, [recalibrate, refreshCustom])
   )
 
   // Prefill "How are you feeling?" chips from today's saved entry (survives refresh).
