@@ -13,6 +13,7 @@ import cycleRoutes from './routes/cycle'
 import periodEventRoutes from './routes/period-events'
 import logsRoutes from './routes/logs'
 import insightsRoutes from './routes/insights'
+import notificationRoutes from './routes/notifications'
 import customSymptomRoutes from './routes/custom-symptoms'
 import referralRoutes from './routes/referral'
 import productsRoutes from './routes/products'
@@ -46,6 +47,7 @@ export async function buildApp() {
   await app.register(periodEventRoutes, v1Prefix)
   await app.register(logsRoutes, v1Prefix)
   await app.register(insightsRoutes, v1Prefix)
+  await app.register(notificationRoutes, v1Prefix)
   await app.register(customSymptomRoutes, v1Prefix)
   await app.register(referralRoutes, v1Prefix)
   await app.register(productsRoutes, v1Prefix)

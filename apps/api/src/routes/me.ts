@@ -1,4 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { Prisma } from '@prisma/client'
+import type { NotificationPrefs } from '@lunari/types'
 import { sendError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
 
@@ -19,16 +21,32 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.patch<{
     Body: {
       name?: string
-      notificationPrefs?: { dailyReminder: boolean; reminderTime: string }
+      // Partial — only the keys sent are changed; the rest of the stored prefs
+      // (dailyReminder/reminderTime/etc.) are preserved via a server-side merge.
+      notificationPrefs?: Partial<NotificationPrefs>
     }
   }>('/me', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
     const { name, notificationPrefs } = request.body ?? {}
+
+    // Merge notificationPrefs into whatever is stored so a partial patch never
+    // clobbers other keys (the Json column stays a superset).
+    let mergedPrefs: NotificationPrefs | undefined
+    if (notificationPrefs !== undefined) {
+      const existing = await fastify.prisma.user.findUnique({
+        where: { id: request.user.id },
+        select: { notificationPrefs: true },
+      })
+      const current = (existing?.notificationPrefs ?? {}) as unknown as NotificationPrefs
+      mergedPrefs = { ...current, ...notificationPrefs }
+    }
 
     const updated = await fastify.prisma.user.update({
       where: { id: request.user.id },
       data: {
         ...(name !== undefined && { name }),
-        ...(notificationPrefs !== undefined && { notificationPrefs }),
+        ...(mergedPrefs !== undefined && {
+          notificationPrefs: mergedPrefs as unknown as Prisma.InputJsonObject,
+        }),
       },
     })
 

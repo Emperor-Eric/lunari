@@ -5,17 +5,14 @@ import { useAuth } from '@lunari/utils'
 import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
-import type { User, UserReferralCode } from '@lunari/types'
-import { apiGet, apiPost, apiDelete } from '@/src/lib/api'
+import type { User, UserReferralCode, NotificationPrefs } from '@lunari/types'
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/src/lib/api'
 import { useCycleContext } from '../cycle-context'
 import { CycleSettingsRow } from '../_components/CycleSettingsRow'
 
 // Referral entry turns on with the shop — a code only matters once there's a product.
 const SHOP_ENABLED = process.env.NEXT_PUBLIC_SHOP_ENABLED === 'true'
 
-// Static settings rows. "Cycle settings" (wired) sits between SETTINGS_TOP and the
-// linked rows below.
-const SETTINGS_TOP = ['Notifications']
 // Wired rows → dedicated screens.
 const SETTINGS_BOTTOM: { label: string; href: string }[] = [
   { label: 'Connected apps', href: '/tracker/connected-apps' },
@@ -89,6 +86,25 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOut()
     window.location.assign('/auth/login')
+  }
+
+  // Persist a partial notification-prefs change (full object sent; API also merges).
+  const savePrefs = async (patch: Partial<NotificationPrefs>) => {
+    const p = user?.notificationPrefs
+    const full: NotificationPrefs = {
+      dailyReminder: p?.dailyReminder ?? true,
+      reminderTime: p?.reminderTime ?? '08:00',
+      phaseChangeAlerts: p?.phaseChangeAlerts ?? true,
+      periodApproachingAlerts: p?.periodApproachingAlerts ?? true,
+      periodApproachingDays: p?.periodApproachingDays ?? 2,
+      ...patch,
+    }
+    try {
+      const updated = await apiPatch<User>('/me', { notificationPrefs: full })
+      setUser(updated)
+    } catch {
+      /* ignore — leave the toggle as-is */
+    }
   }
 
   // Clear all logged period starts/ends → predictions fall back to onboarding.
@@ -288,24 +304,40 @@ export default function ProfilePage() {
           Settings
         </div>
         <div className="flex flex-col">
-          {SETTINGS_TOP.map((label) => (
-            <div
-              key={label}
-              className="flex justify-between items-center"
-              style={{
-                padding: '14px 0',
-                borderBottom: `1px solid ${t.labBorder}`,
-                fontFamily: 'var(--font-display, serif)',
-                fontSize: 15.5,
-                color: N.text,
-              }}
-            >
-              <span className="font-display">{label}</span>
-              <span className="font-body" style={{ color: N.chev }}>
-                ›
-              </span>
-            </div>
-          ))}
+          {/* Notifications — real wired toggles (persist via PATCH /me) */}
+          <SettingRow label="Daily reminder" border={t.labBorder}>
+            <WebToggle
+              on={user?.notificationPrefs?.dailyReminder ?? true}
+              onChange={(v) => savePrefs({ dailyReminder: v })}
+              accent={t.accent}
+            />
+          </SettingRow>
+          <SettingRow label="Phase change alerts" border={t.labBorder}>
+            <WebToggle
+              on={user?.notificationPrefs?.phaseChangeAlerts ?? true}
+              onChange={(v) => savePrefs({ phaseChangeAlerts: v })}
+              accent={t.accent}
+            />
+          </SettingRow>
+          <SettingRow label="Period approaching alerts" border={t.labBorder}>
+            <WebToggle
+              on={user?.notificationPrefs?.periodApproachingAlerts ?? true}
+              onChange={(v) => savePrefs({ periodApproachingAlerts: v })}
+              accent={t.accent}
+            />
+          </SettingRow>
+          {(user?.notificationPrefs?.periodApproachingAlerts ?? true) && (
+            <SettingRow label="Days before period" border={t.labBorder}>
+              <WebStepper
+                value={user?.notificationPrefs?.periodApproachingDays ?? 2}
+                min={1}
+                max={5}
+                border={t.labBorder}
+                text={N.text}
+                onChange={(v) => savePrefs({ periodApproachingDays: v })}
+              />
+            </SettingRow>
+          )}
 
           {/* Wired: edit the RAW onboarding cycle, then recalibrate. */}
           <CycleSettingsRow
@@ -504,6 +536,124 @@ export default function ProfilePage() {
       </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} />}
+    </div>
+  )
+}
+
+function SettingRow({
+  label,
+  border,
+  children,
+}: {
+  label: string
+  border: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      className="flex justify-between items-center"
+      style={{ padding: '14px 0', borderBottom: `1px solid ${border}` }}
+    >
+      <span className="font-display" style={{ fontSize: 15.5, color: '#2C2825' }}>
+        {label}
+      </span>
+      {children}
+    </div>
+  )
+}
+
+function WebToggle({
+  on,
+  onChange,
+  accent,
+}: {
+  on: boolean
+  onChange: (v: boolean) => void
+  accent: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      style={{
+        width: 42,
+        height: 24,
+        borderRadius: 999,
+        background: on ? accent : '#E5DDCD',
+        position: 'relative',
+        transition: 'background .15s',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: 2,
+          left: on ? 20 : 2,
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          background: '#fff',
+          transition: 'left .15s',
+        }}
+      />
+    </button>
+  )
+}
+
+function WebStepper({
+  value,
+  min,
+  max,
+  border,
+  text,
+  onChange,
+}: {
+  value: number
+  min: number
+  max: number
+  border: string
+  text: string
+  onChange: (v: number) => void
+}) {
+  const btn = (disabled: boolean): React.CSSProperties => ({
+    width: 28,
+    height: 28,
+    borderRadius: '50%',
+    border: `1px solid ${border}`,
+    color: text,
+    fontSize: 16,
+    lineHeight: 1,
+    opacity: disabled ? 0.4 : 1,
+  })
+  return (
+    <div className="flex items-center" style={{ gap: 14 }}>
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={value <= min}
+        style={btn(value <= min)}
+        aria-label="Fewer days"
+      >
+        −
+      </button>
+      <span
+        className="font-display"
+        style={{ fontSize: 16, color: text, minWidth: 16, textAlign: 'center' }}
+      >
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(max, value + 1))}
+        disabled={value >= max}
+        style={btn(value >= max)}
+        aria-label="More days"
+      >
+        +
+      </button>
     </div>
   )
 }

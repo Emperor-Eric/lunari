@@ -45,6 +45,24 @@ export interface Phase {
 export interface NotificationPrefs {
   dailyReminder: boolean
   reminderTime: string // "08:00"
+  // Smart phase/period nudges — optional so pre-existing stored prefs stay valid;
+  // the notification engine applies defaults (all on, 2 days) when a key is absent.
+  phaseChangeAlerts?: boolean // default true
+  periodApproachingAlerts?: boolean // default true
+  periodApproachingDays?: number // default 2 (clamped 1–5)
+}
+
+// ─── Smart notifications (derived; never stored) ──────────────────────────────
+
+export type NotificationType = 'phase_change' | 'period_approaching'
+
+export interface NotificationItem {
+  id: string // stable per day: type + cycle-anchor + date (+ phase) — idempotent
+  type: NotificationType
+  title: string
+  body: string
+  phase?: PhaseId // present on phase_change
+  date: string // ISO date (YYYY-MM-DD) the nudge is for
 }
 
 export interface User {

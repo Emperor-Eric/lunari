@@ -18,7 +18,7 @@ import { useAuth, useUser } from '@lunari/utils'
 import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
-import type { UserReferralCode, TodayCycleResponse } from '@lunari/types'
+import type { UserReferralCode, TodayCycleResponse, NotificationPrefs } from '@lunari/types'
 import { CycleSettingsRow } from '../../src/components/CycleSettingsRow'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
@@ -147,14 +147,24 @@ export default function Profile() {
     ])
   }
 
-  const toggleReminder = (v: boolean) => {
+  // Persist a partial change while preserving the other prefs. Sends the full object
+  // (the type requires dailyReminder/reminderTime); the API also merges server-side.
+  const savePrefs = (patch: Partial<NotificationPrefs>) => {
+    const p = user?.notificationPrefs
     updateUser({
       notificationPrefs: {
-        dailyReminder: v,
-        reminderTime: user?.notificationPrefs.reminderTime ?? '08:00',
+        dailyReminder: p?.dailyReminder ?? true,
+        reminderTime: p?.reminderTime ?? '08:00',
+        phaseChangeAlerts: p?.phaseChangeAlerts ?? true,
+        periodApproachingAlerts: p?.periodApproachingAlerts ?? true,
+        periodApproachingDays: p?.periodApproachingDays ?? 2,
+        ...patch,
       },
     })
   }
+
+  const prefs = user?.notificationPrefs
+  const notifPeriodDays = prefs?.periodApproachingDays ?? 2
 
   // Clear all logged period starts/ends → predictions fall back to onboarding.
   const [confirmClear, setConfirmClear] = useState(false)
@@ -317,16 +327,68 @@ export default function Profile() {
           {/* Settings */}
           <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Settings</Text>
           <View>
-            {/* Notifications row — real wired toggle (persists via PATCH /me) */}
+            {/* Notifications — real wired toggles (each persists via PATCH /me) */}
             <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
-              <Text style={[styles.settingsText, { color: N.text }]}>Notifications</Text>
+              <Text style={[styles.settingsText, { color: N.text }]}>Daily reminder</Text>
               <Switch
-                value={user?.notificationPrefs.dailyReminder ?? true}
-                onValueChange={toggleReminder}
+                value={prefs?.dailyReminder ?? true}
+                onValueChange={(v) => savePrefs({ dailyReminder: v })}
                 trackColor={{ true: t.accent, false: '#E5DDCD' }}
                 thumbColor="#FFFFFF"
               />
             </View>
+            <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
+              <Text style={[styles.settingsText, { color: N.text }]}>Phase change alerts</Text>
+              <Switch
+                value={prefs?.phaseChangeAlerts ?? true}
+                onValueChange={(v) => savePrefs({ phaseChangeAlerts: v })}
+                trackColor={{ true: t.accent, false: '#E5DDCD' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
+              <Text style={[styles.settingsText, { color: N.text }]}>
+                Period approaching alerts
+              </Text>
+              <Switch
+                value={prefs?.periodApproachingAlerts ?? true}
+                onValueChange={(v) => savePrefs({ periodApproachingAlerts: v })}
+                trackColor={{ true: t.accent, false: '#E5DDCD' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            {(prefs?.periodApproachingAlerts ?? true) && (
+              <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
+                <Text style={[styles.settingsText, { color: N.text }]}>Days before period</Text>
+                <View style={styles.stepper}>
+                  <Pressable
+                    onPress={() =>
+                      savePrefs({ periodApproachingDays: Math.max(1, notifPeriodDays - 1) })
+                    }
+                    disabled={notifPeriodDays <= 1}
+                    style={[
+                      styles.stepBtn,
+                      { borderColor: t.labBorder, opacity: notifPeriodDays <= 1 ? 0.4 : 1 },
+                    ]}
+                  >
+                    <Text style={[styles.stepSign, { color: N.text }]}>−</Text>
+                  </Pressable>
+                  <Text style={[styles.stepValue, { color: N.text }]}>{notifPeriodDays}</Text>
+                  <Pressable
+                    onPress={() =>
+                      savePrefs({ periodApproachingDays: Math.min(5, notifPeriodDays + 1) })
+                    }
+                    disabled={notifPeriodDays >= 5}
+                    style={[
+                      styles.stepBtn,
+                      { borderColor: t.labBorder, opacity: notifPeriodDays >= 5 ? 0.4 : 1 },
+                    ]}
+                  >
+                    <Text style={[styles.stepSign, { color: N.text }]}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
             {/* Wired: edit the RAW onboarding cycle, then recalibrate. */}
             <CycleSettingsRow
               ink={N.text}
@@ -559,6 +621,22 @@ const styles = StyleSheet.create({
   },
   settingsText: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5 },
   chev: { fontFamily: 'Raleway_400Regular', fontSize: 18 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  stepBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepSign: { fontFamily: 'Raleway_500Medium', fontSize: 16, lineHeight: 18 },
+  stepValue: {
+    fontFamily: 'Marcellus_400Regular',
+    fontSize: 16,
+    minWidth: 16,
+    textAlign: 'center',
+  },
 
   // data action (clear period history)
   dataAction: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5, color: '#7A1E2E' },

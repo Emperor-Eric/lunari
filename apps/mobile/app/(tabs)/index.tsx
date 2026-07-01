@@ -30,12 +30,14 @@ import type {
   CycleSettings,
   SymptomLog,
   FlowValue,
+  NotificationItem,
 } from '@lunari/types'
 import { NextUpCard } from '../../src/components/NextUpCard'
 import { LogPeriodCard } from '../../src/components/LogPeriodCard'
 import { useCustomSymptoms } from '../../src/hooks/useCustomSymptoms'
 import { CustomSymptomChips } from '../../src/components/CustomSymptomChips'
 import { EducationCard } from '../../src/components/EducationCard'
+import { NudgeBanner } from '../../src/components/NudgeBanner'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -69,6 +71,19 @@ export default function Today() {
   const [viewedPhaseId, setViewedPhaseId] = useState<PhaseId | null>(null)
   const [settings, setSettings] = useState<CycleSettings | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  // Smart nudges (derived server-side, priority-ordered). Session-only dismissal.
+  const [nudges, setNudges] = useState<NotificationItem[]>([])
+  const [dismissedNudges, setDismissedNudges] = useState<Set<string>>(new Set())
+  const loadNudges = useCallback(() => {
+    if (!session) return
+    fetch(`${API_URL}/me/notifications`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: NotificationItem[]) => setNudges(Array.isArray(items) ? items : []))
+      .catch(() => setNudges([]))
+  }, [session])
 
   const fetchToday = useCallback(async () => {
     if (!session) return
@@ -105,7 +120,8 @@ export default function Today() {
   const recalibrate = useCallback(() => {
     fetchToday()
     loadSettings()
-  }, [fetchToday, loadSettings])
+    loadNudges() // nudges depend on the effective cycle — refresh alongside it
+  }, [fetchToday, loadSettings, loadNudges])
 
   // Re-pull on tab focus so changes made elsewhere (e.g. clearing period history on Me)
   // recalibrate Today. The bumped key remounts LogPeriodCard so it reloads its events.
@@ -260,6 +276,9 @@ export default function Today() {
   const eduVariant =
     eduCard && cycleData && eduCard === PHASE_EDUCATION[cycleData.phase].early ? 'early' : 'late'
 
+  // Highest-priority nudge not dismissed this session (array is already priority-ordered).
+  const activeNudge = nudges.find((n) => !dismissedNudges.has(n.id)) ?? null
+
   return (
     // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
     <View style={{ flex: 1, backgroundColor: baseColor }}>
@@ -379,6 +398,23 @@ export default function Today() {
                 onChange={recalibrate}
               />
             </View>
+
+            {/* ── Smart nudge (period-approaching / phase-change) — session-dismissible ── */}
+            {activeNudge && (
+              <View style={{ marginTop: 12 }}>
+                <NudgeBanner
+                  item={activeNudge}
+                  surface={{ ink, sub, gold, cardwash, cardbd }}
+                  onDismiss={() =>
+                    setDismissedNudges((prev) => {
+                      const next = new Set(prev)
+                      next.add(activeNudge.id)
+                      return next
+                    })
+                  }
+                />
+              </View>
+            )}
 
             {/* ── Daily micro-education teaser (opens the full /education card) ── */}
             {eduCard && cycleData && (

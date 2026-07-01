@@ -11,7 +11,7 @@ import {
   FLOW_OPTIONS,
 } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
-import type { PhaseId, CycleSettings, SymptomLog, FlowValue } from '@lunari/types'
+import type { PhaseId, CycleSettings, SymptomLog, FlowValue, NotificationItem } from '@lunari/types'
 import { Toast } from '@lunari/ui'
 import { apiGet, apiPost } from '@/src/lib/api'
 import { NextUpCard } from './_components/NextUpCard'
@@ -19,6 +19,7 @@ import { LogPeriodCard } from './_components/LogPeriodCard'
 import { useCustomSymptoms } from './_hooks/useCustomSymptoms'
 import { CustomSymptomChips } from './_components/CustomSymptomChips'
 import { EducationCard } from './_components/EducationCard'
+import { NudgeBanner } from './_components/NudgeBanner'
 
 // Short progress labels per phase.
 const SHORT: Record<PhaseId, string> = {
@@ -72,6 +73,17 @@ export default function TrackerToday() {
   const t = phaseTheme[phaseKeyFor(viewedPhase.id)]
 
   const { active: customActive, add: addCustom } = useCustomSymptoms()
+
+  // Smart nudges (derived server-side). Priority-ordered already (period before phase);
+  // dismissal is session-only client state — no server-side dismiss storage.
+  const [nudges, setNudges] = useState<NotificationItem[]>([])
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    apiGet<NotificationItem[]>('/me/notifications')
+      .then((items) => setNudges(Array.isArray(items) ? items : []))
+      .catch(() => setNudges([]))
+  }, [])
+  const activeNudge = nudges.find((n) => !dismissed.has(n.id)) ?? null
 
   // "How are you feeling?" chips — persisted to today's single log entry.
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
@@ -316,6 +328,23 @@ export default function TrackerToday() {
         <div className="text-center" style={{ marginTop: 18 }}>
           <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={loadSettings} />
         </div>
+
+        {/* ── Smart nudge (period-approaching / phase-change) — session-dismissible ── */}
+        {activeNudge && (
+          <div style={{ marginTop: 12 }}>
+            <NudgeBanner
+              item={activeNudge}
+              surface={{ ink, sub, gold, cardwash, cardbd }}
+              onDismiss={() =>
+                setDismissed((prev) => {
+                  const next = new Set(prev)
+                  next.add(activeNudge.id)
+                  return next
+                })
+              }
+            />
+          </div>
+        )}
 
         {/* ── Daily micro-education teaser (opens the full card) ── */}
         {eduCard && (
