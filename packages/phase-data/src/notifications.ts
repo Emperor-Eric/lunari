@@ -1,5 +1,6 @@
-import type { PhaseId, NotificationItem, NotificationPrefs } from '@lunari/types'
+import type { PhaseId, NotificationItem, NotificationPrefs, RhythmNote } from '@lunari/types'
 import { getCyclePrediction } from './helpers'
+import { RHYTHM_NOTE_COPY } from './rhythm-note'
 import type { EffectiveCycle } from './helpers'
 
 // Natural, lowercase phase words for gentle copy (design-tokens owns display labels;
@@ -63,7 +64,8 @@ const plural = (n: number) => (n === 1 ? '' : 's')
 export function computeNotifications(
   eff: EffectiveCycle,
   prefs: NotificationPrefs,
-  today: Date = new Date()
+  today: Date = new Date(),
+  rhythmNote?: RhythmNote
 ): NotificationItem[] {
   const phaseChangeOn = prefs.phaseChangeAlerts ?? DEFAULT_PHASE_CHANGE
   const periodOn = prefs.periodApproachingAlerts ?? DEFAULT_PERIOD_APPROACHING
@@ -87,6 +89,7 @@ export function computeNotifications(
 
   const periodItems: NotificationItem[] = []
   const phaseItems: NotificationItem[] = []
+  const rhythmItems: NotificationItem[] = []
 
   // ── PERIOD APPROACHING ──────────────────────────────────────────────────────
   // Project the next predicted start by stepping cycleLength from the anchor until it
@@ -148,5 +151,25 @@ export function computeNotifications(
     }
   }
 
-  return [...periodItems, ...phaseItems]
+  // ── RHYTHM NOTE (lowest priority) ────────────────────────────────────────────
+  // A one-time gentle mention that an observation is waiting in Insights. Shown only
+  // for a genuinely new observation the user hasn't acknowledged. Never time-critical,
+  // never alarming — it always yields to period/phase items.
+  if (
+    rhythmNote &&
+    rhythmNote.state === 'observation' &&
+    rhythmNote.signature &&
+    rhythmNote.signature !== prefs.rhythmNoteAck
+  ) {
+    rhythmItems.push({
+      id: `rhythm_note|${rhythmNote.signature}`,
+      type: 'rhythm_note',
+      title: 'A gentle note',
+      body: RHYTHM_NOTE_COPY.todayMention,
+      date: todayISO,
+      signature: rhythmNote.signature,
+    })
+  }
+
+  return [...periodItems, ...phaseItems, ...rhythmItems]
 }

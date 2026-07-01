@@ -1,6 +1,11 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { getPhaseForDay, getPhaseById } from '@lunari/phase-data'
+import {
+  getPhaseForDay,
+  getPhaseById,
+  RHYTHM_NOTE_COPY,
+  RHYTHM_FLAG_COPY,
+} from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
 import type { InsightsResponse, InsightsCorrelation, PhaseId } from '@lunari/types'
@@ -278,6 +283,29 @@ export default function InsightsPage() {
                 <Unlock>Log a few more cycles to see how your cycle length is trending.</Unlock>
               )}
             </div>
+
+            {/* ── Your rhythm (gentle, non-diagnostic) ── */}
+            {data.rhythmNote && data.rhythmNote.state !== 'insufficient' && (
+              <>
+                <div className="uppercase" style={sectionLabel}>
+                  Your rhythm
+                </div>
+                <div style={card}>
+                  {data.rhythmNote.state === 'observation' ? (
+                    <>
+                      {data.rhythmNote.flags.map((flag) => (
+                        <Statement key={flag} accent={t.accent}>
+                          {RHYTHM_FLAG_COPY[flag]}
+                        </Statement>
+                      ))}
+                      <Muted>{RHYTHM_NOTE_COPY.disclaimer}</Muted>
+                    </>
+                  ) : (
+                    <Statement accent={t.accent}>{RHYTHM_NOTE_COPY.steady}</Statement>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* ── Consistency ── */}
             <div className="uppercase" style={sectionLabel}>

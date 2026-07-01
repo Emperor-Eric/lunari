@@ -13,7 +13,7 @@ import {
 import { phases as phaseTheme, phaseKeyFor, palette } from '@lunari/design-tokens'
 import type { PhaseId, CycleSettings, SymptomLog, FlowValue, NotificationItem } from '@lunari/types'
 import { Toast } from '@lunari/ui'
-import { apiGet, apiPost } from '@/src/lib/api'
+import { apiGet, apiPost, apiPatch } from '@/src/lib/api'
 import { NextUpCard } from './_components/NextUpCard'
 import { LogPeriodCard } from './_components/LogPeriodCard'
 import { useCustomSymptoms } from './_hooks/useCustomSymptoms'
@@ -84,6 +84,23 @@ export default function TrackerToday() {
       .catch(() => setNudges([]))
   }, [])
   const activeNudge = nudges.find((n) => !dismissed.has(n.id)) ?? null
+
+  // A rhythm_note is one-time: acknowledging writes its signature so it never re-appears
+  // until a genuinely new observation arises. Dismiss OR tap both acknowledge.
+  const ackRhythm = (n: NotificationItem) => {
+    if (n.type === 'rhythm_note' && n.signature) {
+      apiPatch('/me', { notificationPrefs: { rhythmNoteAck: n.signature } }).catch(() => {})
+    }
+  }
+  const dismissNudge = (n: NotificationItem) => {
+    ackRhythm(n)
+    setDismissed((prev) => new Set(prev).add(n.id))
+  }
+  const activateNudge = (n: NotificationItem) => {
+    ackRhythm(n)
+    setDismissed((prev) => new Set(prev).add(n.id))
+    router.push('/tracker/log/insights')
+  }
 
   // "How are you feeling?" chips — persisted to today's single log entry.
   const [quickSymptoms, setQuickSymptoms] = useState<string[]>([])
@@ -329,18 +346,15 @@ export default function TrackerToday() {
           <LogPeriodCard surface={{ ink, sub, gold, cardwash, cardbd }} onChange={loadSettings} />
         </div>
 
-        {/* ── Smart nudge (period-approaching / phase-change) — session-dismissible ── */}
+        {/* ── Smart nudge (period / phase / rhythm-note) — session-dismissible ── */}
         {activeNudge && (
           <div style={{ marginTop: 12 }}>
             <NudgeBanner
               item={activeNudge}
               surface={{ ink, sub, gold, cardwash, cardbd }}
-              onDismiss={() =>
-                setDismissed((prev) => {
-                  const next = new Set(prev)
-                  next.add(activeNudge.id)
-                  return next
-                })
+              onDismiss={() => dismissNudge(activeNudge)}
+              onActivate={
+                activeNudge.type === 'rhythm_note' ? () => activateNudge(activeNudge) : undefined
               }
             />
           </div>

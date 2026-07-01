@@ -50,11 +50,14 @@ export interface NotificationPrefs {
   phaseChangeAlerts?: boolean // default true
   periodApproachingAlerts?: boolean // default true
   periodApproachingDays?: number // default 2 (clamped 1–5)
+  // Signature of the last acknowledged rhythm note — makes the Today mention one-time
+  // per distinct observation. Absent until the user acks one.
+  rhythmNoteAck?: string
 }
 
 // ─── Smart notifications (derived; never stored) ──────────────────────────────
 
-export type NotificationType = 'phase_change' | 'period_approaching'
+export type NotificationType = 'phase_change' | 'period_approaching' | 'rhythm_note'
 
 export interface NotificationItem {
   id: string // stable per day: type + cycle-anchor + date (+ phase) — idempotent
@@ -63,6 +66,17 @@ export interface NotificationItem {
   body: string
   phase?: PhaseId // present on phase_change
   date: string // ISO date (YYYY-MM-DD) the nudge is for
+  signature?: string // present on rhythm_note — the value to write to rhythmNoteAck
+}
+
+// ─── Gentle rhythm notes (conservative, non-diagnostic) ───────────────────────
+
+export type RhythmFlag = 'variability' | 'long_gap'
+
+export interface RhythmNote {
+  state: 'insufficient' | 'steady' | 'observation'
+  flags: RhythmFlag[]
+  signature: string // stable per observation; '' when no flags
 }
 
 export interface User {
@@ -185,6 +199,7 @@ export interface InsightsResponse {
   symptomTiming?: SymptomTimingPattern[] // only patterns past threshold
   correlations?: InsightsCorrelation[] // the two fixed pairs
   cycleTrend?: InsightsCycleTrend
+  rhythmNote?: RhythmNote // gentle, non-diagnostic cycle-rhythm observation
 }
 
 // ─── Prediction (proportional phase model) ────────────────────────────────────

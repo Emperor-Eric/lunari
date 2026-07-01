@@ -279,6 +279,29 @@ export default function Today() {
   // Highest-priority nudge not dismissed this session (array is already priority-ordered).
   const activeNudge = nudges.find((n) => !dismissedNudges.has(n.id)) ?? null
 
+  // A rhythm_note is one-time: acknowledging writes its signature so it never re-appears
+  // until a genuinely new observation arises. Dismiss OR tap both acknowledge.
+  const ackRhythm = (n: NotificationItem) => {
+    if (n.type !== 'rhythm_note' || !n.signature || !session) return
+    fetch(`${API_URL}/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ notificationPrefs: { rhythmNoteAck: n.signature } }),
+    }).catch(() => {})
+  }
+  const dismissNudge = (n: NotificationItem) => {
+    ackRhythm(n)
+    setDismissedNudges((prev) => new Set(prev).add(n.id))
+  }
+  const activateNudge = (n: NotificationItem) => {
+    ackRhythm(n)
+    setDismissedNudges((prev) => new Set(prev).add(n.id))
+    router.push('/(tabs)/log?tab=insights')
+  }
+
   return (
     // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
     <View style={{ flex: 1, backgroundColor: baseColor }}>
@@ -399,18 +422,17 @@ export default function Today() {
               />
             </View>
 
-            {/* ── Smart nudge (period-approaching / phase-change) — session-dismissible ── */}
+            {/* ── Smart nudge (period / phase / rhythm-note) — session-dismissible ── */}
             {activeNudge && (
               <View style={{ marginTop: 12 }}>
                 <NudgeBanner
                   item={activeNudge}
                   surface={{ ink, sub, gold, cardwash, cardbd }}
-                  onDismiss={() =>
-                    setDismissedNudges((prev) => {
-                      const next = new Set(prev)
-                      next.add(activeNudge.id)
-                      return next
-                    })
+                  onDismiss={() => dismissNudge(activeNudge)}
+                  onActivate={
+                    activeNudge.type === 'rhythm_note'
+                      ? () => activateNudge(activeNudge)
+                      : undefined
                   }
                 />
               </View>

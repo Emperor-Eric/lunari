@@ -20,10 +20,12 @@ export function NudgeBanner({
   item,
   surface,
   onDismiss,
+  onActivate,
 }: {
   item: NotificationItem
   surface: NudgeSurface
   onDismiss: () => void
+  onActivate?: () => void // when set, tapping the body triggers it (e.g. open Insights)
 }) {
   const { ink, sub, gold, cardwash, cardbd } = surface
   return (
@@ -48,7 +50,11 @@ export function NudgeBanner({
           flexShrink: 0,
         }}
       />
-      <div style={{ flex: 1 }}>
+      <div
+        onClick={onActivate}
+        role={onActivate ? 'button' : undefined}
+        style={{ flex: 1, textAlign: 'left', cursor: onActivate ? 'pointer' : 'default' }}
+      >
         <div
           className="uppercase"
           style={{ fontSize: 9, letterSpacing: '0.22em', color: gold, fontWeight: 600 }}

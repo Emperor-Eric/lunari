@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import Slider from '@react-native-community/slider'
 import { useAuth } from '@lunari/utils'
@@ -62,6 +62,14 @@ export default function Log() {
   } = useCustomSymptoms()
   const [manageOpen, setManageOpen] = useState(false)
   const [tab, setTab] = useState<LogTab>('today')
+
+  // Deep link from the Today rhythm-note nudge opens straight to the Insights tab.
+  const params = useLocalSearchParams<{ tab?: string }>()
+  useEffect(() => {
+    if (params.tab === 'insights' || params.tab === 'history' || params.tab === 'today') {
+      setTab(params.tab)
+    }
+  }, [params.tab])
 
   // Tabs stay mounted, so re-pull custom symptoms on focus — otherwise ones added on
   // another tab (or the Today surface) wouldn't appear here until an app restart.

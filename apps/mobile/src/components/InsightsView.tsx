@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import { useAuth } from '@lunari/utils'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { LoadingSpinner } from '@lunari/ui'
+import { RHYTHM_NOTE_COPY, RHYTHM_FLAG_COPY } from '@lunari/phase-data'
 import type { InsightsResponse, InsightsCorrelation, PhaseId } from '@lunari/types'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
@@ -224,6 +225,27 @@ export function InsightsView({ t }: { t: Theme }) {
           <Unlock>Log a few more cycles to see how your cycle length is trending.</Unlock>
         )}
       </View>
+
+      {/* ── Your rhythm (gentle, non-diagnostic) ── */}
+      {data.rhythmNote && data.rhythmNote.state !== 'insufficient' && (
+        <>
+          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Your rhythm</Text>
+          <View style={cardStyle}>
+            {data.rhythmNote.state === 'observation' ? (
+              <>
+                {data.rhythmNote.flags.map((flag) => (
+                  <Statement key={flag} accent={t.accent}>
+                    {RHYTHM_FLAG_COPY[flag]}
+                  </Statement>
+                ))}
+                <Text style={[styles.muted, { color: N.sub }]}>{RHYTHM_NOTE_COPY.disclaimer}</Text>
+              </>
+            ) : (
+              <Statement accent={t.accent}>{RHYTHM_NOTE_COPY.steady}</Statement>
+            )}
+          </View>
+        </>
+      )}
 
       {/* ── Consistency ── */}
       <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Consistency</Text>

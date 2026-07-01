@@ -19,19 +19,26 @@ export function NudgeBanner({
   item,
   surface,
   onDismiss,
+  onActivate,
 }: {
   item: NotificationItem
   surface: NudgeSurface
   onDismiss: () => void
+  onActivate?: () => void // when set, tapping the body triggers it (e.g. open Insights)
 }) {
   const { ink, sub, gold, cardwash, cardbd } = surface
   return (
     <View style={[styles.card, { backgroundColor: cardwash, borderColor: cardbd }]}>
       <View style={[styles.dot, { backgroundColor: gold }]} />
-      <View style={{ flex: 1 }}>
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        activeOpacity={onActivate ? 0.7 : 1}
+        onPress={onActivate}
+        disabled={!onActivate}
+      >
         <Text style={[styles.title, { color: gold }]}>{item.title}</Text>
         <Text style={[styles.body, { color: ink }]}>{item.body}</Text>
-      </View>
+      </TouchableOpacity>
       <TouchableOpacity onPress={onDismiss} hitSlop={10}>
         <Text style={[styles.close, { color: sub }]}>×</Text>
       </TouchableOpacity>

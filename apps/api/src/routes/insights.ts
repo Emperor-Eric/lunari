@@ -1,5 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { getCycleRhythm, getEffectiveCycle, phasePositionForCycleDay } from '@lunari/phase-data'
+import {
+  getCycleRhythm,
+  getEffectiveCycle,
+  phasePositionForCycleDay,
+  computeRhythmNote,
+} from '@lunari/phase-data'
 import type {
   PhaseId,
   InsightsResponse,
@@ -176,6 +181,9 @@ const insightsRoutes: FastifyPluginAsync = async (fastify) => {
     // ─── F) CYCLE TREND — direction of the recent (already-filtered) cycle lengths ─
     const cycleTrend = computeCycleTrend(rhythm.recentCycleLengths, rhythm.cycleVariation)
 
+    // ─── G) RHYTHM NOTE — conservative, non-diagnostic rhythm observation ──────────
+    const rhythmNote = computeRhythmNote(eventInputs)
+
     const response: InsightsResponse = {
       cycleRhythm: {
         enough: rhythm.hasCycleData,
@@ -195,6 +203,7 @@ const insightsRoutes: FastifyPluginAsync = async (fastify) => {
       symptomTiming,
       correlations,
       cycleTrend,
+      rhythmNote,
     }
 
     return reply.send(response)

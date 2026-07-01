@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { computeNotifications } from '@lunari/phase-data'
+import { computeNotifications, computeRhythmNote } from '@lunari/phase-data'
 import type { NotificationPrefs } from '@lunari/types'
 import { loadEffectiveCycle } from '../lib/cycleDay'
 
@@ -9,11 +9,16 @@ const notificationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/me/notifications', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
     const userId = request.user.id
 
-    const [eff, user] = await Promise.all([
+    const [eff, user, events] = await Promise.all([
       loadEffectiveCycle(fastify.prisma, userId),
       fastify.prisma.user.findUnique({
         where: { id: userId },
         select: { notificationPrefs: true },
+      }),
+      fastify.prisma.periodEvent.findMany({
+        where: { userId },
+        orderBy: { startDate: 'asc' },
+        select: { startDate: true },
       }),
     ])
 
@@ -21,7 +26,8 @@ const notificationRoutes: FastifyPluginAsync = async (fastify) => {
     if (!eff) return reply.send([])
 
     const prefs = (user?.notificationPrefs ?? {}) as unknown as NotificationPrefs
-    return reply.send(computeNotifications(eff, prefs, new Date()))
+    const rhythmNote = computeRhythmNote(events.map((e) => ({ startDate: e.startDate })))
+    return reply.send(computeNotifications(eff, prefs, new Date(), rhythmNote))
   })
 }
 
