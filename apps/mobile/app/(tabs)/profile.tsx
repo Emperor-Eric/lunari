@@ -324,10 +324,11 @@ export default function Profile() {
             </Text>
           </View>
 
-          {/* Settings */}
-          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Settings</Text>
-          <View>
-            {/* Notifications — real wired toggles (each persists via PATCH /me) */}
+          {/* Notifications — grouped, real wired toggles (each persists via PATCH /me) */}
+          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Notifications</Text>
+          <View
+            style={[styles.notifGroup, { backgroundColor: t.labCard, borderColor: t.labBorder }]}
+          >
             <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
               <Text style={[styles.settingsText, { color: N.text }]}>Daily reminder</Text>
               <Switch
@@ -346,7 +347,15 @@ export default function Profile() {
                 thumbColor="#FFFFFF"
               />
             </View>
-            <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
+            <View
+              style={[
+                styles.settingsRow,
+                {
+                  borderBottomColor: t.labBorder,
+                  borderBottomWidth: (prefs?.periodApproachingAlerts ?? true) ? 1 : 0,
+                },
+              ]}
+            >
               <Text style={[styles.settingsText, { color: N.text }]}>
                 Period approaching alerts
               </Text>
@@ -358,7 +367,12 @@ export default function Profile() {
               />
             </View>
             {(prefs?.periodApproachingAlerts ?? true) && (
-              <View style={[styles.settingsRow, { borderBottomColor: t.labBorder }]}>
+              <View
+                style={[
+                  styles.settingsRow,
+                  { borderBottomColor: t.labBorder, borderBottomWidth: 0 },
+                ]}
+              >
                 <Text style={[styles.settingsText, { color: N.text }]}>Days before period</Text>
                 <View style={styles.stepper}>
                   <Pressable
@@ -389,6 +403,11 @@ export default function Profile() {
                 </View>
               </View>
             )}
+          </View>
+
+          {/* Settings */}
+          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Settings</Text>
+          <View>
             {/* Wired: edit the RAW onboarding cycle, then recalibrate. */}
             <CycleSettingsRow
               ink={N.text}
@@ -612,6 +631,7 @@ const styles = StyleSheet.create({
   summaryMeta: { fontFamily: 'Raleway_400Regular', fontSize: 10.5, marginTop: 10 },
 
   // settings
+  notifGroup: { borderRadius: 15, borderWidth: 1, paddingHorizontal: 16 },
   settingsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

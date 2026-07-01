@@ -296,15 +296,21 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Settings (static — no destination screens yet) */}
+        {/* Notifications — grouped, real wired toggles (persist via PATCH /me) */}
         <div
           className="uppercase"
           style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}
         >
-          Settings
+          Notifications
         </div>
-        <div className="flex flex-col">
-          {/* Notifications — real wired toggles (persist via PATCH /me) */}
+        <div
+          style={{
+            background: t.labCard,
+            border: `1px solid ${t.labBorder}`,
+            borderRadius: 15,
+            padding: '0 16px',
+          }}
+        >
           <SettingRow label="Daily reminder" border={t.labBorder}>
             <WebToggle
               on={user?.notificationPrefs?.dailyReminder ?? true}
@@ -319,7 +325,11 @@ export default function ProfilePage() {
               accent={t.accent}
             />
           </SettingRow>
-          <SettingRow label="Period approaching alerts" border={t.labBorder}>
+          <SettingRow
+            label="Period approaching alerts"
+            border={t.labBorder}
+            last={!(user?.notificationPrefs?.periodApproachingAlerts ?? true)}
+          >
             <WebToggle
               on={user?.notificationPrefs?.periodApproachingAlerts ?? true}
               onChange={(v) => savePrefs({ periodApproachingAlerts: v })}
@@ -327,7 +337,7 @@ export default function ProfilePage() {
             />
           </SettingRow>
           {(user?.notificationPrefs?.periodApproachingAlerts ?? true) && (
-            <SettingRow label="Days before period" border={t.labBorder}>
+            <SettingRow label="Days before period" border={t.labBorder} last>
               <WebStepper
                 value={user?.notificationPrefs?.periodApproachingDays ?? 2}
                 min={1}
@@ -338,7 +348,16 @@ export default function ProfilePage() {
               />
             </SettingRow>
           )}
+        </div>
 
+        {/* Settings — cycle + linked screens */}
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}
+        >
+          Settings
+        </div>
+        <div className="flex flex-col">
           {/* Wired: edit the RAW onboarding cycle, then recalibrate. */}
           <CycleSettingsRow
             ink={N.text}
@@ -543,16 +562,18 @@ export default function ProfilePage() {
 function SettingRow({
   label,
   border,
+  last,
   children,
 }: {
   label: string
   border: string
+  last?: boolean
   children: React.ReactNode
 }) {
   return (
     <div
       className="flex justify-between items-center"
-      style={{ padding: '14px 0', borderBottom: `1px solid ${border}` }}
+      style={{ padding: '14px 0', borderBottom: last ? 'none' : `1px solid ${border}` }}
     >
       <span className="font-display" style={{ fontSize: 15.5, color: '#2C2825' }}>
         {label}
