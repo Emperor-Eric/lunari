@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { Toast } from '@lunari/ui'
 import type { RawCycleSettings } from '@lunari/types'
 import { apiGet, apiPost } from '@/src/lib/api'
-import { DatePicker } from './LogPeriodCard'
+import { DatePicker, onColor } from './LogPeriodCard'
 
 const CYCLE_MIN = 21
 const CYCLE_MAX = 45
@@ -183,7 +183,7 @@ export function CycleSettingsRow({
                 padding: '8px 16px',
                 borderRadius: 11,
                 background: gold,
-                color: '#2C2825',
+                color: onColor(gold),
                 opacity: busy ? 0.6 : 1,
               }}
             >

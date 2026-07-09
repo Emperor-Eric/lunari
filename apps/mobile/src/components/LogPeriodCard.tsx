@@ -10,6 +10,18 @@ import type { PredictionSurface } from './NextUpCard'
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+// Legible text color on a filled swatch: light/cream on dark fills (e.g. the Lab phase
+// accents like navy), dark ink on light fills (e.g. the bright flood gold). Keeps the
+// selected day + primary buttons readable on BOTH surfaces that reuse this component.
+export function onColor(bg: string): string {
+  const h = bg.replace('#', '')
+  if (h.length < 6) return '#2C2825'
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#2C2825' : '#F5EBD6'
+}
+
 function ymdFromOffset(days: number): string {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
@@ -82,7 +94,7 @@ export function DatePicker({
                 <Text
                   style={[
                     styles.dpCellNum,
-                    { color: isSel ? '#2C2825' : ink, opacity: disabled ? 0.3 : 1 },
+                    { color: isSel ? onColor(gold) : ink, opacity: disabled ? 0.3 : 1 },
                   ]}
                 >
                   {d}
@@ -282,7 +294,9 @@ export function LogPeriodCard({
                   disabled={busy}
                   style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}
                 >
-                  <Text style={styles.primaryText}>{busy ? 'Saving…' : 'Mark ended'}</Text>
+                  <Text style={[styles.primaryText, { color: onColor(gold) }]}>
+                    {busy ? 'Saving…' : 'Mark ended'}
+                  </Text>
                 </Pressable>
                 <Pressable onPress={reset} style={[styles.ghostBtn, { borderColor: cardbd }]}>
                   <Text style={[styles.ghostText, { color: ink }]}>Cancel</Text>
@@ -336,7 +350,9 @@ export function LogPeriodCard({
                         { backgroundColor: gold, opacity: busy ? 0.6 : 1 },
                       ]}
                     >
-                      <Text style={styles.primaryText}>{busy ? 'Logging…' : 'Log anyway'}</Text>
+                      <Text style={[styles.primaryText, { color: onColor(gold) }]}>
+                        {busy ? 'Logging…' : 'Log anyway'}
+                      </Text>
                     </Pressable>
                     <Pressable onPress={reset} style={[styles.ghostBtn, { borderColor: cardbd }]}>
                       <Text style={[styles.ghostText, { color: ink }]}>Cancel</Text>
@@ -350,7 +366,9 @@ export function LogPeriodCard({
                     disabled={busy}
                     style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}
                   >
-                    <Text style={styles.primaryText}>{busy ? 'Logging…' : 'Log period'}</Text>
+                    <Text style={[styles.primaryText, { color: onColor(gold) }]}>
+                      {busy ? 'Logging…' : 'Log period'}
+                    </Text>
                   </Pressable>
                   <Pressable onPress={reset} style={[styles.ghostBtn, { borderColor: cardbd }]}>
                     <Text style={[styles.ghostText, { color: ink }]}>Cancel</Text>

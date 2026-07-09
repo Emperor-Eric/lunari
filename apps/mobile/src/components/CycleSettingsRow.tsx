@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { useAuth } from '@lunari/utils'
 import { Toast } from '@lunari/ui'
 import type { RawCycleSettings } from '@lunari/types'
-import { DatePicker } from './LogPeriodCard'
+import { DatePicker, onColor } from './LogPeriodCard'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
 
@@ -166,7 +166,9 @@ export function CycleSettingsRow({
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: gold, opacity: busy ? 0.6 : 1 }]}
             >
-              <Text style={styles.primaryText}>{busy ? 'Saving…' : 'Save'}</Text>
+              <Text style={[styles.primaryText, { color: onColor(gold) }]}>
+                {busy ? 'Saving…' : 'Save'}
+              </Text>
             </Pressable>
             <Pressable
               onPress={() => setOpen(false)}

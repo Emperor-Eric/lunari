@@ -9,6 +9,18 @@ import type { PredictionSurface } from './NextUpCard'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+// Legible text color on a filled swatch: light/cream on dark fills (e.g. the Lab phase
+// accents like navy), dark ink on light fills (e.g. the bright flood gold). Keeps the
+// selected day + primary buttons readable on BOTH surfaces that reuse this component.
+export function onColor(bg: string): string {
+  const h = bg.replace('#', '')
+  if (h.length < 6) return '#2C2825'
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#2C2825' : '#F5EBD6'
+}
+
 function ymdFromOffset(days: number): string {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
@@ -100,7 +112,7 @@ export function DatePicker({
                 fontSize: 10.5,
                 border: 'none',
                 background: isSel ? gold : 'transparent',
-                color: isSel ? '#2C2825' : ink,
+                color: isSel ? onColor(gold) : ink,
                 opacity: disabled ? 0.3 : 1,
                 cursor: disabled ? 'default' : 'pointer',
               }}
@@ -246,7 +258,7 @@ export function LogPeriodCard({
     padding: '8px 16px',
     borderRadius: 11,
     background: gold,
-    color: '#2C2825',
+    color: onColor(gold),
     opacity: busy ? 0.6 : 1,
   }
   const ghostBtn: React.CSSProperties = {
