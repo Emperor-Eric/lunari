@@ -262,19 +262,18 @@ export default function Today() {
 
   // Daily micro-education for the user's REAL phase + day-within-phase, using the same
   // phase-range math as the rail (from the server-derived cycle). Hidden until loaded.
-  const eduRanges = cycleData ? getPhaseRanges(cycleData.cycleLength, cycleData.periodLength) : null
+  // Derive from the CURRENT phase (which always has a sane fallback — menstrual/day 1
+  // before cycleData resolves), so the teaser matches the hero and never silently
+  // vanishes when cycle data is briefly unavailable.
+  const eduRanges = getPhaseRanges(cycleData?.cycleLength ?? 28, cycleData?.periodLength ?? 5)
   const eduRange =
-    cycleData && eduRanges ? eduRanges.find((r) => r.phase === cycleData.phase) : null
-  const eduCard =
-    cycleData && eduRange
-      ? getEducationCard(
-          cycleData.phase,
-          cycleData.day - eduRange.startDay + 1,
-          eduRange.endDay - eduRange.startDay + 1
-        )
-      : null
-  const eduVariant =
-    eduCard && cycleData && eduCard === PHASE_EDUCATION[cycleData.phase].early ? 'early' : 'late'
+    eduRanges.find((r) => r.phase === currentPhase.id) ?? eduRanges[eduRanges.length - 1]
+  const eduCard = getEducationCard(
+    currentPhase.id,
+    day - eduRange.startDay + 1,
+    eduRange.endDay - eduRange.startDay + 1
+  )
+  const eduVariant = eduCard === PHASE_EDUCATION[currentPhase.id].early ? 'early' : 'late'
 
   // Highest-priority nudge not dismissed this session (array is already priority-ordered).
   const activeNudge = nudges.find((n) => !dismissedNudges.has(n.id)) ?? null
@@ -439,7 +438,7 @@ export default function Today() {
             )}
 
             {/* ── Daily micro-education teaser (opens the full /education card) ── */}
-            {eduCard && cycleData && (
+            {eduCard && (
               <View style={{ marginTop: 12 }}>
                 <EducationCard
                   card={eduCard}
@@ -454,7 +453,7 @@ export default function Today() {
                   onOpen={() =>
                     router.push({
                       pathname: '/education',
-                      params: { phase: cycleData.phase, variant: eduVariant },
+                      params: { phase: currentPhase.id, variant: eduVariant },
                     })
                   }
                 />

@@ -189,15 +189,17 @@ export default function TrackerToday() {
 
   // Daily micro-education for the user's REAL phase + day-within-phase, using the same
   // phase-range math as the rail. Hidden until the cycle is set up.
-  const eduRange = prediction?.phaseRanges.find((r) => r.phase === prediction.currentPhase)
-  const eduCard =
-    prediction && eduRange
-      ? getEducationCard(
-          prediction.currentPhase,
-          prediction.currentDay - eduRange.startDay + 1,
-          eduRange.endDay - eduRange.startDay + 1
-        )
-      : null
+  // Derive from the CURRENT phase (which always has a sane fallback — menstrual/day 1
+  // before the prediction resolves), so the teaser matches the hero and never silently
+  // vanishes when the full prediction is briefly unavailable.
+  const eduRanges = getPhaseRanges(settings?.cycleLength ?? 28, settings?.periodLength ?? 5)
+  const eduRange =
+    eduRanges.find((r) => r.phase === currentPhase.id) ?? eduRanges[eduRanges.length - 1]
+  const eduCard = getEducationCard(
+    currentPhase.id,
+    day - eduRange.startDay + 1,
+    eduRange.endDay - eduRange.startDay + 1
+  )
 
   return (
     // CONTINUOUS FLOOD — re-washes to whichever phase is being viewed.
