@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { Prisma } from '@prisma/client'
-import type { NotificationPrefs } from '@lunari/types'
+import type { NotificationPrefs, TrainingProfile } from '@lunari/types'
 import { sendError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
 
@@ -24,20 +24,28 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
       // Partial — only the keys sent are changed; the rest of the stored prefs
       // (dailyReminder/reminderTime/etc.) are preserved via a server-side merge.
       notificationPrefs?: Partial<NotificationPrefs>
+      trainingProfile?: Partial<TrainingProfile>
     }
   }>('/me', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
-    const { name, notificationPrefs } = request.body ?? {}
+    const { name, notificationPrefs, trainingProfile } = request.body ?? {}
 
-    // Merge notificationPrefs into whatever is stored so a partial patch never
-    // clobbers other keys (the Json column stays a superset).
+    // Merge the Json prefs into whatever is stored so a partial patch never clobbers
+    // other keys (each Json column stays a superset). One read covers both.
     let mergedPrefs: NotificationPrefs | undefined
-    if (notificationPrefs !== undefined) {
+    let mergedTraining: TrainingProfile | undefined
+    if (notificationPrefs !== undefined || trainingProfile !== undefined) {
       const existing = await fastify.prisma.user.findUnique({
         where: { id: request.user.id },
-        select: { notificationPrefs: true },
+        select: { notificationPrefs: true, trainingProfile: true },
       })
-      const current = (existing?.notificationPrefs ?? {}) as unknown as NotificationPrefs
-      mergedPrefs = { ...current, ...notificationPrefs }
+      if (notificationPrefs !== undefined) {
+        const current = (existing?.notificationPrefs ?? {}) as unknown as NotificationPrefs
+        mergedPrefs = { ...current, ...notificationPrefs }
+      }
+      if (trainingProfile !== undefined) {
+        const current = (existing?.trainingProfile ?? {}) as unknown as TrainingProfile
+        mergedTraining = { ...current, ...trainingProfile }
+      }
     }
 
     const updated = await fastify.prisma.user.update({
@@ -46,6 +54,9 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
         ...(name !== undefined && { name }),
         ...(mergedPrefs !== undefined && {
           notificationPrefs: mergedPrefs as unknown as Prisma.InputJsonObject,
+        }),
+        ...(mergedTraining !== undefined && {
+          trainingProfile: mergedTraining as unknown as Prisma.InputJsonObject,
         }),
       },
     })

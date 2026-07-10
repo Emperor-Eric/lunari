@@ -79,6 +79,19 @@ export interface RhythmNote {
   signature: string // stable per observation; '' when no flags
 }
 
+// ─── Training profile (personalizes the Move screen) ──────────────────────────
+
+export type TrainingStyle = 'strength' | 'running' | 'classes' | 'hybrid' | 'sport' | 'mix'
+export type TrainingSeriousness = 'casual' | 'consistent' | 'serious' | 'competitive'
+export type TrainingDaysPerWeek = '1-2' | '3-4' | '5-6' | '7'
+
+// All optional — the Move screen falls back to general phase content when unset.
+export interface TrainingProfile {
+  style?: TrainingStyle
+  seriousness?: TrainingSeriousness
+  daysPerWeek?: TrainingDaysPerWeek
+}
+
 export interface User {
   id: string
   email: string
@@ -86,6 +99,7 @@ export interface User {
   createdAt: string
   onboardedAt: string | null
   notificationPrefs: NotificationPrefs
+  trainingProfile?: TrainingProfile | null
 }
 
 // ─── Cycle ───────────────────────────────────────────────────────────────────

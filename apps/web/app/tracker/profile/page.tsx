@@ -2,10 +2,17 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@lunari/utils'
-import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
+import {
+  getPhaseForDay,
+  getPhaseById,
+  getPhaseRanges,
+  TRAINING_STYLE_OPTIONS,
+  TRAINING_SERIOUSNESS_OPTIONS,
+  TRAINING_DAYS_OPTIONS,
+} from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
-import type { User, UserReferralCode, NotificationPrefs } from '@lunari/types'
+import type { User, UserReferralCode, NotificationPrefs, TrainingProfile } from '@lunari/types'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/src/lib/api'
 import { useCycleContext } from '../cycle-context'
 import { CycleSettingsRow } from '../_components/CycleSettingsRow'
@@ -106,6 +113,17 @@ export default function ProfilePage() {
       /* ignore — leave the toggle as-is */
     }
   }
+
+  // Partial training-profile change (server merges the Json column).
+  const saveTraining = async (patch: Partial<TrainingProfile>) => {
+    try {
+      const updated = await apiPatch<User>('/me', { trainingProfile: patch })
+      setUser(updated)
+    } catch {
+      /* ignore */
+    }
+  }
+  const training = user?.trainingProfile
 
   // Clear all logged period starts/ends → predictions fall back to onboarding.
   const [confirmClear, setConfirmClear] = useState(false)
@@ -350,6 +368,47 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {/* Training — personalizes the Move screen (persists via PATCH /me merge) */}
+        <div
+          className="uppercase"
+          style={{ fontSize: 9, letterSpacing: '0.2em', color: N.section, margin: '20px 0 11px' }}
+        >
+          Training
+        </div>
+        <div
+          style={{
+            background: t.labCard,
+            border: `1px solid ${t.labBorder}`,
+            borderRadius: 15,
+            padding: '4px 16px 14px',
+          }}
+        >
+          <TrainingPicker
+            label="Training style"
+            options={TRAINING_STYLE_OPTIONS}
+            selected={training?.style}
+            accent={t.accent}
+            border={t.labBorder}
+            onSelect={(v) => saveTraining({ style: v as TrainingProfile['style'] })}
+          />
+          <TrainingPicker
+            label="How you'd describe yourself"
+            options={TRAINING_SERIOUSNESS_OPTIONS}
+            selected={training?.seriousness}
+            accent={t.accent}
+            border={t.labBorder}
+            onSelect={(v) => saveTraining({ seriousness: v as TrainingProfile['seriousness'] })}
+          />
+          <TrainingPicker
+            label="Days a week you train"
+            options={TRAINING_DAYS_OPTIONS}
+            selected={training?.daysPerWeek}
+            accent={t.accent}
+            border={t.labBorder}
+            onSelect={(v) => saveTraining({ daysPerWeek: v as TrainingProfile['daysPerWeek'] })}
+          />
+        </div>
+
         {/* Settings — cycle + linked screens */}
         <div
           className="uppercase"
@@ -555,6 +614,55 @@ export default function ProfilePage() {
       </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} />}
+    </div>
+  )
+}
+
+function TrainingPicker({
+  label,
+  options,
+  selected,
+  accent,
+  border,
+  onSelect,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  selected: string | undefined
+  accent: string
+  border: string
+  onSelect: (v: string) => void
+}) {
+  return (
+    <div style={{ padding: '12px 0' }}>
+      <div
+        className="uppercase"
+        style={{ fontSize: 8.5, letterSpacing: '0.16em', color: '#A99E88', marginBottom: 8 }}
+      >
+        {label}
+      </div>
+      <div className="flex flex-wrap" style={{ gap: 7 }}>
+        {options.map((o) => {
+          const on = selected === o.value
+          return (
+            <button
+              key={o.value}
+              onClick={() => onSelect(o.value)}
+              style={{
+                fontSize: 11,
+                padding: '7px 13px',
+                borderRadius: 20,
+                background: on ? accent : 'transparent',
+                color: on ? '#F5EBD6' : '#6A655D',
+                border: `1px solid ${on ? 'transparent' : border}`,
+                textAlign: 'left',
+              }}
+            >
+              {o.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

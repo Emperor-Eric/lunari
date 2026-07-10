@@ -15,10 +15,22 @@ import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { router } from 'expo-router'
 import { useAuth, useUser } from '@lunari/utils'
-import { getPhaseForDay, getPhaseById, getPhaseRanges } from '@lunari/phase-data'
+import {
+  getPhaseForDay,
+  getPhaseById,
+  getPhaseRanges,
+  TRAINING_STYLE_OPTIONS,
+  TRAINING_SERIOUSNESS_OPTIONS,
+  TRAINING_DAYS_OPTIONS,
+} from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
-import type { UserReferralCode, TodayCycleResponse, NotificationPrefs } from '@lunari/types'
+import type {
+  UserReferralCode,
+  TodayCycleResponse,
+  NotificationPrefs,
+  TrainingProfile,
+} from '@lunari/types'
 import { CycleSettingsRow } from '../../src/components/CycleSettingsRow'
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001/v1'
@@ -165,6 +177,12 @@ export default function Profile() {
 
   const prefs = user?.notificationPrefs
   const notifPeriodDays = prefs?.periodApproachingDays ?? 2
+
+  // Partial training-profile change (server merges the Json column).
+  const saveTraining = (patch: Partial<TrainingProfile>) => {
+    updateUser({ trainingProfile: patch })
+  }
+  const training = user?.trainingProfile
 
   // Clear all logged period starts/ends → predictions fall back to onboarding.
   const [confirmClear, setConfirmClear] = useState(false)
@@ -405,6 +423,37 @@ export default function Profile() {
             )}
           </View>
 
+          {/* Training — personalizes the Move screen (persists via PATCH /me merge) */}
+          <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Training</Text>
+          <View
+            style={[styles.trainingGroup, { backgroundColor: t.labCard, borderColor: t.labBorder }]}
+          >
+            <TrainingPicker
+              label="Training style"
+              options={TRAINING_STYLE_OPTIONS}
+              selected={training?.style}
+              accent={t.accent}
+              border={t.labBorder}
+              onSelect={(v) => saveTraining({ style: v as TrainingProfile['style'] })}
+            />
+            <TrainingPicker
+              label="How you'd describe yourself"
+              options={TRAINING_SERIOUSNESS_OPTIONS}
+              selected={training?.seriousness}
+              accent={t.accent}
+              border={t.labBorder}
+              onSelect={(v) => saveTraining({ seriousness: v as TrainingProfile['seriousness'] })}
+            />
+            <TrainingPicker
+              label="Days a week you train"
+              options={TRAINING_DAYS_OPTIONS}
+              selected={training?.daysPerWeek}
+              accent={t.accent}
+              border={t.labBorder}
+              onSelect={(v) => saveTraining({ daysPerWeek: v as TrainingProfile['daysPerWeek'] })}
+            />
+          </View>
+
           {/* Settings */}
           <Text style={[styles.sectionLabel, styles.gap, { color: N.section }]}>Settings</Text>
           <View>
@@ -550,6 +599,50 @@ export default function Profile() {
   )
 }
 
+function TrainingPicker({
+  label,
+  options,
+  selected,
+  accent,
+  border,
+  onSelect,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  selected: string | undefined
+  accent: string
+  border: string
+  onSelect: (v: string) => void
+}) {
+  return (
+    <View style={styles.trainingRow}>
+      <Text style={[styles.trainingLabel, { color: N.section }]}>{label.toUpperCase()}</Text>
+      <View style={styles.trainingChips}>
+        {options.map((o) => {
+          const on = selected === o.value
+          return (
+            <Pressable
+              key={o.value}
+              onPress={() => onSelect(o.value)}
+              style={[
+                styles.trainingChip,
+                {
+                  backgroundColor: on ? accent : 'transparent',
+                  borderColor: on ? 'transparent' : border,
+                },
+              ]}
+            >
+              <Text style={[styles.trainingChipText, { color: on ? '#F5EBD6' : N.text }]}>
+                {o.label}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+    </View>
+  )
+}
+
 function StatCard({
   value,
   caption,
@@ -632,6 +725,19 @@ const styles = StyleSheet.create({
 
   // settings
   notifGroup: { borderRadius: 15, borderWidth: 1, paddingHorizontal: 16 },
+
+  // training group
+  trainingGroup: { borderRadius: 15, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 4 },
+  trainingRow: { paddingVertical: 12 },
+  trainingLabel: {
+    fontFamily: 'Raleway_500Medium',
+    fontSize: 8.5,
+    letterSpacing: 1.4,
+    marginBottom: 8,
+  },
+  trainingChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  trainingChip: { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  trainingChipText: { fontFamily: 'Raleway_500Medium', fontSize: 11 },
   settingsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

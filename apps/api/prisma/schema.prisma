@@ -14,6 +14,7 @@ model User {
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
   onboardedAt           DateTime? @map("onboarded_at") @db.Timestamptz
   notificationPrefs     Json      @default("{\"dailyReminder\": true, \"reminderTime\": \"08:00\"}") @map("notification_prefs")
+  trainingProfile       Json?     @map("training_profile")
   referralCode          String?   @map("referral_code")
   referralCodeAppliedAt DateTime? @map("referral_code_applied_at") @db.Timestamptz
   lastActiveAt          DateTime? @default(now()) @map("last_active_at") @db.Timestamptz

@@ -40,3 +40,12 @@ export { PHASE_EDUCATION, EDUCATION_DISCLAIMER, getEducationCard } from './educa
 export type { EducationCard, PhaseEducation } from './education'
 export { computeNotifications } from './notifications'
 export { computeRhythmNote, RHYTHM_NOTE_COPY, RHYTHM_FLAG_COPY } from './rhythm-note'
+export {
+  getMoveGuidance,
+  MOVE_OVERRIDE_COPY,
+  MOVE_SETUP_COPY,
+  TRAINING_STYLE_OPTIONS,
+  TRAINING_SERIOUSNESS_OPTIONS,
+  TRAINING_DAYS_OPTIONS,
+} from './move-content'
+export type { MoveDial, MoveGuidance, MoveResult } from './move-content'
