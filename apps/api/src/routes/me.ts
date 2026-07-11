@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { Prisma } from '@prisma/client'
-import type { NotificationPrefs, TrainingProfile } from '@lunari/types'
+import { SELECTABLE_TRAINING_STYLES } from '@lunari/phase-data'
+import type { NotificationPrefs, TrainingProfile, TrainingStyle } from '@lunari/types'
 import { sendError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
 
@@ -27,7 +28,28 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
       trainingProfile?: Partial<TrainingProfile>
     }
   }>('/me', { preHandler: [fastify.verifyAuth] }, async (request, reply) => {
-    const { name, notificationPrefs, trainingProfile } = request.body ?? {}
+    const { name, notificationPrefs } = request.body ?? {}
+    let trainingProfile = request.body?.trainingProfile
+
+    // Validate styles when provided: 1–5 distinct selectable styles ('mix' is legacy,
+    // never writable). The legacy `style` key is still accepted and stored untouched.
+    if (trainingProfile?.styles !== undefined) {
+      const raw = trainingProfile.styles
+      const valid = new Set<TrainingStyle>(SELECTABLE_TRAINING_STYLES)
+      const styles = Array.isArray(raw)
+        ? [
+            ...new Set(
+              raw.filter(
+                (s): s is TrainingStyle => typeof s === 'string' && valid.has(s as TrainingStyle)
+              )
+            ),
+          ]
+        : []
+      if (styles.length < 1 || styles.length > 5) {
+        return sendError(reply, 400, 'Pick 1–5 training styles')
+      }
+      trainingProfile = { ...trainingProfile, styles }
+    }
 
     // Merge the Json prefs into whatever is stored so a partial patch never clobbers
     // other keys (each Json column stays a superset). One read covers both.
@@ -89,6 +111,7 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
         createdAt: user.createdAt,
         onboardedAt: user.onboardedAt,
         notificationPrefs: user.notificationPrefs,
+        trainingProfile: user.trainingProfile,
         referralCode: user.referralCode,
       },
       cycle: cycle

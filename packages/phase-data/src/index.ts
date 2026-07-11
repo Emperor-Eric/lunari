@@ -42,10 +42,19 @@ export { computeNotifications } from './notifications'
 export { computeRhythmNote, RHYTHM_NOTE_COPY, RHYTHM_FLAG_COPY } from './rhythm-note'
 export {
   getMoveGuidance,
+  normalizeTrainingProfile,
   MOVE_OVERRIDE_COPY,
   MOVE_SETUP_COPY,
+  SELECTABLE_TRAINING_STYLES,
   TRAINING_STYLE_OPTIONS,
+  TRAINING_STYLE_SHORT,
   TRAINING_SERIOUSNESS_OPTIONS,
   TRAINING_DAYS_OPTIONS,
 } from './move-content'
-export type { MoveDial, MoveGuidance, MoveResult } from './move-content'
+export type {
+  MoveDial,
+  MoveSession,
+  MoveGuidance,
+  MoveResult,
+  NormalizedTrainingProfile,
+} from './move-content'

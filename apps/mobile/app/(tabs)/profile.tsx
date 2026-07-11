@@ -19,6 +19,7 @@ import {
   getPhaseForDay,
   getPhaseById,
   getPhaseRanges,
+  normalizeTrainingProfile,
   TRAINING_STYLE_OPTIONS,
   TRAINING_SERIOUSNESS_OPTIONS,
   TRAINING_DAYS_OPTIONS,
@@ -30,6 +31,7 @@ import type {
   TodayCycleResponse,
   NotificationPrefs,
   TrainingProfile,
+  TrainingStyle,
 } from '@lunari/types'
 import { CycleSettingsRow } from '../../src/components/CycleSettingsRow'
 
@@ -183,6 +185,19 @@ export default function Profile() {
     updateUser({ trainingProfile: patch })
   }
   const training = user?.trainingProfile
+  // Multi-style row: legacy { style } / { style: 'mix' } resolve via the shared normalizer.
+  // Chips read an OPTIMISTIC local copy so rapid taps never compute from a stale
+  // server-confirmed array (which silently dropped selections in a lost-update race).
+  const [localStyles, setLocalStyles] = useState<TrainingStyle[] | null>(null)
+  const trainingStyles = localStyles ?? normalizeTrainingProfile(training).styles
+  const toggleTrainingStyle = (v: string) => {
+    const s = v as TrainingStyle
+    const on = trainingStyles.includes(s)
+    if (on && trainingStyles.length === 1) return // keep at least one style
+    const next = on ? trainingStyles.filter((x) => x !== s) : [...trainingStyles, s]
+    setLocalStyles(next) // instant feedback; each tap sees the latest intent
+    updateUser({ trainingProfile: { styles: next } })
+  }
 
   // Clear all logged period starts/ends → predictions fall back to onboarding.
   const [confirmClear, setConfirmClear] = useState(false)
@@ -429,17 +444,17 @@ export default function Profile() {
             style={[styles.trainingGroup, { backgroundColor: t.labCard, borderColor: t.labBorder }]}
           >
             <TrainingPicker
-              label="Training style"
+              label="Training styles"
               options={TRAINING_STYLE_OPTIONS}
-              selected={training?.style}
+              selectedValues={trainingStyles}
               accent={t.accent}
               border={t.labBorder}
-              onSelect={(v) => saveTraining({ style: v as TrainingProfile['style'] })}
+              onSelect={toggleTrainingStyle}
             />
             <TrainingPicker
               label="How you'd describe yourself"
               options={TRAINING_SERIOUSNESS_OPTIONS}
-              selected={training?.seriousness}
+              selectedValues={training?.seriousness ? [training.seriousness] : []}
               accent={t.accent}
               border={t.labBorder}
               onSelect={(v) => saveTraining({ seriousness: v as TrainingProfile['seriousness'] })}
@@ -447,7 +462,7 @@ export default function Profile() {
             <TrainingPicker
               label="Days a week you train"
               options={TRAINING_DAYS_OPTIONS}
-              selected={training?.daysPerWeek}
+              selectedValues={training?.daysPerWeek ? [training.daysPerWeek] : []}
               accent={t.accent}
               border={t.labBorder}
               onSelect={(v) => saveTraining({ daysPerWeek: v as TrainingProfile['daysPerWeek'] })}
@@ -602,14 +617,14 @@ export default function Profile() {
 function TrainingPicker({
   label,
   options,
-  selected,
+  selectedValues,
   accent,
   border,
   onSelect,
 }: {
   label: string
   options: { value: string; label: string }[]
-  selected: string | undefined
+  selectedValues: string[]
   accent: string
   border: string
   onSelect: (v: string) => void
@@ -619,7 +634,7 @@ function TrainingPicker({
       <Text style={[styles.trainingLabel, { color: N.section }]}>{label.toUpperCase()}</Text>
       <View style={styles.trainingChips}>
         {options.map((o) => {
-          const on = selected === o.value
+          const on = selectedValues.includes(o.value)
           return (
             <Pressable
               key={o.value}

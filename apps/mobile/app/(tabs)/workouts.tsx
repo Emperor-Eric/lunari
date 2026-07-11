@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Circle } from 'react-native-svg'
 import { useAuth } from '@lunari/utils'
@@ -9,9 +10,11 @@ import {
   getPhaseById,
   phasePositionForCycleDay,
   getMoveGuidance,
+  normalizeTrainingProfile,
   MOVE_OVERRIDE_COPY,
   MOVE_SETUP_COPY,
   TRAINING_STYLE_OPTIONS,
+  TRAINING_STYLE_SHORT,
   TRAINING_SERIOUSNESS_OPTIONS,
   TRAINING_DAYS_OPTIONS,
 } from '@lunari/phase-data'
@@ -53,6 +56,10 @@ export default function Workouts() {
   const [refreshing, setRefreshing] = useState(false)
   const [override, setOverride] = useState<Override>('normal')
   const [setupOpen, setSetupOpen] = useState(false)
+  // Which of the user's styles is showing (multi-style profiles); null = first.
+  const [activeStyle, setActiveStyle] = useState<TrainingStyle | null>(null)
+  // Which session accordion is expanded — collapsed by default, one open at a time.
+  const [openSession, setOpenSession] = useState<number | null>(null)
 
   const fetchAll = useCallback(async () => {
     if (!session) return
@@ -73,6 +80,14 @@ export default function Workouts() {
   useEffect(() => {
     fetchAll()
   }, [fetchAll])
+
+  // Tabs stay mounted — re-pull on focus so training-profile edits made on the Me tab
+  // (or elsewhere) personalize this screen without a pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll()
+    }, [fetchAll])
+  )
 
   const onRefresh = () => {
     setRefreshing(true)
@@ -100,6 +115,23 @@ export default function Workouts() {
   const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
 
+  // Legacy { style } / { style: 'mix' } resolve through the shared normalizer.
+  // (Computed before the loading return so the hygiene hooks below run unconditionally.)
+  const trainingStyles = normalizeTrainingProfile(user?.trainingProfile).styles
+  const active =
+    activeStyle && trainingStyles.includes(activeStyle) ? activeStyle : (trainingStyles[0] ?? null)
+
+  // State hygiene: collapse the accordions whenever the rendered session list changes
+  // for ANY reason (style switch, phase rollover, profile edits), and drop a remembered
+  // style once it leaves the profile so it can't silently reclaim the view later.
+  const stylesKey = trainingStyles.join(',')
+  useEffect(() => {
+    setOpenSession(null)
+  }, [active, phase.id])
+  useEffect(() => {
+    if (activeStyle && !stylesKey.split(',').includes(activeStyle)) setActiveStyle(null)
+  }, [stylesKey, activeStyle])
+
   if (loading) return <LoadingSpinner phaseColor={t.accent} />
 
   const accent = t.accent
@@ -108,8 +140,7 @@ export default function Workouts() {
     cycleData?.cycleLength ?? 28,
     cycleData?.periodLength ?? 5
   ).half
-  const style = user?.trainingProfile?.style ?? null
-  const move = getMoveGuidance(style, phase.id, half)
+  const move = getMoveGuidance(active, phase.id, half)
 
   const displayBars = override === 'low' ? Math.max(1, move.dial.bars - 1) : move.dial.bars
   const overrideResponse =
@@ -230,6 +261,35 @@ export default function Workouts() {
           {/* guidance OR "make this yours" prompt */}
           {move.guidance ? (
             <>
+              {/* style switcher — only when the profile has 2+ styles */}
+              {trainingStyles.length >= 2 && (
+                <View style={[styles.chips, { marginTop: 22 }]}>
+                  {trainingStyles.map((s) => {
+                    const on = s === active
+                    return (
+                      <Pressable
+                        key={s}
+                        onPress={() => {
+                          setActiveStyle(s)
+                          setOpenSession(null)
+                        }}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: on ? accent : 'transparent',
+                            borderColor: on ? 'transparent' : t.labBorder,
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.chipText, { color: on ? '#F5EBD6' : N.text }]}>
+                          {TRAINING_STYLE_SHORT[s]}
+                        </Text>
+                      </Pressable>
+                    )
+                  })}
+                </View>
+              )}
+
               <Text style={[styles.sectionLabel, { color: N.section }]}>For you today</Text>
               <View style={cardStyle}>
                 <Text style={[styles.guidanceHead, { color: N.title }]}>
@@ -242,16 +302,47 @@ export default function Workouts() {
               <View>
                 {move.guidance.sessions.map((s, i) => {
                   const last = i === move.guidance!.sessions.length - 1
+                  const expandable = Boolean(s.how || s.tip)
+                  const open = openSession === i
                   return (
                     <View
-                      key={s}
+                      key={s.name}
                       style={[
                         styles.session,
                         { borderBottomColor: t.labBorder, borderBottomWidth: last ? 0 : 1 },
                       ]}
                     >
-                      <View style={[styles.sessionDot, { backgroundColor: accent }]} />
-                      <Text style={[styles.sessionName, { color: N.title }]}>{s}</Text>
+                      <Pressable
+                        onPress={expandable ? () => setOpenSession(open ? null : i) : undefined}
+                        disabled={!expandable}
+                        style={styles.sessionHead}
+                      >
+                        <View style={[styles.sessionDot, { backgroundColor: accent }]} />
+                        <Text style={[styles.sessionName, { color: N.title }]}>{s.name}</Text>
+                        {expandable && (
+                          <Text
+                            style={[
+                              styles.sessionChev,
+                              { color: accent, transform: [{ rotate: open ? '90deg' : '0deg' }] },
+                            ]}
+                          >
+                            ›
+                          </Text>
+                        )}
+                      </Pressable>
+                      {open && (
+                        <View style={styles.sessionDetail}>
+                          {s.how && (
+                            <Text style={[styles.sessionHow, { color: N.text }]}>{s.how}</Text>
+                          )}
+                          {s.tip && (
+                            <>
+                              <Text style={[styles.sessionTipLabel, { color: accent }]}>TIP</Text>
+                              <Text style={[styles.sessionTip, { color: N.text }]}>{s.tip}</Text>
+                            </>
+                          )}
+                        </View>
+                      )}
                     </View>
                   )
                 })}
@@ -298,9 +389,14 @@ function TrainingSetup({
   onSave: (p: Partial<TrainingProfile>) => void | Promise<void>
   onSkip: () => void
 }) {
-  const [style, setStyle] = useState<TrainingStyle | undefined>()
+  const [selStyles, setSelStyles] = useState<TrainingStyle[]>([])
   const [seriousness, setSeriousness] = useState<TrainingSeriousness | undefined>()
   const [days, setDays] = useState<TrainingDaysPerWeek | undefined>()
+
+  const toggleStyle = (v: string) => {
+    const s = v as TrainingStyle
+    setSelStyles((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+  }
 
   return (
     <View
@@ -312,35 +408,38 @@ function TrainingSetup({
       <ChipRow
         t={t}
         options={TRAINING_STYLE_OPTIONS}
-        selected={style}
-        onSelect={(v) => setStyle(v as TrainingStyle)}
+        selectedValues={selStyles}
+        onSelect={toggleStyle}
       />
       <Text style={[styles.q, { color: N.title }]}>{MOVE_SETUP_COPY.q2}</Text>
       <ChipRow
         t={t}
         options={TRAINING_SERIOUSNESS_OPTIONS}
-        selected={seriousness}
+        selectedValues={seriousness ? [seriousness] : []}
         onSelect={(v) => setSeriousness(v as TrainingSeriousness)}
       />
       <Text style={[styles.q, { color: N.title }]}>{MOVE_SETUP_COPY.q3}</Text>
       <ChipRow
         t={t}
         options={TRAINING_DAYS_OPTIONS}
-        selected={days}
+        selectedValues={days ? [days] : []}
         onSelect={(v) => setDays(v as TrainingDaysPerWeek)}
       />
 
       <View style={styles.setupActions}>
         <Pressable
-          disabled={!style}
+          disabled={selStyles.length < 1}
           onPress={() =>
             onSave({
-              ...(style && { style }),
+              styles: selStyles,
               ...(seriousness && { seriousness }),
               ...(days && { daysPerWeek: days }),
             })
           }
-          style={[styles.primaryBtn, { backgroundColor: t.accent, opacity: style ? 1 : 0.45 }]}
+          style={[
+            styles.primaryBtn,
+            { backgroundColor: t.accent, opacity: selStyles.length >= 1 ? 1 : 0.45 },
+          ]}
         >
           <Text style={styles.primaryBtnText}>Save</Text>
         </Pressable>
@@ -355,18 +454,18 @@ function TrainingSetup({
 function ChipRow({
   t,
   options,
-  selected,
+  selectedValues,
   onSelect,
 }: {
   t: Theme
   options: { value: string; label: string }[]
-  selected: string | undefined
+  selectedValues: string[]
   onSelect: (v: string) => void
 }) {
   return (
     <View style={styles.chips}>
       {options.map((o) => {
-        const on = selected === o.value
+        const on = selectedValues.includes(o.value)
         return (
           <Pressable
             key={o.value}
@@ -446,16 +545,22 @@ const styles = StyleSheet.create({
   guidanceHead: { fontFamily: 'Marcellus_400Regular', fontSize: 19 },
   guidanceBody: { fontFamily: 'Raleway_300Light', fontSize: 11.5, lineHeight: 18, marginTop: 6 },
 
-  // sessions
-  session: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingBottom: 14,
-    marginBottom: 14,
-  },
+  // sessions (accordion rows — collapsed by default)
+  session: { paddingBottom: 14, marginBottom: 14 },
+  sessionHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sessionDot: { width: 6, height: 6, borderRadius: 999 },
   sessionName: { fontFamily: 'Marcellus_400Regular', fontSize: 15.5, flex: 1 },
+  sessionChev: { fontFamily: 'Raleway_600SemiBold', fontSize: 13 },
+  sessionDetail: { marginTop: 10, paddingLeft: 18 },
+  sessionHow: { fontFamily: 'Raleway_300Light', fontSize: 11.5, lineHeight: 18 },
+  sessionTipLabel: {
+    fontFamily: 'Raleway_600SemiBold',
+    fontSize: 8.5,
+    letterSpacing: 1.5,
+    marginTop: 8,
+    marginBottom: 3,
+  },
+  sessionTip: { fontFamily: 'Raleway_300Light', fontSize: 11, lineHeight: 17 },
 
   // prompt + setup
   promptHead: { fontFamily: 'Marcellus_400Regular', fontSize: 18 },

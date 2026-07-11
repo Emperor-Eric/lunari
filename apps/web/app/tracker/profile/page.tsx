@@ -6,13 +6,20 @@ import {
   getPhaseForDay,
   getPhaseById,
   getPhaseRanges,
+  normalizeTrainingProfile,
   TRAINING_STYLE_OPTIONS,
   TRAINING_SERIOUSNESS_OPTIONS,
   TRAINING_DAYS_OPTIONS,
 } from '@lunari/phase-data'
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import { Toast } from '@lunari/ui'
-import type { User, UserReferralCode, NotificationPrefs, TrainingProfile } from '@lunari/types'
+import type {
+  User,
+  UserReferralCode,
+  NotificationPrefs,
+  TrainingProfile,
+  TrainingStyle,
+} from '@lunari/types'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/src/lib/api'
 import { useCycleContext } from '../cycle-context'
 import { CycleSettingsRow } from '../_components/CycleSettingsRow'
@@ -124,6 +131,24 @@ export default function ProfilePage() {
     }
   }
   const training = user?.trainingProfile
+  // Multi-style row: legacy { style } / { style: 'mix' } resolve via the shared normalizer.
+  // Chips read an OPTIMISTIC local copy so rapid taps never compute from a stale
+  // server-confirmed array (which silently dropped selections in a lost-update race).
+  const [localStyles, setLocalStyles] = useState<TrainingStyle[] | null>(null)
+  const trainingStyles = localStyles ?? normalizeTrainingProfile(training).styles
+  const toggleTrainingStyle = async (v: string) => {
+    const s = v as TrainingStyle
+    const on = trainingStyles.includes(s)
+    if (on && trainingStyles.length === 1) return // keep at least one style
+    const next = on ? trainingStyles.filter((x) => x !== s) : [...trainingStyles, s]
+    setLocalStyles(next) // instant feedback; each tap sees the latest intent
+    try {
+      const updated = await apiPatch<User>('/me', { trainingProfile: { styles: next } })
+      setUser(updated)
+    } catch {
+      setLocalStyles(null) // revert to server truth
+    }
+  }
 
   // Clear all logged period starts/ends → predictions fall back to onboarding.
   const [confirmClear, setConfirmClear] = useState(false)
@@ -384,17 +409,17 @@ export default function ProfilePage() {
           }}
         >
           <TrainingPicker
-            label="Training style"
+            label="Training styles"
             options={TRAINING_STYLE_OPTIONS}
-            selected={training?.style}
+            selectedValues={trainingStyles}
             accent={t.accent}
             border={t.labBorder}
-            onSelect={(v) => saveTraining({ style: v as TrainingProfile['style'] })}
+            onSelect={toggleTrainingStyle}
           />
           <TrainingPicker
             label="How you'd describe yourself"
             options={TRAINING_SERIOUSNESS_OPTIONS}
-            selected={training?.seriousness}
+            selectedValues={training?.seriousness ? [training.seriousness] : []}
             accent={t.accent}
             border={t.labBorder}
             onSelect={(v) => saveTraining({ seriousness: v as TrainingProfile['seriousness'] })}
@@ -402,7 +427,7 @@ export default function ProfilePage() {
           <TrainingPicker
             label="Days a week you train"
             options={TRAINING_DAYS_OPTIONS}
-            selected={training?.daysPerWeek}
+            selectedValues={training?.daysPerWeek ? [training.daysPerWeek] : []}
             accent={t.accent}
             border={t.labBorder}
             onSelect={(v) => saveTraining({ daysPerWeek: v as TrainingProfile['daysPerWeek'] })}
@@ -621,14 +646,14 @@ export default function ProfilePage() {
 function TrainingPicker({
   label,
   options,
-  selected,
+  selectedValues,
   accent,
   border,
   onSelect,
 }: {
   label: string
   options: { value: string; label: string }[]
-  selected: string | undefined
+  selectedValues: string[]
   accent: string
   border: string
   onSelect: (v: string) => void
@@ -643,7 +668,7 @@ function TrainingPicker({
       </div>
       <div className="flex flex-wrap" style={{ gap: 7 }}>
         {options.map((o) => {
-          const on = selected === o.value
+          const on = selectedValues.includes(o.value)
           return (
             <button
               key={o.value}

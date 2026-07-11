@@ -5,9 +5,11 @@ import {
   getPhaseById,
   phasePositionForCycleDay,
   getMoveGuidance,
+  normalizeTrainingProfile,
   MOVE_OVERRIDE_COPY,
   MOVE_SETUP_COPY,
   TRAINING_STYLE_OPTIONS,
+  TRAINING_STYLE_SHORT,
   TRAINING_SERIOUSNESS_OPTIONS,
   TRAINING_DAYS_OPTIONS,
 } from '@lunari/phase-data'
@@ -43,6 +45,10 @@ export default function WorkoutsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [override, setOverride] = useState<Override>('normal')
   const [setupOpen, setSetupOpen] = useState(false)
+  // Which of the user's styles is showing (multi-style profiles); null = first.
+  const [activeStyle, setActiveStyle] = useState<TrainingStyle | null>(null)
+  // Which session accordion is expanded — collapsed by default, one open at a time.
+  const [openSession, setOpenSession] = useState<number | null>(null)
 
   useEffect(() => {
     apiGet<User>('/me')
@@ -56,8 +62,21 @@ export default function WorkoutsPage() {
     cycleData?.cycleLength ?? 28,
     cycleData?.periodLength ?? 5
   ).half
-  const style = user?.trainingProfile?.style ?? null
-  const move = getMoveGuidance(style, phase.id, half)
+  // Legacy { style } / { style: 'mix' } resolve through the shared normalizer.
+  const styles = normalizeTrainingProfile(user?.trainingProfile).styles
+  const active = activeStyle && styles.includes(activeStyle) ? activeStyle : (styles[0] ?? null)
+  const move = getMoveGuidance(active, phase.id, half)
+
+  // State hygiene: collapse the accordions whenever the rendered session list changes
+  // for ANY reason (style switch, phase rollover, profile edits), and drop a remembered
+  // style once it leaves the profile so it can't silently reclaim the view later.
+  const stylesKey = styles.join(',')
+  useEffect(() => {
+    setOpenSession(null)
+  }, [active, phase.id])
+  useEffect(() => {
+    if (activeStyle && !stylesKey.split(',').includes(activeStyle)) setActiveStyle(null)
+  }, [stylesKey, activeStyle])
 
   // "How she feels today" overrides the phase: low energy drops the dial one level.
   const displayBars = override === 'low' ? Math.max(1, move.dial.bars - 1) : move.dial.bars
@@ -236,6 +255,35 @@ export default function WorkoutsPage() {
         {/* guidance OR "make this yours" prompt */}
         {move.guidance ? (
           <>
+            {/* style switcher — only when the profile has 2+ styles */}
+            {styles.length >= 2 && (
+              <div className="flex flex-wrap" style={{ gap: 7, marginTop: 22 }}>
+                {styles.map((s) => {
+                  const on = s === active
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setActiveStyle(s)
+                        setOpenSession(null)
+                      }}
+                      style={{
+                        fontSize: 11,
+                        padding: '7px 15px',
+                        borderRadius: 20,
+                        background: on ? accent : 'transparent',
+                        color: on ? '#F5EBD6' : N.text,
+                        border: `1px solid ${on ? 'transparent' : t.labBorder}`,
+                        fontWeight: on ? 600 : 400,
+                      }}
+                    >
+                      {TRAINING_STYLE_SHORT[s]}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
             <div className="uppercase" style={sectionLabel}>
               For you today
             </div>
@@ -262,28 +310,97 @@ export default function WorkoutsPage() {
             <div className="flex flex-col" style={{ gap: 14 }}>
               {move.guidance.sessions.map((s, i) => {
                 const last = i === move.guidance!.sessions.length - 1
+                const expandable = Boolean(s.how || s.tip)
+                const open = openSession === i
                 return (
                   <div
-                    key={s}
-                    className="flex items-center"
+                    key={s.name}
                     style={{
-                      gap: 12,
                       paddingBottom: 14,
                       borderBottom: last ? 'none' : `1px solid ${t.labBorder}`,
                     }}
                   >
-                    <span
+                    <button
+                      type="button"
+                      onClick={expandable ? () => setOpenSession(open ? null : i) : undefined}
+                      className="flex items-center w-full"
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 999,
-                        background: accent,
-                        flexShrink: 0,
+                        gap: 12,
+                        textAlign: 'left',
+                        cursor: expandable ? 'pointer' : 'default',
+                        background: 'transparent',
                       }}
-                    />
-                    <div className="font-display" style={{ fontSize: 15.5, color: N.title }}>
-                      {s}
-                    </div>
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 999,
+                          background: accent,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        className="font-display"
+                        style={{ fontSize: 15.5, color: N.title, flex: 1 }}
+                      >
+                        {s.name}
+                      </span>
+                      {expandable && (
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: accent,
+                            transform: open ? 'rotate(90deg)' : 'none',
+                            transition: 'transform 0.15s',
+                          }}
+                        >
+                          ›
+                        </span>
+                      )}
+                    </button>
+                    {open && (
+                      <div style={{ marginTop: 10, paddingLeft: 18 }}>
+                        {s.how && (
+                          <div
+                            style={{
+                              fontSize: 11.5,
+                              color: N.text,
+                              fontWeight: 300,
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {s.how}
+                          </div>
+                        )}
+                        {s.tip && (
+                          <div style={{ marginTop: 8 }}>
+                            <div
+                              className="uppercase"
+                              style={{
+                                fontSize: 8.5,
+                                letterSpacing: '0.18em',
+                                color: accent,
+                                fontWeight: 600,
+                                marginBottom: 3,
+                              }}
+                            >
+                              Tip
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: N.text,
+                                fontWeight: 300,
+                                lineHeight: 1.55,
+                              }}
+                            >
+                              {s.tip}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -345,9 +462,14 @@ function TrainingSetup({
   onSave: (p: Partial<TrainingProfile>) => void | Promise<void>
   onSkip: () => void
 }) {
-  const [style, setStyle] = useState<TrainingStyle | undefined>()
+  const [selStyles, setSelStyles] = useState<TrainingStyle[]>([])
   const [seriousness, setSeriousness] = useState<TrainingSeriousness | undefined>()
   const [days, setDays] = useState<TrainingDaysPerWeek | undefined>()
+
+  const toggleStyle = (v: string) => {
+    const s = v as TrainingStyle
+    setSelStyles((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+  }
 
   const q: React.CSSProperties = {
     fontSize: 12,
@@ -374,21 +496,21 @@ function TrainingSetup({
       <ChipRow
         t={t}
         options={TRAINING_STYLE_OPTIONS}
-        selected={style}
-        onSelect={(v) => setStyle(v as TrainingStyle)}
+        selectedValues={selStyles}
+        onSelect={toggleStyle}
       />
       <div style={q}>{MOVE_SETUP_COPY.q2}</div>
       <ChipRow
         t={t}
         options={TRAINING_SERIOUSNESS_OPTIONS}
-        selected={seriousness}
+        selectedValues={seriousness ? [seriousness] : []}
         onSelect={(v) => setSeriousness(v as TrainingSeriousness)}
       />
       <div style={q}>{MOVE_SETUP_COPY.q3}</div>
       <ChipRow
         t={t}
         options={TRAINING_DAYS_OPTIONS}
-        selected={days}
+        selectedValues={days ? [days] : []}
         onSelect={(v) => setDays(v as TrainingDaysPerWeek)}
       />
 
@@ -396,12 +518,12 @@ function TrainingSetup({
         <button
           onClick={() =>
             onSave({
-              ...(style && { style }),
+              styles: selStyles,
               ...(seriousness && { seriousness }),
               ...(days && { daysPerWeek: days }),
             })
           }
-          disabled={!style}
+          disabled={selStyles.length < 1}
           style={{
             fontSize: 11,
             fontWeight: 600,
@@ -409,7 +531,7 @@ function TrainingSetup({
             borderRadius: 11,
             background: t.accent,
             color: '#F5EBD6',
-            opacity: style ? 1 : 0.45,
+            opacity: selStyles.length >= 1 ? 1 : 0.45,
           }}
         >
           Save
@@ -425,18 +547,18 @@ function TrainingSetup({
 function ChipRow({
   t,
   options,
-  selected,
+  selectedValues,
   onSelect,
 }: {
   t: (typeof phaseTheme)[keyof typeof phaseTheme]
   options: { value: string; label: string }[]
-  selected: string | undefined
+  selectedValues: string[]
   onSelect: (v: string) => void
 }) {
   return (
     <div className="flex flex-wrap" style={{ gap: 7 }}>
       {options.map((o) => {
-        const on = selected === o.value
+        const on = selectedValues.includes(o.value)
         return (
           <button
             key={o.value}

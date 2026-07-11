@@ -81,13 +81,17 @@ export interface RhythmNote {
 
 // ─── Training profile (personalizes the Move screen) ──────────────────────────
 
+// 'mix' is a legacy value only — no picker offers it anymore (kept for stored profiles).
 export type TrainingStyle = 'strength' | 'running' | 'classes' | 'hybrid' | 'sport' | 'mix'
 export type TrainingSeriousness = 'casual' | 'consistent' | 'serious' | 'competitive'
 export type TrainingDaysPerWeek = '1-2' | '3-4' | '5-6' | '7'
 
 // All optional — the Move screen falls back to general phase content when unset.
+// Read via normalizeTrainingProfile (phase-data), which resolves the legacy `style`
+// field: { style: 'x' } → { styles: ['x'] }; { style: 'mix' } → no styles set.
 export interface TrainingProfile {
-  style?: TrainingStyle
+  styles?: TrainingStyle[]
+  style?: TrainingStyle // legacy single-style field — never written by new clients
   seriousness?: TrainingSeriousness
   daysPerWeek?: TrainingDaysPerWeek
 }
