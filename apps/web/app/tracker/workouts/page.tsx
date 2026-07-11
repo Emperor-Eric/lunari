@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import {
   getPhaseForDay,
   getPhaseById,
+  getCyclePrediction,
   phasePositionForCycleDay,
   getMoveGuidance,
   normalizeTrainingProfile,
@@ -16,13 +17,13 @@ import {
 import { phases as phaseTheme, phaseKeyFor } from '@lunari/design-tokens'
 import type {
   User,
+  CycleSettings,
   TrainingProfile,
   TrainingStyle,
   TrainingSeriousness,
   TrainingDaysPerWeek,
 } from '@lunari/types'
 import { apiGet, apiPatch } from '@/src/lib/api'
-import { useCycleContext } from '../cycle-context'
 
 // Fixed Lab neutrals — phase-independent (labBg is light on all four phases).
 const N = {
@@ -36,9 +37,15 @@ const N = {
 type Override = 'strong' | 'normal' | 'low'
 
 export default function WorkoutsPage() {
-  const { cycleData } = useCycleContext()
-  const day = cycleData?.day ?? 1
-  const phase = cycleData ? getPhaseById(cycleData.phase) : getPhaseForDay(1)
+  // Phase comes from the SAME reliable source Today uses: the effective cycle from
+  // GET /me/cycle plus the shared client-side prediction, fetched fresh per visit.
+  // (Move previously read the tracker layout's cycle context, whose single
+  // /me/cycle/today fetch at layout mount could fail silently — leaving this screen
+  // stuck on the menstrual fallback while Today, fetching for itself, was correct.)
+  const [settings, setSettings] = useState<CycleSettings | null>(null)
+  const prediction = settings ? getCyclePrediction(settings) : null
+  const day = prediction?.currentDay ?? 1
+  const phase = prediction ? getPhaseById(prediction.currentPhase) : getPhaseForDay(1)
   const t = phaseTheme[phaseKeyFor(phase.id)]
   const accent = t.accent
 
@@ -51,16 +58,21 @@ export default function WorkoutsPage() {
   const [openSession, setOpenSession] = useState<number | null>(null)
 
   useEffect(() => {
+    apiGet<CycleSettings>('/me/cycle')
+      .then(setSettings)
+      .catch((err) =>
+        console.error('Move: failed to load /me/cycle — showing the default phase', err)
+      )
     apiGet<User>('/me')
       .then(setUser)
-      .catch(() => {})
+      .catch((err) => console.error('Move: failed to load /me — training profile unavailable', err))
   }, [])
 
   // Luteal early/late (and every other phase) via the shared phase-half helper.
   const half = phasePositionForCycleDay(
     day,
-    cycleData?.cycleLength ?? 28,
-    cycleData?.periodLength ?? 5
+    settings?.cycleLength ?? 28,
+    settings?.periodLength ?? 5
   ).half
   // Legacy { style } / { style: 'mix' } resolve through the shared normalizer.
   const styles = normalizeTrainingProfile(user?.trainingProfile).styles

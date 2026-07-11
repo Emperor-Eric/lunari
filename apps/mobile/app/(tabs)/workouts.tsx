@@ -65,12 +65,26 @@ export default function Workouts() {
     if (!session) return
     const headers = { Authorization: `Bearer ${session.access_token}` }
     try {
+      // Same phase source as the Today tab (/me/cycle/today). Failures log LOUDLY —
+      // a silently-null cycle here left Move stuck on the menstrual fallback.
       const [c, u] = await Promise.all([
-        fetch(`${API_URL}/me/cycle/today`, { headers }).then((r) => (r.ok ? r.json() : null)),
-        fetch(`${API_URL}/me`, { headers }).then((r) => (r.ok ? r.json() : null)),
+        fetch(`${API_URL}/me/cycle/today`, { headers }).then((r) => {
+          if (r.ok) return r.json()
+          console.error(
+            `Move: GET /me/cycle/today failed (${r.status}) — showing the default phase`
+          )
+          return null
+        }),
+        fetch(`${API_URL}/me`, { headers }).then((r) => {
+          if (r.ok) return r.json()
+          console.error(`Move: GET /me failed (${r.status}) — training profile unavailable`)
+          return null
+        }),
       ])
       if (c) setCycleData(c)
       if (u) setUser(u)
+    } catch (err) {
+      console.error('Move: network error loading cycle/profile — showing the default phase', err)
     } finally {
       setLoading(false)
       setRefreshing(false)

@@ -35,17 +35,27 @@ export default function TrackerLayout({ children }: { children: React.ReactNode 
   // Exposed via context as `refresh` so editing cycle settings recalibrates live.
   const refresh = useCallback(() => {
     apiFetch('/me/cycle/today')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        // No cycle set yet → the user hasn't finished onboarding
-        if (!data) {
+      .then(async (r) => {
+        // Only a true 404 means "no cycle yet" → onboarding. A 401/500/etc. must NOT
+        // bounce an onboarded user there, and must not fail silently: consumers of this
+        // context fall back to the default (menstrual) phase until refresh succeeds.
+        if (r.status === 404) {
           router.replace('/onboarding')
           return
         }
-        setCycleData(data)
+        if (!r.ok) {
+          console.error(
+            `tracker layout: GET /me/cycle/today failed (${r.status}) — context consumers show the default phase until refresh`
+          )
+          return
+        }
+        setCycleData(await r.json())
       })
-      .catch(() => {
-        /* network error — leave cycleData null, page shows default phase */
+      .catch((err) => {
+        console.error(
+          'tracker layout: GET /me/cycle/today network error — context consumers show the default phase until refresh',
+          err
+        )
       })
   }, [router])
 
